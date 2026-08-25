@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hollow Creek - Lobby (test build)</title>
+<style>
+  body{font-family:-apple-system,Segoe UI,Roboto,sans-serif; background:#15120F; color:#E8DFC7; max-width:480px; margin:40px auto; padding:0 16px;}
+  h1{font-size:22px; margin-bottom:4px;}
+  p.sub{color:#B0A588; font-size:13px; margin-top:0;}
+  input{width:100%; padding:8px 10px; margin:6px 0 14px; background:#2A231C; border:1px solid #555; border-radius:4px; color:#E8DFC7; font-size:14px; box-sizing:border-box;}
+  button{padding:9px 16px; background:#B8502A; color:#fff; border:none; border-radius:4px; cursor:pointer; font-size:14px; margin-right:8px;}
+  button:hover{background:#7A331A;}
+  button:disabled{opacity:0.5; cursor:default;}
+  .panel{background:#211B16; border:1px solid #444; border-radius:8px; padding:18px; margin-top:16px;}
+  .roomcode{font-size:32px; letter-spacing:6px; font-weight:bold; color:#D9A441; text-align:center; margin:10px 0;}
+  ul{list-style:none; padding:0; margin:10px 0 0;}
+  li{padding:8px 10px; border-bottom:1px solid #333; display:flex; justify-content:space-between;}
+  li:last-child{border-bottom:none;}
+  .host-tag{color:#D9A441; font-size:11px; text-transform:uppercase;}
+  .status{color:#B0A588; font-size:13px; margin-top:10px;}
+  .error{color:#C1544B;}
+  #hide-until-connected{display:none;}
+</style>
+</head>
+<body>
+
+<h1>Hollow Creek</h1>
+<p class="sub">multiplayer lobby - bare-bones test build, no game yet</p>
+
+<div id="setup-panel">
+  <label>Your name</label>
+  <input type="text" id="name-input" placeholder="e.g. BluffinPuffin" maxlength="20">
+
+  <button id="create-btn">Create a room</button>
+
+  <div style="margin-top:20px;">
+    <label>Or join with a code</label>
+    <input type="text" id="join-code-input" placeholder="ABCD" maxlength="4" style="text-transform:uppercase;">
+    <button id="join-btn">Join room</button>
+  </div>
+
+  <p class="status" id="status-msg"></p>
+</div>
+
+<div class="panel" id="room-panel" style="display:none;">
+  <p class="status">Room code - share this with others</p>
+  <div class="roomcode" id="room-code-display"></div>
+  <p class="status" id="you-are"></p>
+  <ul id="player-list"></ul>
+  <button id="leave-btn" style="margin-top:14px;">Leave room</button>
+</div>
+
+<script>
+var ws = null;
+var myPlayerId = null;
+var myRoomCode = null;
+
+function connect() {
+  var protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  ws = new WebSocket(protocol + '//' + location.host);
+
+  ws.addEventListener('open', function () {
+    setStatus('Connected to server.');
+  });
+
+  ws.addEventListener('message', function (event) {
+    var msg = JSON.parse(event.data);
+
+    if (msg.type === 'created' || msg.type === 'joined') {
+      myPlayerId = msg.playerId;
+      myRoomCode = msg.roomCode;
+      showRoomPanel();
+    } else if (msg.type === 'roster') {
+      renderRoster(msg.players);
+    } else if (msg.type === 'error') {
+      setStatus(msg.message, true);
+    }
+  });
+
+  ws.addEventListener('close', function () {
+    setStatus('Disconnected from server. Refresh to reconnect.', true);
+  });
+}
+
+function setStatus(text, isError) {
+  var el = document.getElementById('status-msg');
+  el.textContent = text;
+  el.className = isError ? 'status error' : 'status';
+}
+
+function showRoomPanel() {
+  document.getElementById('setup-panel').style.display = 'none';
+  document.getElementById('room-panel').style.display = 'block';
+  document.getElementById('room-code-display').textContent = myRoomCode;
+}
+
+function renderRoster(players) {
+  var list = document.getElementById('player-list');
+  list.innerHTML = '';
+  players.forEach(function (p) {
+    var li = document.createElement('li');
+    li.innerHTML = '<span>' + p.name + (p.id === myPlayerId ? ' (you)' : '') + '</span>' +
+      (p.isHost ? '<span class="host-tag">host</span>' : '');
+    list.appendChild(li);
+  });
+  document.getElementById('you-are').textContent = players.length + ' player' + (players.length === 1 ? '' : 's') + ' in this room';
+}
+
+document.getElementById('create-btn').addEventListener('click', function () {
+  var name = document.getElementById('name-input').value.trim();
+  if (!name) { setStatus('Enter a name first.', true); return; }
+  if (!ws || ws.readyState !== WebSocket.OPEN) { setStatus('Still connecting, try again in a second.', true); return; }
+  ws.send(JSON.stringify({ type: 'create', name: name }));
+});
+
+document.getElementById('join-btn').addEventListener('click', function () {
+  var name = document.getElementById('name-input').value.trim();
+  var code = document.getElementById('join-code-input').value.trim().toUpperCase();
+  if (!name) { setStatus('Enter a name first.', true); return; }
+  if (!code) { setStatus('Enter a room code.', true); return; }
+  if (!ws || ws.readyState !== WebSocket.OPEN) { setStatus('Still connecting, try again in a second.', true); return; }
+  ws.send(JSON.stringify({ type: 'join', name: name, roomCode: code }));
+});
+
+document.getElementById('leave-btn').addEventListener('click', function () {
+  if (ws) ws.send(JSON.stringify({ type: 'leave' }));
+  document.getElementById('room-panel').style.display = 'none';
+  document.getElementById('setup-panel').style.display = 'block';
+  myPlayerId = null;
+  myRoomCode = null;
+});
+
+connect();
+</script>
+
+</body>
+</html>
