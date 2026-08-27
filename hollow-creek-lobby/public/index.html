@@ -367,24 +367,32 @@ h2.sec{font-family:var(--font-type); font-size:12px; letter-spacing:2px; text-tr
 .portrait-frame .photo-img{width:100%; height:100%; object-fit:cover; display:block; border-radius:2px; filter:grayscale(35%) sepia(12%);}
 .portrait-frame .frame-overlay{position:absolute; inset:0; width:100%; height:100%; pointer-events:none;}
 .deceased-stamp{font-family:var(--font-type); font-size:11px; letter-spacing:1px; padding:2px 8px; border-radius:3px; background:rgba(193,84,75,0.15); color:var(--danger); border:1px solid var(--danger);}
-.chatline{display:flex; gap:10px; padding:8px 4px; border-bottom:1px solid var(--line); font-size:13px; cursor:pointer; border-radius:4px;}
+.chatline{display:flex; align-items:flex-start; flex-wrap:wrap; gap:4px 10px; padding:12px 4px; margin-bottom:4px; border-bottom:1px solid var(--line); font-size:13px; cursor:pointer; border-radius:4px;}
 .chatline.chatline-you{cursor:default; background:rgba(217,164,65,0.06); border-left:2px solid var(--lantern); padding-left:8px;}
 .chatline.chatline-mafia{cursor:default; background:rgba(193,84,75,0.06); border-left:2px solid var(--danger); padding-left:8px;}
 .chatline:hover{background:var(--panel-2);}
 .chatline:last-child{border-bottom:none; animation:chatLineIn .4s ease;}
 @keyframes chatLineIn{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);}}
 .chatline .who{font-family:var(--font-type); font-size:11px; letter-spacing:0.5px; color:var(--lantern); min-width:120px; flex-shrink:0;}
-.chatline .line{color:var(--parchment-dim); font-style:italic;}
+.chatline .line{color:var(--parchment-dim); font-style:italic; flex:1 1 160px; min-width:0; overflow-wrap:anywhere; word-break:break-word;}
 .chatline .hint{margin-left:auto; font-family:var(--font-type); font-size:10px; color:var(--parchment-dim); opacity:0; flex-shrink:0;}
 .chatline:hover .hint{opacity:1;}
 .chatline .accusation-tag{margin-left:8px; font-family:var(--font-type); font-size:10px; letter-spacing:0.5px; color:var(--danger); flex-shrink:0;}
+.chatline-reply-quote{flex-basis:100%; background:rgba(0,0,0,0.18); border-left:2px solid var(--gold-dim); padding:4px 8px; margin:0 0 0 32px; font-family:var(--font-type); font-size:10.5px; color:var(--parchment-dim); border-radius:3px;}
+.chatline-reply-btn{font-family:var(--font-type); font-size:10px; letter-spacing:0.5px; background:none; border:none; color:var(--parchment-dim); opacity:0; cursor:pointer; padding:0; flex-shrink:0; transition:opacity .15s ease, color .15s ease;}
+.chatline:hover .chatline-reply-btn{opacity:1;}
+.chatline-reply-btn:hover{color:var(--lantern);}
 .spinner{font-family:var(--font-type); font-size:12px; color:var(--parchment-dim); letter-spacing:1px;}
 .day-layout{display:flex; gap:20px; align-items:flex-start;}
 .day-main{flex:1 1 60%; min-width:0;}
 .day-chat-sidebar{flex:0 0 40%; max-width:40%; min-width:0; background:var(--panel-2); border:1px solid var(--line); border-radius:8px; padding:14px; display:flex; flex-direction:column; max-height:calc(100vh - 220px); position:sticky; top:20px;}
+.day-chat-sidebar .discussion-wrap{flex:1; min-height:0; position:relative; display:flex;}
 .day-chat-sidebar #discussion{flex:1; overflow-y:auto; min-height:0;}
 .day-chat-sidebar .chatline .who{min-width:0; flex-shrink:1;}
 .day-chat-sidebar #chat-input-row{flex-shrink:0;}
+.chat-jump-btn{position:absolute; left:50%; bottom:10px; transform:translateX(-50%); z-index:5; background:var(--lantern); color:var(--ink); border:none; border-radius:16px; padding:6px 14px; font-family:var(--font-type); font-size:11px; font-weight:700; letter-spacing:0.5px; box-shadow:0 4px 14px rgba(0,0,0,0.4); cursor:pointer; animation:chatJumpIn .2s ease;}
+.chat-jump-btn:hover{filter:brightness(1.1);}
+@keyframes chatJumpIn{from{opacity:0; transform:translateX(-50%) translateY(6px);} to{opacity:1; transform:translateX(-50%) translateY(0);}}
 @media (max-width:900px){
   .day-layout{flex-direction:column;}
   .day-chat-sidebar{flex:1 1 auto; max-width:100%; max-height:none; position:static;}
@@ -886,9 +894,16 @@ h2.sec{font-family:var(--font-type); font-size:12px; letter-spacing:2px; text-tr
       </div>
       <div class="day-chat-sidebar">
         <h2 class="sec">Town talk</h2>
-        <div id="discussion"></div>
+        <div class="discussion-wrap">
+          <div id="discussion"></div>
+          <button type="button" id="chat-jump-btn" class="chat-jump-btn" style="display:none;">&#8595; New messages</button>
+        </div>
         <div id="discussion-spinner" class="spinner" style="display:none;">the town square is starting to murmur...</div>
         <p class="msg err" id="ai-fallback-warning" style="display:none;">Couldn't reach the AI this round — showing generic fallback dialogue instead. If you're playing the downloaded version, check that your local proxy is still running.</p>
+        <div id="chat-reply-preview" style="display:none; align-items:center; gap:8px; background:var(--panel-2); border:1px solid var(--gold-dim); border-left:2px solid var(--lantern); border-radius:5px; padding:7px 10px; margin:10px 0 0; font-family:var(--font-type); font-size:11px; color:var(--parchment-dim);">
+          <span style="flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Replying to <b id="chat-reply-name" style="color:var(--parchment);"></b>: <span id="chat-reply-text"></span></span>
+          <button type="button" id="chat-reply-cancel-btn" style="background:none; border:none; color:var(--parchment-dim); font-size:16px; line-height:1; cursor:pointer; padding:0 2px;">&times;</button>
+        </div>
         <div id="chat-input-row" style="display:none; gap:8px; margin:12px 0; flex-wrap:wrap;">
           <input type="text" id="chat-input" maxlength="140" placeholder="Say something to the town..." style="flex:1; background:var(--panel-2); border:1px solid var(--line); border-radius:5px; padding:9px 11px; font-family:var(--font-body); font-size:13px; color:var(--parchment);">
           <select id="chat-tag-select" title="Optionally tag this message as an accusation" style="background:var(--panel-2); border:1px solid var(--line); border-radius:5px; padding:9px 8px; font-family:var(--font-body); font-size:12px; color:var(--parchment-dim); max-width:120px;">
@@ -906,6 +921,8 @@ h2.sec{font-family:var(--font-type); font-size:12px; letter-spacing:2px; text-tr
     <h2 class="sec">Closed investigation log</h2>
     <div id="replay-log"></div>
     <button class="btn" id="play-again-btn" style="margin-top:16px;">Play again</button>
+    <button class="btn ghost" id="mp-end-leave-btn" style="margin-top:16px; margin-left:10px; display:none;">Leave</button>
+    <p class="msg" id="mp-end-waiting-msg" style="display:none; margin-top:10px; color:var(--parchment-dim);">Waiting for the host to start another round — or you can leave.</p>
     <button class="btn ghost" id="share-summary-btn" style="margin-top:16px; margin-left:10px;">Save Case Summary Image</button>
   </div>
 </div>
@@ -1155,11 +1172,23 @@ function handleServerMessage(msg){
     myPlayerId = msg.playerId; myRoomCode = msg.roomCode;
     localPlayerNotes = {}; // notes are per-room scratch, never carry over from an earlier game
     latestRoundScore = null;
+    pendingReplyTo = null;
     var codeEl = document.getElementById('mp-room-code');
     if(codeEl) codeEl.textContent = myRoomCode;
     switchPanel('lobby');
   } else if(msg.type==='roster'){
     renderMpRoster(msg.players);
+  } else if(msg.type==='returnToLobby'){
+    // Same room/players/host - the game just reset back to a pre-start
+    // lobby, with last game's presets carried over for the host.
+    latestView = null; previousView = null;
+    latestRoundScore = null; pendingReplyTo = null;
+    if(msg.config){
+      GAME_CONFIG.playerCount = msg.config.playerCount;
+      GAME_CONFIG.mafiaCount = msg.config.mafiaCount;
+      GAME_CONFIG.roles = Object.assign({}, msg.config.roles);
+    }
+    switchPanel('lobby');
   } else if(msg.type==='gameState'){
     phaseEndsAt = msg.phaseEndsAt;
     renderFromServerView(msg.view);
@@ -1325,7 +1354,8 @@ var SoundFX = (function(){
     footsteps: 'assets/sounds/footsteps.mp3',
     bountyCollect: 'assets/sounds/bounty-collect.mp3',
     roleReveal: 'assets/sounds/role-reveal.mp3',
-    caseFileOpen: 'assets/sounds/case-file-open.mp3'
+    caseFileOpen: 'assets/sounds/case-file-open.mp3',
+    townBell: 'assets/sounds/town-bell.mp3'
   };
   var warnedMissing = {};
   function warnIfMissing(a, key){
@@ -1398,6 +1428,7 @@ var SoundFX = (function(){
     playBountyCollect: function(){ playFile('bountyCollect', 0.6); },
     playRoleReveal: function(){ playFile('roleReveal', 0.55); },
     playCaseFileOpen: function(){ playFile('caseFileOpen', 0.5); },
+    playTownBell: function(){ playFile('townBell', 0.6); },
     setAmbience: function(phase){
       var key = null;
       if(key !== ambienceKey){
@@ -3023,6 +3054,7 @@ function showDeathScreen(kind, onContinue){
       screenShake(document.getElementById('death-screen'));
     }, 550);
   } else {
+    SoundFX.playTownBell();
     vibrate([40,60,40,60,80]);
   }
   continueBtn.onclick = function(){
@@ -3225,11 +3257,18 @@ function showEnd(){
 }
 
 document.getElementById('play-again-btn').addEventListener('click', function(){
+  if(myRoomCode){
+    // Multiplayer: stay in the same room with the same players/host - the
+    // server resets it back to a lobby with this game's presets pre-filled.
+    sendWS({type:'playAgain'});
+    return;
+  }
   if(ws) ws.close();
   latestView = null; previousView = null; myRoomCode = null; myPlayerId = null; amHost = false;
   renderMpEntryScreen();
   switchPanel('mpentry');
 });
+document.getElementById('mp-end-leave-btn').addEventListener('click', goToHome);
 
 function selectedSpecialCount(){
   return SPECIAL_ROLES.filter(function(r){return r!=='Mafia' && GAME_CONFIG.roles[r];}).length + GAME_CONFIG.mafiaCount;
@@ -3617,9 +3656,63 @@ function renderRoundScore(){
   }
 }
 
+// Chat auto-scroll: follows new messages as long as the reader is already
+// near the bottom. The moment they scroll up to read history, following
+// stops so new messages don't yank them back down - a "New messages" button
+// appears instead, and jumps back to following once clicked (or once they
+// scroll back to the bottom themselves).
+var chatAutoFollow = true;
+function isChatNearBottom(){
+  var log = document.getElementById('discussion');
+  if(!log) return true;
+  return (log.scrollHeight - log.scrollTop - log.clientHeight) < 60;
+}
+function scrollChatToBottom(){
+  var log = document.getElementById('discussion');
+  if(!log) return;
+  log.scrollTop = log.scrollHeight;
+  chatAutoFollow = true;
+  var btn = document.getElementById('chat-jump-btn');
+  if(btn) btn.style.display = 'none';
+}
+(function(){
+  var log = document.getElementById('discussion');
+  if(log){
+    log.addEventListener('scroll', function(){
+      chatAutoFollow = isChatNearBottom();
+      if(chatAutoFollow){
+        var btn = document.getElementById('chat-jump-btn');
+        if(btn) btn.style.display = 'none';
+      }
+    });
+  }
+  var jumpBtn = document.getElementById('chat-jump-btn');
+  if(jumpBtn) jumpBtn.addEventListener('click', scrollChatToBottom);
+})();
+
+// Reply-to: a lightweight quote snapshot (name + text at the moment "Reply"
+// was clicked), not a live reference - simple to send, simple to render.
+var pendingReplyTo = null;
+function renderReplyPreview(){
+  var el = document.getElementById('chat-reply-preview');
+  if(!el) return;
+  if(pendingReplyTo){
+    document.getElementById('chat-reply-name').textContent = pendingReplyTo.name;
+    document.getElementById('chat-reply-text').textContent = pendingReplyTo.text.length > 60 ? pendingReplyTo.text.slice(0,60)+'…' : pendingReplyTo.text;
+    el.style.display = 'flex';
+  } else {
+    el.style.display = 'none';
+  }
+}
+document.getElementById('chat-reply-cancel-btn').addEventListener('click', function(){
+  pendingReplyTo = null;
+  renderReplyPreview();
+});
+
 function appendChatLine(entry){
   var log = document.getElementById('discussion');
   if(!log) return;
+  var shouldFollow = chatAutoFollow;
   var div = document.createElement('div');
   var youClass = entry.playerId===myPlayerId ? ' chatline-you' : '';
   var clickable = entry.playerId!==myPlayerId;
@@ -3628,19 +3721,52 @@ function appendChatLine(entry){
   var p = byId(entry.playerId);
   var target = entry.targetId ? byId(entry.targetId) : null;
   var tagHTML = target ? '<span class="accusation-tag">accusing '+escapeHtmlMp(target.name)+'</span>' : '';
-  div.innerHTML = avatarHTML(p||{name:entry.name,color:'#B0A588'},22)+'<span class="who">'+escapeHtmlMp(entry.name)+'</span><span class="line">"'+escapeHtmlMp(entry.text)+'"</span>'+tagHTML+(clickable?'<span class="hint">select as vote</span>':'');
+  var replyHTML = entry.replyTo ? '<div class="chatline-reply-quote">↩ <b>'+escapeHtmlMp(entry.replyTo.name)+'</b>: "'+escapeHtmlMp(entry.replyTo.text)+'"</div>' : '';
+  div.innerHTML = avatarHTML(p||{name:entry.name,color:'#B0A588'},22)+'<span class="who">'+escapeHtmlMp(entry.name)+'</span>'+replyHTML+'<span class="line">"'+escapeHtmlMp(entry.text)+'"</span>'+tagHTML+
+    '<button type="button" class="chatline-reply-btn">↩ Reply</button>'+
+    (clickable?'<span class="hint">select as vote</span>':'');
   log.appendChild(div);
   if(clickable){
-    div.addEventListener('click', function(){ pendingDayVoteId = entry.playerId; renderTownBoard(); });
+    div.addEventListener('click', function(e){
+      if(e.target.closest('.chatline-reply-btn')) return;
+      pendingDayVoteId = entry.playerId; renderTownBoard();
+    });
   }
+  div.querySelector('.chatline-reply-btn').addEventListener('click', function(e){
+    e.stopPropagation();
+    pendingReplyTo = {name: entry.name, text: entry.text};
+    renderReplyPreview();
+    var input = document.getElementById('chat-input');
+    if(input) input.focus();
+  });
   SoundFX.chatBlip();
+  if(shouldFollow){
+    log.scrollTop = log.scrollHeight;
+  } else {
+    var btn = document.getElementById('chat-jump-btn');
+    if(btn) btn.style.display = 'block';
+  }
 }
 
 function renderChatLog(){
   var log = document.getElementById('discussion');
   if(!log || !latestView) return;
+  var wasFollowing = chatAutoFollow;
+  var prevRatio = 0;
+  var scrollable = log.scrollHeight - log.clientHeight;
+  if(!wasFollowing && scrollable > 0) prevRatio = log.scrollTop / scrollable;
   log.innerHTML = '';
-  (latestView.chatLog||[]).forEach(function(m){ appendChatLine({playerId:m.playerId, name:m.name, text:m.text, targetId:m.targetId}); });
+  (latestView.chatLog||[]).forEach(function(m){ appendChatLine({playerId:m.playerId, name:m.name, text:m.text, targetId:m.targetId, replyTo:m.replyTo}); });
+  if(wasFollowing){
+    scrollChatToBottom();
+  } else {
+    // Best-effort restore of where they were reading, since a full rebuild
+    // just replaced every line - appendChatLine's own scroll logic above
+    // already re-showed the jump button if new content arrived while away.
+    var newScrollable = log.scrollHeight - log.clientHeight;
+    if(newScrollable > 0) log.scrollTop = prevRatio * newScrollable;
+    chatAutoFollow = isChatNearBottom();
+  }
 }
 
 function renderVotePicker(){
@@ -3900,6 +4026,21 @@ async function renderEnd(view){
   document.getElementById('end-stats-grid').innerHTML = cards.join('');
 
   document.getElementById('replay-log').innerHTML = (view.history||[]).map(function(line){ return '<div class="replay-item">'+escapeHtmlMp(line)+'</div>'; }).join('');
+
+  // Play again keeps the same room/host/players and reuses this game's
+  // presets - only the host can trigger it, everyone else waits or leaves.
+  var playAgainBtn = document.getElementById('play-again-btn');
+  var waitingMsg = document.getElementById('mp-end-waiting-msg');
+  var leaveBtn = document.getElementById('mp-end-leave-btn');
+  if(myRoomCode){
+    playAgainBtn.style.display = amHost ? 'inline-block' : 'none';
+    waitingMsg.style.display = amHost ? 'none' : 'block';
+    leaveBtn.style.display = 'inline-block';
+  } else {
+    playAgainBtn.style.display = 'inline-block';
+    waitingMsg.style.display = 'none';
+    leaveBtn.style.display = 'none';
+  }
 }
 
 function submitNightAction(){
@@ -4020,8 +4161,10 @@ function sendHumanChatMessage(){
   input.value = '';
   var tagSelect = document.getElementById('chat-tag-select');
   var targetId = tagSelect ? (tagSelect.value || null) : null;
-  sendWS({type:'dayChat', text: text, targetId: targetId});
+  sendWS({type:'dayChat', text: text, targetId: targetId, replyTo: pendingReplyTo});
   if(tagSelect) tagSelect.value = '';
+  pendingReplyTo = null;
+  renderReplyPreview();
 }
 
 function appendMafiaChatLine(entry){
@@ -4153,6 +4296,7 @@ function leaveCurrentRoom(){
   phaseEndsAt = null;
   localPlayerNotes = {};
   latestRoundScore = null;
+  pendingReplyTo = null;
   if(mpPhaseTimerInterval){ clearInterval(mpPhaseTimerInterval); mpPhaseTimerInterval = null; }
   stopVoteTimer();
 }

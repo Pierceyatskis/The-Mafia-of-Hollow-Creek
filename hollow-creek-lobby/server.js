@@ -419,8 +419,35 @@ wss.on('connection', (socket) => {
       room.cumulativeScores = {};
       room.lastNightResult = null;
       room.lastDayResult = null;
+      room.lastConfig = config; // remembered so "Play again" can offer the same presets
       console.log(`Room ${socket.roomCode} started with ${seats.length} real player(s), ${room.state.players.length} total seats`);
       beginNightPhase(room);
+    }
+
+    else if (msg.type === 'playAgain') {
+      const { room, player } = getRoomAndPlayer(socket);
+      if (!room || !player) return;
+      if (player.id !== room.hostId) {
+        socket.send(JSON.stringify({ type: 'error', message: 'Only the host can start a new game.' }));
+        return;
+      }
+      if (!room.started || !room.state || !room.state.gameOver) return;
+      clearPhaseTimer(room);
+      room.started = false;
+      room.state = null;
+      room.phaseEndsAt = null;
+      room.cumulativeScores = {};
+      room.lastNightResult = null;
+      room.lastDayResult = null;
+      // Same room, same players, same host - just back to the lobby with
+      // last game's presets pre-filled so the host doesn't have to redo them.
+      room.players.forEach(rp => {
+        if (rp.socket.readyState === WebSocket.OPEN) {
+          rp.socket.send(JSON.stringify({ type: 'returnToLobby', roomCode: socket.roomCode, config: room.lastConfig || null }));
+        }
+      });
+      broadcastRoster(socket.roomCode);
+      console.log(`Room ${socket.roomCode} returned to lobby for another round`);
     }
 
     else if (msg.type === 'nightAction') {
@@ -454,7 +481,14 @@ wss.on('connection', (socket) => {
       const rawTargetId = msg.targetId ? String(msg.targetId) : null;
       const targetSp = rawTargetId ? G.byId(room.state, rawTargetId) : null;
       const targetId = (targetSp && targetSp.alive && targetSp.id !== player.id) ? targetSp.id : null;
-      const entry = { playerId: player.id, name: sp.name, text, ts: Date.now(), targetId };
+      // replyTo is just a display snapshot the client captured when the
+      // sender hit "Reply" on an earlier line - not a reference/lookup, so
+      // there's nothing to validate against except shape and length.
+      const rawReply = msg.replyTo;
+      const replyTo = (rawReply && typeof rawReply === 'object' && typeof rawReply.name === 'string' && typeof rawReply.text === 'string')
+        ? { name: String(rawReply.name).slice(0, 40), text: String(rawReply.text).slice(0, 120) }
+        : null;
+      const entry = { playerId: player.id, name: sp.name, text, ts: Date.now(), targetId, replyTo };
       room.state.chatLog.push(entry);
       if (targetId) G.recordAccusation(room.state, player.id, targetId);
       room.players.forEach(rp => {

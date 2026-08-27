@@ -414,6 +414,55 @@ async function testRoundScoreBreakdown() {
   players.forEach(p => { try { p.ws.close(); } catch (e) {} });
 }
 
+// ============================================================
+// "Play Again": same room/host/players, last game's presets carried over,
+// and a genuine second game can be started afterward. Only the host may
+// trigger it - a non-host's attempt is rejected, not silently honored.
+// ============================================================
+async function testPlayAgainSameLobby() {
+  const host = await createRoom('PA1');
+  const players = [host];
+  for (let i = 2; i <= 6; i++) players.push(await joinRoom(host.roomCode, 'PA' + i));
+
+  const roles = { Godfather: false, DoubleAgent: false, Detective: false, Doctor: false, Miller: false, BountyHunter: false, CrazyGranny: false, Coward: false, Farmer: false, NavySeal: false };
+  const started = Promise.all(players.map(p => once(p.ws, m => m.type === 'gameState')));
+  send(host.ws, { type: 'start', playerCount: 6, mafiaCount: 1, roles });
+  const gsResults = await started;
+
+  const mafiaIdx = gsResults.findIndex(r => r.view.myAlign === 'mafia');
+  const mafiaPlayer = players[mafiaIdx];
+  const townPlayers = players.filter((p, i) => i !== mafiaIdx);
+
+  const voteReachedPromise = Promise.all(players.map(p => once(p.ws, m => m.type === 'gameState' && m.view.phase === 'day-vote', 8000)));
+  players.forEach(p => send(p.ws, { type: 'nightAction', action: {} }));
+  await voteReachedPromise;
+
+  // Every town player votes out the mafia player - a deterministic town win
+  // in round 1, so the game reaches gameOver without depending on chance.
+  const gameOverPromise = Promise.all(players.map(p => once(p.ws, m => m.type === 'gameState' && m.view.gameOver, 8000)));
+  townPlayers.forEach(p => send(p.ws, { type: 'dayVote', targetId: mafiaPlayer.playerId }));
+  send(mafiaPlayer.ws, { type: 'dayVote', targetId: townPlayers[0].playerId });
+  await gameOverPromise;
+
+  const rejectPromise = once(townPlayers[0].ws, m => m.type === 'error', 3000);
+  send(townPlayers[0].ws, { type: 'playAgain' });
+  const rejection = await rejectPromise;
+  assert(/only the host/i.test(rejection.message || ''), 'Task-PlayAgain: a non-host sending playAgain is rejected with a clear error, not silently honored');
+
+  const returnPromise = Promise.all(players.map(p => once(p.ws, m => m.type === 'returnToLobby', 5000)));
+  send(host.ws, { type: 'playAgain' });
+  const returns = await returnPromise;
+  assert(returns.every(r => r.roomCode === host.roomCode), 'Task-PlayAgain: every player is returned to the SAME room, not a new one');
+  assert(returns.every(r => r.config && r.config.playerCount === 6 && r.config.mafiaCount === 1), 'Task-PlayAgain: the returned config matches the game that just ended (same presets)');
+
+  const restarted = Promise.all(players.map(p => once(p.ws, m => m.type === 'gameState', 5000)));
+  send(host.ws, { type: 'start', playerCount: 6, mafiaCount: 1, roles });
+  const restartedResults = await restarted;
+  assert(restartedResults.every(r => r.view.phase === 'night' && r.view.night === 1), 'Task-PlayAgain: the same host can genuinely start a fresh second game (night 1) in the same room afterward');
+
+  players.forEach(p => { try { p.ws.close(); } catch (e) {} });
+}
+
 async function main() {
   await testUndercapacityStartRejected();
   await testCustomRolesEnabled();
@@ -427,6 +476,7 @@ async function main() {
   await testNightProgressCounter();
   await testDayChatAccusationTag();
   await testRoundScoreBreakdown();
+  await testPlayAgainSameLobby();
 
   console.log('\n' + (failures === 0 ? 'All server.js integration checks passed.' : failures + ' CHECK(S) FAILED.'));
   process.exit(failures === 0 ? 0 : 1);
