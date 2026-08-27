@@ -9,16 +9,17 @@ const WebSocket = require('ws');
 const path = require('path');
 const fs = require('fs');
 const G = require('./game.js');
+const Scoring = require('./scoring.js');
 
 const PORT = process.env.PORT || 8080;
 
 // Phase durations. Server owns these - clients render a countdown from
 // phaseEndsAt, they never run their own independent clock.
-const NIGHT_DURATION_MS = 60000;
-const DAY_DISCUSS_DURATION_MS = 90000;
-const DAY_VOTE_DURATION_MS = 45000;
-const DAY_REVEAL_DURATION_MS = 12000;
-const FARMER_REVENGE_DURATION_MS = 20000;
+const NIGHT_DURATION_MS = Number(process.env.NIGHT_DURATION_MS) || 60000;
+const DAY_DISCUSS_DURATION_MS = Number(process.env.DAY_DISCUSS_DURATION_MS) || 90000;
+const DAY_VOTE_DURATION_MS = Number(process.env.DAY_VOTE_DURATION_MS) || 45000;
+const DAY_REVEAL_DURATION_MS = Number(process.env.DAY_REVEAL_DURATION_MS) || 12000;
+const FARMER_REVENGE_DURATION_MS = Number(process.env.FARMER_REVENGE_DURATION_MS) || 20000;
 
 const TOGGLEABLE_ROLES = G.SPECIAL_ROLES.filter(r => r !== 'Mafia');
 
@@ -164,13 +165,26 @@ function connectedLivingHumans(room) {
   return room.state.players.filter(p => p.alive && p.isHuman && p.connected !== false);
 }
 
+// Live "N of M have decided" counter for the night phase - counts only,
+// never identities or choices, so it's safe to send to every player
+// including ones who haven't acted yet themselves.
+function broadcastNightProgress(room) {
+  const total = connectedLivingHumans(room).length;
+  const submitted = connectedLivingHumans(room).filter(p => room.nightSubmitted.has(p.id)).length;
+  const msg = JSON.stringify({ type: 'nightProgress', submitted, total });
+  room.players.forEach(rp => {
+    if (rp.socket.readyState === WebSocket.OPEN) rp.socket.send(msg);
+  });
+}
+
 // Called after any submission or disconnect that might complete the current
 // phase's set of expected actions, so the round resolves the moment everyone
 // who's still here has acted instead of always waiting out the full timer.
 function maybeEarlyResolve(room) {
   if (!room.started || !room.state) return;
   if (room.state.phase === 'night') {
-    if (connectedLivingHumans(room).every(p => room.nightSubmitted.has(p.id))) resolveNightPhase(room);
+    if (connectedLivingHumans(room).every(p => room.nightSubmitted.has(p.id))) { resolveNightPhase(room); return; }
+    broadcastNightProgress(room);
   } else if (room.state.phase === 'day-vote') {
     const eligible = connectedLivingHumans(room).filter(p => !p.silencedToday);
     if (eligible.every(p => room.dayVoteSubmitted.has(p.id))) resolveDayVotePhase(room);
@@ -184,14 +198,38 @@ function beginNightPhase(room) {
   clearPhaseTimer(room);
   room.timer = setTimeout(() => resolveNightPhase(room), NIGHT_DURATION_MS);
   sendGameState(room);
+  broadcastNightProgress(room);
 }
 
 function resolveNightPhase(room) {
   clearPhaseTimer(room);
   const result = G.resolveNight(room.state);
+  room.lastNightResult = result; // held onto so scoring can see this round's night outcome once the day vote also resolves
   sendGameState(room);
   if (result.gameOver) { endGame(room); return; }
   beginDayDiscussPhase(room);
+}
+
+// Runs scoring.js once the round is fully resolved (night + day, including
+// farmer revenge if it fired), before the client advances to the next round.
+// Each real player gets ONLY their own breakdown - never anyone else's.
+function finishRoundScoring(room, dayResult, revengeResult) {
+  const night = room.state.night;
+  const roundScores = Scoring.scoreRound(room.state, {
+    night, nightResult: room.lastNightResult || {}, dayResult, revengeResult: revengeResult || null
+  });
+  room.players.forEach(rp => {
+    const entry = roundScores[rp.id];
+    room.cumulativeScores[rp.id] = (room.cumulativeScores[rp.id] || 0) + (entry ? entry.total : 0);
+    if (rp.socket.readyState === WebSocket.OPEN) {
+      rp.socket.send(JSON.stringify({
+        type: 'roundScore', night,
+        total: entry ? entry.total : 0,
+        breakdown: entry ? entry.breakdown : [],
+        cumulativeTotal: room.cumulativeScores[rp.id]
+      }));
+    }
+  });
 }
 
 function beginDayDiscussPhase(room) {
@@ -215,8 +253,9 @@ function resolveDayVotePhase(room) {
   clearPhaseTimer(room);
   const result = G.resolveDayVote(room.state);
   sendGameState(room);
+  if (result.farmerRevengePending) { room.lastDayResult = result; beginFarmerRevengeWait(room); return; }
+  finishRoundScoring(room, result, null);
   if (result.gameOver) { endGame(room); return; }
-  if (result.farmerRevengePending) { beginFarmerRevengeWait(room); return; }
   beginDayRevealPhase(room);
 }
 
@@ -226,9 +265,10 @@ function beginFarmerRevengeWait(room) {
   clearPhaseTimer(room);
   room.timer = setTimeout(() => {
     const farmerId = room.state.farmerRevengePending;
-    const gameOver = G.resolveFarmerRevenge(room.state, farmerId, null);
+    const result = G.resolveFarmerRevenge(room.state, farmerId, null);
     sendGameState(room);
-    if (gameOver) { endGame(room); return; }
+    finishRoundScoring(room, room.lastDayResult, result);
+    if (result.gameOver) { endGame(room); return; }
     beginDayRevealPhase(room);
   }, FARMER_REVENGE_DURATION_MS);
   sendGameState(room);
@@ -249,6 +289,13 @@ function endGame(room) {
   clearPhaseTimer(room);
   room.phaseEndsAt = null;
   sendGameState(room);
+  // Each real player's total across the whole just-finished game, so the
+  // client can fold it into its own local (Task 21) average-score tracking.
+  room.players.forEach(rp => {
+    if (rp.socket.readyState === WebSocket.OPEN) {
+      rp.socket.send(JSON.stringify({ type: 'finalScore', total: room.cumulativeScores[rp.id] || 0 }));
+    }
+  });
 }
 
 function sanitizeNightAction(raw) {
@@ -264,6 +311,14 @@ wss.on('connection', (socket) => {
   socket.on('message', (raw) => {
     let msg;
     try { msg = JSON.parse(raw); } catch (e) { return; }
+
+    // A socket asking to create/join/quick-match while still seated in a
+    // previous room (the client should always send 'leave' first, but never
+    // trust that alone) would otherwise leave a phantom, un-cleanable player
+    // behind in that old room. Leave it cleanly before starting a new one.
+    if ((msg.type === 'create' || msg.type === 'join' || msg.type === 'quick_match') && socket.roomCode && rooms[socket.roomCode]) {
+      removePlayer(socket);
+    }
 
     if (msg.type === 'create') {
       const name = sanitizeName(msg.name);
@@ -357,6 +412,9 @@ wss.on('connection', (socket) => {
 
       room.started = true;
       room.state = state;
+      room.cumulativeScores = {};
+      room.lastNightResult = null;
+      room.lastDayResult = null;
       console.log(`Room ${socket.roomCode} started with ${seats.length} real player(s), ${room.state.players.length} total seats`);
       beginNightPhase(room);
     }
@@ -366,7 +424,14 @@ wss.on('connection', (socket) => {
       if (!room || !room.started || room.state.phase !== 'night') return;
       const sp = G.byId(room.state, player.id);
       if (!sp || !sp.alive || !sp.isHuman) return;
-      room.state.pendingNightVotes[player.id] = sanitizeNightAction(msg.action);
+      const sanitized = sanitizeNightAction(msg.action);
+      room.state.pendingNightVotes[player.id] = sanitized;
+      if (sp.role === 'Doctor' && sanitized.protect) {
+        G.recordLivingCountSnapshot(room.state, player.id, sp.role, 'protect');
+      }
+      if (sp.role === 'Coward' && sanitized.hideBehind) {
+        G.recordLivingCountSnapshot(room.state, player.id, sp.role, 'hideBehind');
+      }
       room.nightSubmitted.add(player.id);
       maybeEarlyResolve(room);
     }
@@ -379,8 +444,15 @@ wss.on('connection', (socket) => {
       if (!sp || !sp.alive || sp.silencedToday) return;
       const text = String(msg.text || '').trim().slice(0, 300);
       if (!text) return;
-      const entry = { playerId: player.id, name: sp.name, text, ts: Date.now() };
+      // Purely mechanical accusation tag: the sender optionally marks the
+      // message as directed at another living player. No judgment of the
+      // message content - just "who tagged whom, and when" for scoring.js.
+      const rawTargetId = msg.targetId ? String(msg.targetId) : null;
+      const targetSp = rawTargetId ? G.byId(room.state, rawTargetId) : null;
+      const targetId = (targetSp && targetSp.alive && targetSp.id !== player.id) ? targetSp.id : null;
+      const entry = { playerId: player.id, name: sp.name, text, ts: Date.now(), targetId };
       room.state.chatLog.push(entry);
+      if (targetId) G.recordAccusation(room.state, player.id, targetId);
       room.players.forEach(rp => {
         if (rp.socket.readyState === WebSocket.OPEN) rp.socket.send(JSON.stringify(Object.assign({ type: 'chatMsg' }, entry)));
       });
@@ -412,7 +484,7 @@ wss.on('connection', (socket) => {
       const sp = G.byId(room.state, player.id);
       if (!sp || !sp.alive || !sp.isHuman || sp.silencedToday) return;
       const targetId = msg.targetId ? String(msg.targetId) : null;
-      room.state.pendingDayVotes[player.id] = targetId;
+      G.recordDayVoteSubmission(room.state, player.id, targetId);
       room.dayVoteSubmitted.add(player.id);
       maybeEarlyResolve(room);
     }
@@ -423,9 +495,11 @@ wss.on('connection', (socket) => {
       if (room.state.farmerRevengePending !== player.id) return;
       clearPhaseTimer(room);
       const targetId = msg.targetId ? String(msg.targetId) : null;
-      const gameOver = G.resolveFarmerRevenge(room.state, player.id, targetId);
+      G.recordLivingCountSnapshot(room.state, player.id, 'Farmer', 'farmerRevenge');
+      const result = G.resolveFarmerRevenge(room.state, player.id, targetId);
       sendGameState(room);
-      if (gameOver) { endGame(room); } else { beginDayRevealPhase(room); }
+      finishRoundScoring(room, room.lastDayResult, result);
+      if (result.gameOver) { endGame(room); } else { beginDayRevealPhase(room); }
     }
   });
 

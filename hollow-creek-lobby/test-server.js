@@ -8,6 +8,10 @@ const WebSocket = require(path.join(__dirname, 'node_modules', 'ws'));
 
 const PORT = 8098;
 process.env.PORT = PORT;
+// day-discuss has no early-resolve path (unlike night/day-vote, which resolve
+// the moment everyone's submitted) - shrink it so tests don't have to sit
+// through the real 90s discussion timer to reach day-vote.
+process.env.DAY_DISCUSS_DURATION_MS = 300;
 require('./server.js');
 
 let failures = 0;
@@ -213,6 +217,26 @@ async function testDisconnectFallback() {
 }
 
 // ============================================================
+// A socket that creates/joins/quick-matches a second time without ever
+// sending 'leave' first must not leave a phantom entry behind in its old
+// room - the server should clean that room up as if they'd left properly.
+// ============================================================
+async function testCreateWithoutLeavingCleansUpOldRoom() {
+  const host = await createRoom('PH-Host');
+  const other = await joinRoom(host.roomCode, 'PH-Other');
+
+  const rosterAfterLeave = once(other.ws, m => m.type === 'roster' && m.players.length === 1, 3000);
+  send(host.ws, { type: 'create', name: 'PH-Host2', isPublic: false });
+  const created2 = await once(host.ws, m => m.type === 'created');
+  assert(created2.roomCode !== host.roomCode, 'sending a second create gives back a brand new room code');
+
+  const rosterUpdate = await rosterAfterLeave;
+  assert(rosterUpdate.players.length === 1 && rosterUpdate.players[0].name === 'PH-Other', 'the old room\'s remaining player sees the phantom entry cleaned up (roster drops to just them), not left stuck at 2 forever');
+
+  host.ws.close(); other.ws.close();
+}
+
+// ============================================================
 // Task 10: confirm real multi-client roster sync - an EXISTING client (not
 // just the one joining) receives an updated roster broadcast when someone
 // else joins or leaves the room.
@@ -228,6 +252,34 @@ async function testRosterSyncsToExistingClients() {
   send(p2.ws, { type: 'leave' });
   const hostSawLeave = await rosterOnLeave;
   assert(hostSawLeave.players.length === 1 && hostSawLeave.players[0].name === 'RS-Host', 'the HOST\'s existing connection also receives an updated roster when another real player leaves');
+
+  host.ws.close(); p2.ws.close();
+}
+
+// ============================================================
+// Task 11: live "still deciding" night-progress counter - updates the
+// moment either of two real players submits, and never leaks identity
+// or choice, only counts.
+// ============================================================
+async function testNightProgressCounter() {
+  const host = await createRoom('NP1');
+  const p2 = await joinRoom(host.roomCode, 'NP2');
+  const players = [host, p2];
+
+  const initialProgress = Promise.all(players.map(p => once(p.ws, m => m.type === 'nightProgress')));
+  send(host.ws, { type: 'start', playerCount: 6, mafiaCount: 0, roles: { Godfather: false, DoubleAgent: false, Detective: false, Doctor: false, Miller: false, BountyHunter: false, CrazyGranny: false, Coward: false, Farmer: false, NavySeal: false } });
+  const [initA, initB] = await initialProgress;
+  assert(initA.submitted === 0 && initA.total === 2, 'night begins with a 0-of-2 progress broadcast (only the 2 real players count, not placeholders)');
+  assert(Object.keys(initA).sort().join(',') === 'submitted,total,type', 'the nightProgress payload contains only counts and a type - no player id, name, or choice ever appears in it');
+
+  const progressAfterOneSubmits = once(p2.ws, m => m.type === 'nightProgress' && m.submitted === 1);
+  send(host.ws, { type: 'nightAction', action: {} });
+  const afterOne = await progressAfterOneSubmits;
+  assert(afterOne.submitted === 1 && afterOne.total === 2, 'the count updates the moment the FIRST of two real players submits, visible to the OTHER player');
+
+  const resolved = once(p2.ws, m => m.type === 'gameState' && m.view.phase === 'day-discuss', 5000);
+  send(p2.ws, { type: 'nightAction', action: {} });
+  await resolved;
 
   host.ws.close(); p2.ws.close();
 }
@@ -284,6 +336,84 @@ async function testMafiaChatScoping() {
   assert(false, 'could not get 2+ real mafia-aligned players and 1+ real town player after ' + MAX_ATTEMPTS + ' attempts (bad luck or a real regression)');
 }
 
+// ============================================================
+// Task 18: a dayChat message optionally tagged with a targetId broadcasts
+// that tag to the room (purely mechanical accusation tracking, no LLM), and
+// a message "tagged" at the sender's own id is not treated as self-accusation.
+// ============================================================
+async function testDayChatAccusationTag() {
+  const host = await createRoom('DC1');
+  const p2 = await joinRoom(host.roomCode, 'DC2');
+  const players = [host, p2];
+
+  const initialProgress = Promise.all(players.map(p => once(p.ws, m => m.type === 'nightProgress')));
+  send(host.ws, { type: 'start', playerCount: 6, mafiaCount: 0, roles: { Godfather: false, DoubleAgent: false, Detective: false, Doctor: false, Miller: false, BountyHunter: false, CrazyGranny: false, Coward: false, Farmer: false, NavySeal: false } });
+  await initialProgress;
+
+  const resolvedPromise = Promise.all(players.map(p => once(p.ws, m => m.type === 'gameState' && m.view.phase === 'day-discuss', 8000)));
+  players.forEach(p => send(p.ws, { type: 'nightAction', action: {} }));
+  await resolvedPromise;
+
+  const p2ReceivedPromise = once(p2.ws, m => m.type === 'chatMsg' && m.text === 'I think it was you');
+  send(host.ws, { type: 'dayChat', text: 'I think it was you', targetId: p2.playerId });
+  const p2Received = await p2ReceivedPromise;
+  assert(p2Received.targetId === p2.playerId, 'a dayChat message tagged with a target id broadcasts that tag to every player in the room');
+
+  const selfTagPromise = once(p2.ws, m => m.type === 'chatMsg' && m.text === 'talking to myself');
+  send(host.ws, { type: 'dayChat', text: 'talking to myself', targetId: host.playerId });
+  const selfTagResult = await selfTagPromise;
+  assert(selfTagResult.targetId === null, 'a dayChat message tagged with the sender\'s own id is not treated as a self-accusation');
+
+  host.ws.close(); p2.ws.close();
+}
+
+// ============================================================
+// Task 20: after a round fully resolves, every real player gets their OWN
+// roundScore message - two different players (the one who correctly voted
+// out the mafia player, and the mafia player who was eliminated) see two
+// different, individually correct breakdowns for the very same round.
+// ============================================================
+async function testRoundScoreBreakdown() {
+  const host = await createRoom('RS1');
+  const players = [host];
+  for (let i = 2; i <= 6; i++) players.push(await joinRoom(host.roomCode, 'RS' + i));
+
+  // All 6 seats are real players and mafiaCount:1 with every other special
+  // role disabled, so the role pool is deterministic: exactly one Mafia and
+  // five Civilians, no placeholders, no shuffle-dependent retry needed.
+  const roles = { Godfather: false, DoubleAgent: false, Detective: false, Doctor: false, Miller: false, BountyHunter: false, CrazyGranny: false, Coward: false, Farmer: false, NavySeal: false };
+  const started = Promise.all(players.map(p => once(p.ws, m => m.type === 'gameState')));
+  send(host.ws, { type: 'start', playerCount: 6, mafiaCount: 1, roles });
+  const gsResults = await started;
+
+  const mafiaIdx = gsResults.findIndex(r => r.view.myAlign === 'mafia');
+  const townIdx = gsResults.findIndex(r => r.view.myAlign !== 'mafia');
+  const mafiaPlayer = players[mafiaIdx];
+  const townPlayers = players.filter((p, i) => i !== mafiaIdx);
+
+  // Night: nobody has anything meaningful to submit (no Doctor/Detective/etc
+  // enabled) - everyone just passes so the round resolves immediately.
+  const voteReachedPromise = Promise.all(players.map(p => once(p.ws, m => m.type === 'gameState' && m.view.phase === 'day-vote', 8000)));
+  players.forEach(p => send(p.ws, { type: 'nightAction', action: {} }));
+  await voteReachedPromise;
+
+  // Every town player correctly votes out the mafia player; the mafia player
+  // votes for an arbitrary town player right back (irrelevant to the outcome).
+  const roundScorePromise = Promise.all(players.map(p => once(p.ws, m => m.type === 'roundScore', 10000)));
+  townPlayers.forEach(p => send(p.ws, { type: 'dayVote', targetId: mafiaPlayer.playerId }));
+  send(mafiaPlayer.ws, { type: 'dayVote', targetId: townPlayers[0].playerId });
+  const scores = await roundScorePromise;
+
+  const mafiaScore = scores[mafiaIdx];
+  const townScore = scores[townIdx];
+  assert(mafiaScore.type === 'roundScore' && townScore.type === 'roundScore', 'Task20: every real player receives their own roundScore message once the round resolves');
+  assert(townScore.total > 0 && townScore.breakdown.some(b => b.rule === 'town-baseline'), 'Task20: the town player who correctly voted out the mafia player sees a positive breakdown crediting the correct vote, not just a bare number');
+  assert(!mafiaScore.breakdown.some(b => b.rule === 'town-baseline'), 'Task20: the eliminated mafia player\'s own breakdown never claims credit for the town-baseline rule');
+  assert(JSON.stringify(mafiaScore.breakdown) !== JSON.stringify(townScore.breakdown), 'Task20: two different players in the same room see two different breakdowns for the very same round, not a shared/identical one');
+
+  players.forEach(p => { try { p.ws.close(); } catch (e) {} });
+}
+
 async function main() {
   await testUndercapacityStartRejected();
   await testCustomRolesEnabled();
@@ -291,8 +421,12 @@ async function main() {
   await testQuickMatchSkipsStartedRoom();
   await testHostKickDuringActiveGame();
   await testDisconnectFallback();
+  await testCreateWithoutLeavingCleansUpOldRoom();
   await testRosterSyncsToExistingClients();
   await testMafiaChatScoping();
+  await testNightProgressCounter();
+  await testDayChatAccusationTag();
+  await testRoundScoreBreakdown();
 
   console.log('\n' + (failures === 0 ? 'All server.js integration checks passed.' : failures + ' CHECK(S) FAILED.'));
   process.exit(failures === 0 ? 0 : 1);

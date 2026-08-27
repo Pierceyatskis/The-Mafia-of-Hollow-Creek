@@ -102,15 +102,15 @@ header p{font-family:var(--font-type); font-size:11px; letter-spacing:3px; text-
 #nightkill-screen .nightkill-bg{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; filter:grayscale(20%); animation:deathZoom 9s ease-out forwards;}
 #nightkill-screen .nightkill-overlay{position:absolute; inset:0; background:radial-gradient(ellipse at center, rgba(8,6,5,0.35) 0%, rgba(6,4,3,0.93) 100%);}
 #nightkill-screen .nightkill-content{position:relative; z-index:2; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:24px;}
-.nightkill-eyebrow{font-family:var(--font-type); font-size:12px; letter-spacing:4px; text-transform:uppercase; color:var(--parchment-dim); margin:0 0 22px; opacity:0; animation:deathTextIn 1.2s ease-out 0.3s forwards;}
-.nightkill-card{position:relative; width:150px; height:220px; margin-bottom:22px; opacity:0; transform:scale(0.85); animation:nightkillCardIn 1.1s cubic-bezier(.2,.8,.2,1) 0.7s forwards;}
+.nightkill-eyebrow{font-family:var(--font-type); font-size:12px; letter-spacing:4px; text-transform:uppercase; color:var(--parchment-dim); margin:0 0 22px; opacity:0; animation:deathTextIn 1.0s ease-out 0.3s forwards;}
+.nightkill-card{position:relative; width:150px; height:220px; margin-bottom:22px; opacity:0; transform:scale(0.85); animation:nightkillCardIn 1.0s cubic-bezier(.2,.8,.2,1) 1.5s forwards;}
 .nightkill-card .portrait-frame{width:100%; height:100%;}
 .nightkill-card .portrait-frame .photo-img{filter:grayscale(45%) sepia(15%);}
-.nightkill-card .nightkill-stamp{position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) rotate(-14deg) scale(0.6); opacity:0; font-family:var(--font-type); font-size:16px; font-weight:700; letter-spacing:4px; text-transform:uppercase; padding:6px 18px; border:2px solid var(--danger); color:var(--danger); background:rgba(10,7,6,0.55); text-shadow:0 0 10px rgba(193,39,45,0.5); white-space:nowrap; animation:stampSlam 0.5s cubic-bezier(.34,1.56,.64,1) 2.1s forwards;}
-.nightkill-name{font-family:var(--font-display); font-weight:700; font-size:40px; letter-spacing:2px; margin:0 0 6px; color:var(--gold-bright); text-shadow:0 0 10px rgba(227,177,85,0.5), 0 0 34px rgba(227,177,85,0.3), 0 4px 16px rgba(0,0,0,0.9); opacity:0; animation:deathTextIn 1.3s ease-out 1.4s forwards;}
-.nightkill-role{font-family:var(--font-type); font-size:13px; letter-spacing:3px; text-transform:uppercase; color:var(--parchment-dim); margin:0 0 18px; opacity:0; animation:deathTextIn 1.3s ease-out 1.7s forwards;}
-.nightkill-flavor{font-family:var(--font-type); font-size:13px; color:var(--parchment-dim); max-width:440px; line-height:1.6; margin:0 0 30px; opacity:0; animation:deathTextIn 1.3s ease-out 2.45s forwards;}
-#nightkill-continue-btn{opacity:0; animation:deathTextIn 1.2s ease-out 2.75s forwards;}
+.nightkill-card .nightkill-stamp{position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) rotate(-14deg) scale(0.6); opacity:0; font-family:var(--font-type); font-size:16px; font-weight:700; letter-spacing:4px; text-transform:uppercase; padding:6px 18px; border:2px solid var(--danger); color:var(--danger); background:rgba(10,7,6,0.55); text-shadow:0 0 10px rgba(193,39,45,0.5); white-space:nowrap; animation:stampSlam 0.5s cubic-bezier(.34,1.56,.64,1) 4.6s forwards;}
+.nightkill-name{font-family:var(--font-display); font-weight:700; font-size:40px; letter-spacing:2px; margin:0 0 6px; color:var(--gold-bright); text-shadow:0 0 10px rgba(227,177,85,0.5), 0 0 34px rgba(227,177,85,0.3), 0 4px 16px rgba(0,0,0,0.9); opacity:0; animation:deathTextIn 0.8s ease-out 2.7s forwards;}
+.nightkill-role{font-family:var(--font-type); font-size:13px; letter-spacing:3px; text-transform:uppercase; color:var(--parchment-dim); margin:0 0 18px; opacity:0; animation:deathTextIn 0.8s ease-out 3.6s forwards;}
+.nightkill-flavor{font-family:var(--font-type); font-size:13px; color:var(--parchment-dim); max-width:440px; line-height:1.6; margin:0 0 30px; opacity:0; animation:deathTextIn 0.8s ease-out 5.3s forwards;}
+#nightkill-continue-btn{opacity:0; animation:deathTextIn 0.7s ease-out 6.3s forwards;}
 @keyframes nightkillCardIn{0%{opacity:0; transform:scale(0.8) translateY(10px);} 60%{opacity:1;} 100%{opacity:1; transform:scale(1) translateY(0);}}
 @keyframes stampSlam{0%{opacity:0; transform:translate(-50%,-50%) rotate(-14deg) scale(0.6);} 60%{opacity:1; transform:translate(-50%,-50%) rotate(-14deg) scale(1.12);} 100%{opacity:1; transform:translate(-50%,-50%) rotate(-14deg) scale(1);}}
 @keyframes screenShake{0%{transform:translate(0,0);} 12%{transform:translate(-2.5px,1px);} 24%{transform:translate(2.5px,-1px);} 36%{transform:translate(-1.8px,0.8px);} 48%{transform:translate(1.8px,-0.8px);} 60%{transform:translate(-1.1px,0.5px);} 72%{transform:translate(1.1px,-0.5px);} 84%{transform:translate(-0.5px,0.2px);} 100%{transform:translate(0,0);}}
@@ -126,6 +126,43 @@ header p{font-family:var(--font-type); font-size:11px; letter-spacing:3px; text-
 #victory-screen.outcome-town .victory-title{color:var(--town); text-shadow:0 0 10px rgba(92,150,128,0.5), 0 0 40px rgba(92,150,128,0.3), 0 4px 16px rgba(0,0,0,0.9);}
 #victory-screen.outcome-mafia .victory-title{color:var(--danger); text-shadow:0 0 10px rgba(193,84,75,0.55), 0 0 40px rgba(193,84,75,0.35), 0 4px 16px rgba(0,0,0,0.9);}
 #victory-screen.outcome-bounty .victory-title{color:var(--lantern); text-shadow:0 0 10px rgba(217,164,65,0.55), 0 0 40px rgba(217,164,65,0.35), 0 4px 16px rgba(0,0,0,0.9);}
+
+/* ---- Role reveal: full-screen, fades in on black, then reveals in stages ---- */
+#role-reveal-screen{position:fixed; inset:0; z-index:300; overflow:hidden; background:#000; opacity:0; animation:roleRevealScreenIn 0.7s ease forwards;}
+@keyframes roleRevealScreenIn{from{opacity:0;} to{opacity:1;}}
+#role-reveal-screen .role-reveal-overlay{position:absolute; inset:0; background:radial-gradient(ellipse at center, rgba(20,16,10,0.2) 0%, rgba(5,4,3,0.96) 75%); opacity:0; animation:deathTextIn 2.5s ease-out 0.6s forwards;}
+.role-reveal-glow{position:absolute; top:50%; left:50%; width:320px; height:320px; margin:-160px 0 0 -160px; border-radius:50%; background:radial-gradient(circle, rgba(227,177,85,0.4) 0%, rgba(227,177,85,0) 70%); opacity:0; animation:roleGlowPulse 2.2s ease-out 1.3s forwards; pointer-events:none;}
+@keyframes roleGlowPulse{0%{opacity:0; transform:scale(0.5);} 45%{opacity:1;} 100%{opacity:0.55; transform:scale(1.35);}}
+#role-reveal-screen .role-reveal-content{position:relative; z-index:2; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:24px;}
+.role-reveal-eyebrow{font-family:var(--font-type); font-size:12px; letter-spacing:5px; text-transform:uppercase; color:var(--parchment-dim); margin:0 0 26px; opacity:0; animation:deathTextIn 1.3s ease-out 1s forwards;}
+.role-reveal-card{position:relative; width:180px; height:264px; margin-bottom:22px; opacity:0; transform:scale(0.7); animation:roleCardReveal 1.2s cubic-bezier(.2,.8,.2,1) 1.5s forwards; overflow:hidden; border-radius:6px;}
+.role-reveal-card .portrait-frame{width:100%; height:100%;}
+.role-reveal-card::after{content:''; position:absolute; inset:0; z-index:3; background:linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.55) 46%, transparent 62%); transform:translateX(-140%); animation:roleCardGlint 1s ease-out 2.7s forwards; pointer-events:none;}
+@keyframes roleCardReveal{0%{opacity:0; transform:scale(0.7);} 60%{opacity:1;} 100%{opacity:1; transform:scale(1);}}
+@keyframes roleCardGlint{to{transform:translateX(140%);}}
+.role-reveal-name{font-family:var(--font-display); font-weight:700; font-size:44px; letter-spacing:2px; margin:0 0 10px; color:var(--gold-bright); text-shadow:0 0 10px rgba(227,177,85,0.5), 0 0 40px rgba(227,177,85,0.35), 0 4px 16px rgba(0,0,0,0.9); opacity:0; animation:deathTextIn 1.3s ease-out 2.9s forwards;}
+.role-reveal-name.align-mafia{color:var(--danger); text-shadow:0 0 10px rgba(193,84,75,0.55), 0 0 40px rgba(193,84,75,0.35), 0 4px 16px rgba(0,0,0,0.9);}
+.role-reveal-name.align-neutral{color:var(--lantern); text-shadow:0 0 10px rgba(217,164,65,0.55), 0 0 40px rgba(217,164,65,0.35), 0 4px 16px rgba(0,0,0,0.9);}
+.role-reveal-flavor{font-family:var(--font-type); font-size:14px; color:var(--parchment-dim); max-width:440px; line-height:1.7; margin:0 0 18px; opacity:0; animation:deathTextIn 1.3s ease-out 3.3s forwards;}
+.role-reveal-extra{max-width:440px; opacity:0; animation:deathTextIn 1.3s ease-out 3.6s forwards;}
+.role-reveal-extra:empty{margin:0;}
+.role-reveal-extra .ally{font-family:var(--font-type); font-size:13px; color:var(--gold-bright); line-height:1.6; margin:0 0 20px;}
+#role-reveal-continue-btn{opacity:0; animation:deathTextIn 1.2s ease-out 4s forwards;}
+@media (max-width:640px){
+  .role-reveal-name{font-size:32px;}
+  .role-reveal-card{width:140px; height:206px;}
+}
+
+/* ---- Phase transition: brief "Night N" / "Day N" title card between rounds ---- */
+#phase-transition-screen{position:fixed; inset:0; z-index:295; display:none; align-items:center; justify-content:center; overflow:hidden; opacity:0; transition:opacity 0.45s ease;}
+#phase-transition-screen.pt-active{opacity:1;}
+#phase-transition-screen.pt-night{background:linear-gradient(rgba(8,7,6,0.6), rgba(8,7,6,0.8)), var(--bg-night); background-size:cover; background-position:center;}
+#phase-transition-screen.pt-day{background:linear-gradient(rgba(20,18,15,0.55), rgba(20,18,15,0.75)), var(--bg-day); background-size:cover; background-position:center;}
+#phase-transition-label{font-family:var(--font-display); font-weight:700; font-size:58px; letter-spacing:6px; text-transform:uppercase; color:var(--gold-bright); text-shadow:0 0 14px rgba(227,177,85,0.5), 0 0 44px rgba(227,177,85,0.35), 0 4px 20px rgba(0,0,0,0.9); opacity:0; transform:scale(0.85); animation:ptLabelIn 1.6s cubic-bezier(.2,.8,.2,1) forwards;}
+@keyframes ptLabelIn{0%{opacity:0; transform:scale(0.85);} 25%{opacity:1; transform:scale(1);} 78%{opacity:1; transform:scale(1);} 100%{opacity:0; transform:scale(1.04);}}
+@media (max-width:640px){
+  #phase-transition-label{font-size:38px;}
+}
 @media (max-width:640px){
   .victory-title{font-size:34px;}
   .victory-flavor{font-size:12px;}
@@ -231,6 +268,7 @@ h2.sec{font-family:var(--font-type); font-size:12px; letter-spacing:2px; text-tr
 .msg{font-family:var(--font-type); font-size:12px; margin-top:10px;}
 .msg.err{color:var(--danger);}
 .msg.ok{color:var(--town);}
+.night-progress{font-family:var(--font-type); font-size:12px; letter-spacing:0.5px; color:var(--parchment-dim); margin-top:14px;}
 .feature{display:flex; gap:16px; align-items:center; background:var(--panel-2); border:1px solid var(--line); border-radius:8px; padding:14px; margin-bottom:16px;}
 .feature .portrait-frame, .feature .noimg{width:72px; height:108px; flex-shrink:0;}
 .feature .role{font-family:var(--font-type); font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--lantern); margin:0 0 4px;}
@@ -330,6 +368,7 @@ h2.sec{font-family:var(--font-type); font-size:12px; letter-spacing:2px; text-tr
 .chatline .line{color:var(--parchment-dim); font-style:italic;}
 .chatline .hint{margin-left:auto; font-family:var(--font-type); font-size:10px; color:var(--parchment-dim); opacity:0; flex-shrink:0;}
 .chatline:hover .hint{opacity:1;}
+.chatline .accusation-tag{margin-left:8px; font-family:var(--font-type); font-size:10px; letter-spacing:0.5px; color:var(--danger); flex-shrink:0;}
 .spinner{font-family:var(--font-type); font-size:12px; color:var(--parchment-dim); letter-spacing:1px;}
 .day-layout{display:flex; gap:20px; align-items:flex-start;}
 .day-main{flex:1 1 60%; min-width:0;}
@@ -348,6 +387,11 @@ h2.sec{font-family:var(--font-type); font-size:12px; letter-spacing:2px; text-tr
 .codexcard .lbl{font-family:var(--font-type); font-size:10px; letter-spacing:0.5px; color:var(--parchment-dim); margin-top:4px;}
 .replay-item{padding:6px 0; border-bottom:1px solid var(--line); font-family:var(--font-type); font-size:12px; color:var(--parchment-dim); line-height:1.6;}
 .replay-item:last-child{border-bottom:none;}
+.score-line{padding:6px 0; border-bottom:1px solid var(--line); font-family:var(--font-type); font-size:12px; color:var(--parchment-dim); line-height:1.6; display:flex; justify-content:space-between; align-items:center; gap:12px;}
+.score-line:last-child{border-bottom:none;}
+.score-line .score-points{flex-shrink:0; font-weight:bold;}
+.score-line .score-points.positive{color:var(--lantern);}
+.score-line .score-points.negative{color:var(--danger);}
 .verdict{font-family:var(--font-display); font-size:32px; color:var(--lantern); text-align:center; margin:6px 0 18px;}
 .status-notice{background:rgba(20,16,12,0.55); border:1px solid var(--gold-dim); border-radius:8px; padding:20px; margin-top:10px; text-align:center;}
 .status-notice.danger{border-color:var(--danger);}
@@ -521,6 +565,21 @@ h2.sec{font-family:var(--font-type); font-size:12px; letter-spacing:2px; text-tr
     <button class="btn" id="victory-continue-btn">Continue</button>
   </div>
 </div>
+<div id="role-reveal-screen" style="display:none;">
+  <div class="role-reveal-overlay"></div>
+  <div class="role-reveal-glow" id="role-reveal-glow"></div>
+  <div class="role-reveal-content">
+    <p class="role-reveal-eyebrow" id="role-reveal-eyebrow">Hollow Creek has chosen...</p>
+    <div class="role-reveal-card" id="role-reveal-card"></div>
+    <h2 class="role-reveal-name" id="role-reveal-name"></h2>
+    <p class="role-reveal-flavor" id="role-reveal-flavor"></p>
+    <div class="role-reveal-extra" id="role-reveal-extra"></div>
+    <button class="btn" id="role-reveal-continue-btn">Begin the Night</button>
+  </div>
+</div>
+<div id="phase-transition-screen" style="display:none;">
+  <h2 id="phase-transition-label"></h2>
+</div>
 <div id="role-badge" style="display:none;" title="View your case file">
   <span class="role-badge-img" id="role-badge-img"></span>
   <span class="role-badge-text">
@@ -668,6 +727,9 @@ h2.sec{font-family:var(--font-type); font-size:12px; letter-spacing:2px; text-tr
     <p style="font-family:var(--font-type); font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--gold); margin:20px 0 8px;">Preview</p>
     <div class="chatline chatline-you" id="profile-preview" style="max-width:320px;"></div>
 
+    <p style="font-family:var(--font-type); font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--gold); margin:20px 0 8px;">Your multiplayer stats</p>
+    <div class="end-stats-grid" id="profile-score-stats" style="max-width:320px;"></div>
+
     <div style="margin-top:22px; display:flex; gap:10px;">
       <button class="btn" id="profile-save-btn">Save profile</button>
       <button class="btn ghost" id="profile-back-btn">Back to town</button>
@@ -749,6 +811,7 @@ h2.sec{font-family:var(--font-type); font-size:12px; letter-spacing:2px; text-tr
     <div id="night-action"></div>
     <p class="msg err" id="night-error" style="display:none;"></p>
     <p class="msg ok" id="night-result" style="display:none;"></p>
+    <p class="night-progress" id="night-progress" style="display:none;"></p>
     <div id="night-spinner" class="spinner" style="display:none; margin-top:12px;">the town is dreaming its secrets...</div>
     <div id="mafia-chat-section" style="display:none; margin-top:20px; border-top:1px solid var(--line); padding-top:16px;">
       <h2 class="sec" style="color:var(--danger);">Mafia chat <span style="font-family:var(--font-type); font-size:10px; color:var(--parchment-dim); text-transform:none; letter-spacing:0;">(only your family sees this)</span></h2>
@@ -804,6 +867,11 @@ h2.sec{font-family:var(--font-type); font-size:12px; letter-spacing:2px; text-tr
           <div class="deceased-card" id="lynch-card"></div>
           <h2 class="sec" style="margin-top:16px;">How the town voted</h2>
           <div id="vote-log"></div>
+          <div id="round-score-section" style="display:none; margin-top:16px;">
+            <h2 class="sec">Your round</h2>
+            <div class="report" id="round-score-report"></div>
+            <div id="round-score-breakdown"></div>
+          </div>
           <button class="btn" id="continue-to-night-btn" style="margin-top:14px;">Night falls again</button>
         </div>
       </div>
@@ -812,8 +880,11 @@ h2.sec{font-family:var(--font-type); font-size:12px; letter-spacing:2px; text-tr
         <div id="discussion"></div>
         <div id="discussion-spinner" class="spinner" style="display:none;">the town square is starting to murmur...</div>
         <p class="msg err" id="ai-fallback-warning" style="display:none;">Couldn't reach the AI this round — showing generic fallback dialogue instead. If you're playing the downloaded version, check that your local proxy is still running.</p>
-        <div id="chat-input-row" style="display:none; gap:8px; margin:12px 0;">
+        <div id="chat-input-row" style="display:none; gap:8px; margin:12px 0; flex-wrap:wrap;">
           <input type="text" id="chat-input" maxlength="140" placeholder="Say something to the town..." style="flex:1; background:var(--panel-2); border:1px solid var(--line); border-radius:5px; padding:9px 11px; font-family:var(--font-body); font-size:13px; color:var(--parchment);">
+          <select id="chat-tag-select" title="Optionally tag this message as an accusation" style="background:var(--panel-2); border:1px solid var(--line); border-radius:5px; padding:9px 8px; font-family:var(--font-body); font-size:12px; color:var(--parchment-dim); max-width:120px;">
+            <option value="">No tag</option>
+          </select>
           <button class="btn" id="chat-send-btn" style="padding:9px 16px;">Send</button>
         </div>
       </div>
@@ -1036,6 +1107,8 @@ var previousView = null;
 var phaseEndsAt = null;
 var pendingNightAction = {};
 var localPlayerNotes = {}; // per-room, client-only scratch notes on other players - keyed by player id, reset on every create/join
+var latestNightProgress = null; // {submitted, total} - counts only, refreshed live during the night phase
+var latestRoundScore = null; // {night, total, breakdown, cumulativeTotal} - this player's OWN round score, never anyone else's
 var pendingDayVoteId = null;
 var mpNightSubmitted = false;
 var mpVoteSubmitted = false;
@@ -1072,6 +1145,7 @@ function handleServerMessage(msg){
   if(msg.type==='created' || msg.type==='joined'){
     myPlayerId = msg.playerId; myRoomCode = msg.roomCode;
     localPlayerNotes = {}; // notes are per-room scratch, never carry over from an earlier game
+    latestRoundScore = null;
     var codeEl = document.getElementById('mp-room-code');
     if(codeEl) codeEl.textContent = myRoomCode;
     switchPanel('lobby');
@@ -1080,10 +1154,18 @@ function handleServerMessage(msg){
   } else if(msg.type==='gameState'){
     phaseEndsAt = msg.phaseEndsAt;
     renderFromServerView(msg.view);
+  } else if(msg.type==='roundScore'){
+    latestRoundScore = msg;
+    renderRoundScore();
+  } else if(msg.type==='finalScore'){
+    recordGameScore(msg.total);
   } else if(msg.type==='chatMsg'){
     appendChatLine(msg);
   } else if(msg.type==='mafiaChatMsg'){
     appendMafiaChatLine(msg);
+  } else if(msg.type==='nightProgress'){
+    latestNightProgress = msg;
+    renderNightProgress();
   } else if(msg.type==='kicked'){
     alert(msg.message || 'You were removed from the room.');
     if(ws) ws.close();
@@ -1120,7 +1202,11 @@ function renderMpEntryScreen(){
 
 function renderPhaseTimer(){
   if(mpPhaseTimerInterval) clearInterval(mpPhaseTimerInterval);
+  SoundFX.stopClockTickSound(); // always clear out any tension left over from a previous phase first
   var labelEl = document.getElementById('night-label');
+  var phaseStartMs = Date.now();
+  var tickStarted = false;
+  var riserFired = false;
   function tick(){
     if(!labelEl) return;
     var base = latestView ? ('night '+latestView.night) : '';
@@ -1129,6 +1215,25 @@ function renderPhaseTimer(){
       labelEl.textContent = base + ' \u2014 ' + remaining + 's';
     } else {
       labelEl.textContent = base;
+    }
+
+    if(latestView && latestView.phase==='night' && phaseEndsAt){
+      // Escalating tension driven by whichever is closer to running out:
+      // time on the clock, or real players left to decide.
+      var totalMs = Math.max(1000, phaseEndsAt - phaseStartMs);
+      var remainingMs = Math.max(0, phaseEndsAt - Date.now());
+      var timeUrgency = 1 - (remainingMs / totalMs);
+
+      var subUrgency = 0;
+      if(latestNightProgress && latestNightProgress.total > 1){
+        var remainingVoters = latestNightProgress.total - latestNightProgress.submitted;
+        subUrgency = 1 - Math.max(0, remainingVoters - 1) / (latestNightProgress.total - 1);
+      }
+      var urgency = Math.max(0, Math.min(1, Math.max(timeUrgency, subUrgency)));
+
+      if(!tickStarted && urgency > 0.15){ tickStarted = true; SoundFX.startClockTick(); }
+      if(tickStarted) SoundFX.setClockTickUrgency(urgency);
+      if(!riserFired && urgency > 0.7){ riserFired = true; SoundFX.playTensionRiser(); }
     }
   }
   tick();
@@ -2065,6 +2170,15 @@ async function beginMafiaVoteLock(){
   },1000);
 }
 
+function renderNightProgress(){
+  var el = document.getElementById('night-progress');
+  if(!el) return;
+  if(!latestNightProgress || !latestView || latestView.phase!=='night'){ el.style.display='none'; return; }
+  var p = latestNightProgress;
+  el.textContent = p.submitted+' of '+p.total+' '+(p.total===1?'has':'have')+' decided...';
+  el.style.display='block';
+}
+
 function renderNightAction(){
   var h = you();
   var area = document.getElementById('night-action');
@@ -2072,6 +2186,7 @@ function renderNightAction(){
   document.getElementById('night-error').style.display='none';
   document.getElementById('night-result').style.display='none';
   document.getElementById('night-continue-wrap').style.display='none';
+  renderNightProgress();
 
   if(!h || !h.alive){
     document.getElementById('mafia-chat-section').style.display='none';
@@ -2937,7 +3052,7 @@ function showNightKillRevealScreen(victim, onContinue){
     SoundFX.playElimination();
     vibrate([30,50,30]);
     screenShake(document.getElementById('nightkill-screen'));
-  }, 2100);
+  }, 4600); // synced to the stamp-slam beat (see .nightkill-stamp's animation-delay)
   document.getElementById('nightkill-continue-btn').onclick = function(){
     clearTimeout(showNightKillRevealScreen._payoffTimer);
     document.getElementById('nightkill-screen').style.display = 'none';
@@ -3318,6 +3433,7 @@ function renderProfileScreen(){
   renderProfileSwatches(CURRENT_PROFILE.color);
   renderAvatarPicker(CURRENT_PROFILE.avatarKey);
   updateProfilePreview();
+  renderProfileScoreStats();
   document.getElementById('profile-saved-msg').style.display = 'none';
 }
 document.getElementById('profile-username-input').addEventListener('input', updateProfilePreview);
@@ -3447,6 +3563,32 @@ function renderLynchReveal(view){
   }).join('');
 }
 
+// Task 20 - each player's own point breakdown for the round that just
+// resolved: what they earned, and which rule triggered it, never just a bare
+// number. Guarded by night number since the roundScore and gameState
+// messages for a round can arrive in either order.
+function renderRoundScore(){
+  var section = document.getElementById('round-score-section');
+  if(!section) return;
+  if(!latestRoundScore || !latestView || latestRoundScore.night !== latestView.night){
+    section.style.display = 'none';
+    return;
+  }
+  section.style.display = 'block';
+  var sign = latestRoundScore.total >= 0 ? '+' : '';
+  document.getElementById('round-score-report').innerHTML = '<b>'+sign+latestRoundScore.total+' points</b> this round — '+latestRoundScore.cumulativeTotal+' total so far this game.';
+  var breakdownEl = document.getElementById('round-score-breakdown');
+  if(!latestRoundScore.breakdown.length){
+    breakdownEl.innerHTML = '<div class="score-line"><span>No scoring events for you this round.</span></div>';
+  } else {
+    breakdownEl.innerHTML = latestRoundScore.breakdown.map(function(b){
+      var lineSign = b.points >= 0 ? '+' : '';
+      var cls = b.points >= 0 ? 'positive' : 'negative';
+      return '<div class="score-line"><span>'+escapeHtmlMp(b.detail)+'</span><span class="score-points '+cls+'">'+lineSign+b.points+'</span></div>';
+    }).join('');
+  }
+}
+
 function appendChatLine(entry){
   var log = document.getElementById('discussion');
   if(!log) return;
@@ -3456,7 +3598,9 @@ function appendChatLine(entry){
   div.className = 'chatline'+youClass;
   if(clickable) div.dataset.id = entry.playerId;
   var p = byId(entry.playerId);
-  div.innerHTML = avatarHTML(p||{name:entry.name,color:'#B0A588'},22)+'<span class="who">'+escapeHtmlMp(entry.name)+'</span><span class="line">"'+escapeHtmlMp(entry.text)+'"</span>'+(clickable?'<span class="hint">select as vote</span>':'');
+  var target = entry.targetId ? byId(entry.targetId) : null;
+  var tagHTML = target ? '<span class="accusation-tag">accusing '+escapeHtmlMp(target.name)+'</span>' : '';
+  div.innerHTML = avatarHTML(p||{name:entry.name,color:'#B0A588'},22)+'<span class="who">'+escapeHtmlMp(entry.name)+'</span><span class="line">"'+escapeHtmlMp(entry.text)+'"</span>'+tagHTML+(clickable?'<span class="hint">select as vote</span>':'');
   log.appendChild(div);
   if(clickable){
     div.addEventListener('click', function(){ pendingDayVoteId = entry.playerId; renderTownBoard(); });
@@ -3468,7 +3612,7 @@ function renderChatLog(){
   var log = document.getElementById('discussion');
   if(!log || !latestView) return;
   log.innerHTML = '';
-  (latestView.chatLog||[]).forEach(function(m){ appendChatLine({playerId:m.playerId, name:m.name, text:m.text}); });
+  (latestView.chatLog||[]).forEach(function(m){ appendChatLine({playerId:m.playerId, name:m.name, text:m.text, targetId:m.targetId}); });
 }
 
 function renderVotePicker(){
@@ -3496,6 +3640,7 @@ function renderDayPanel(){
   document.getElementById('night-num-b').textContent = view.night;
   document.getElementById('overnight-report').innerHTML = view.cachedOvernightReport || '';
   renderChatLog();
+  renderChatTagOptions();
   renderTownBoard();
 
   var voteSection = document.getElementById('vote-section');
@@ -3536,6 +3681,7 @@ function renderDayPanel(){
   } else if(view.phase==='day-reveal'){
     lynchReveal.style.display='block';
     renderLynchReveal(view);
+    renderRoundScore();
   }
 }
 
@@ -3550,6 +3696,7 @@ function renderFromServerView(view){
   if(phaseKey !== prevPhaseKey){
     pendingNightAction = {}; pendingDayVoteId = null;
     mpNightSubmitted = false; mpVoteSubmitted = false; mpFarmerSubmitted = false;
+    latestNightProgress = null;
   }
 
   renderRoleBadge();
@@ -3562,22 +3709,30 @@ function renderFromServerView(view){
       return;
     }
     if(view.phase==='night'){
-      switchPanel('night');
-      renderNightAction();
+      // Every night, without exception, opens with the exact same beat -
+      // that consistency is the point, so it reads as a ritual rather than
+      // a one-off flourish. Night 1 additionally chains into the role
+      // reveal afterward; later nights go straight into the action screen.
+      showPhaseTransition('night', view.night, function(){
+        if(view.night===1){
+          showRoleRevealScreen(function(){ switchPanel('night'); renderNightAction(); });
+        } else {
+          switchPanel('night');
+          renderNightAction();
+        }
+      });
     } else {
       unlockTownBoard();
-      switchPanel('day');
-      renderDayPanel();
+      if(justLeftNight){
+        showPhaseTransition('day', view.night, function(){
+          switchPanel('day');
+          renderDayPanel();
+        });
+      } else {
+        switchPanel('day');
+        renderDayPanel();
+      }
     }
-  }
-
-  if(!prev && view.phase==='night' && view.night===1){
-    // The very first view of a brand new game - show the role reveal before
-    // anything else, rather than dropping straight into the night screen.
-    // (Guarded to night 1 specifically so a mid-game page refresh - which
-    // also has no previousView yet - doesn't wrongly replay this.)
-    showRoleRevealScreen(finish);
-    return;
   }
 
   var justLeftNight = prev && prev.phase==='night' && view.phase!=='night';
@@ -3615,10 +3770,93 @@ function renderFromServerView(view){
   finish();
 }
 
-function renderEnd(view){
+var STREAK_KEY = 'hc-streak-v1';
+async function saveStreak(streak){
+  try{
+    var data = JSON.stringify(streak);
+    if(hasClaudeStorage()){ await window.storage.set(STREAK_KEY, data, false); }
+    else { localStorage.setItem(STREAK_KEY, data); }
+  }catch(e){ console.error('[Hollow Creek] saveStreak failed:', e); }
+}
+async function loadStreak(){
+  try{
+    if(hasClaudeStorage()){
+      var result = await window.storage.get(STREAK_KEY, false);
+      if(result && result.value) return JSON.parse(result.value);
+      return {current:0, best:0};
+    } else {
+      var raw = localStorage.getItem(STREAK_KEY);
+      return raw ? JSON.parse(raw) : {current:0, best:0};
+    }
+  }catch(e){ return {current:0, best:0}; }
+}
+
+// Task 21 - local-only cumulative score / games-played tracking, same
+// boundary as the streak counter above: never sent to the server, never
+// synced between browsers, just this browser's own running average.
+var SCORE_STATS_KEY = 'hc-score-stats-v1';
+async function saveScoreStats(stats){
+  try{
+    var data = JSON.stringify(stats);
+    if(hasClaudeStorage()){ await window.storage.set(SCORE_STATS_KEY, data, false); }
+    else { localStorage.setItem(SCORE_STATS_KEY, data); }
+  }catch(e){ console.error('[Hollow Creek] saveScoreStats failed:', e); }
+}
+async function loadScoreStats(){
+  try{
+    if(hasClaudeStorage()){
+      var result = await window.storage.get(SCORE_STATS_KEY, false);
+      if(result && result.value) return JSON.parse(result.value);
+      return {gamesPlayed:0, cumulativeScore:0};
+    } else {
+      var raw = localStorage.getItem(SCORE_STATS_KEY);
+      return raw ? JSON.parse(raw) : {gamesPlayed:0, cumulativeScore:0};
+    }
+  }catch(e){ return {gamesPlayed:0, cumulativeScore:0}; }
+}
+// Called once per finished multiplayer game, when the server's finalScore
+// message for THIS game arrives - folds that game's total into the running
+// local average, then re-renders the profile stats if they're on screen.
+async function recordGameScore(total){
+  var stats = await loadScoreStats();
+  stats.gamesPlayed = (stats.gamesPlayed||0) + 1;
+  stats.cumulativeScore = (stats.cumulativeScore||0) + total;
+  await saveScoreStats(stats);
+  renderProfileScoreStats();
+}
+async function renderProfileScoreStats(){
+  var el = document.getElementById('profile-score-stats');
+  if(!el) return;
+  var stats = await loadScoreStats();
+  var avg = stats.gamesPlayed ? Math.round(stats.cumulativeScore / stats.gamesPlayed) : 0;
+  el.innerHTML =
+    '<div class="end-stat-card"><p class="end-stat-label">Games played</p><p class="end-stat-value">'+stats.gamesPlayed+'</p></div>'+
+    '<div class="end-stat-card"><p class="end-stat-label">Avg score / game</p><p class="end-stat-value">'+avg+'</p></div>';
+}
+
+async function renderEnd(view){
   var me = meFromView(view);
   document.getElementById('verdict-text').textContent = view.winner==='town' ? 'The town wins.' : view.winner==='mafia' ? 'The mafia wins.' : view.winner==='bounty' ? 'The bounty hunter wins.' : 'Game over.';
-  document.getElementById('end-stats-grid').innerHTML = me ? ('<div class="end-stat"><span>Your role</span><b>'+(ROLE_LABEL[me.role]||me.role)+'</b></div>') : '';
+
+  // Local-only streak: consecutive games survived to the end. (There's no
+  // multiplayer final-guess mechanic to track a guess streak against yet -
+  // that minigame was never ported from solo play, so only survival is
+  // tracked here.)
+  var survived = !!(me && me.alive);
+  var streak = await loadStreak();
+  streak.current = survived ? (streak.current||0) + 1 : 0;
+  streak.best = Math.max(streak.best||0, streak.current);
+  saveStreak(streak);
+
+  var survivors = view.players.filter(function(p){return p.alive;});
+  var cards = [];
+  cards.push('<div class="end-stat-card"><p class="end-stat-label">Rounds</p><p class="end-stat-value">'+view.night+'</p></div>');
+  cards.push('<div class="end-stat-card"><p class="end-stat-label">Survivors</p><p class="end-stat-value">'+survivors.length+' / '+view.players.length+'</p></div>');
+  if(me) cards.push('<div class="end-stat-card"><p class="end-stat-label">Your role</p><p class="end-stat-value">'+(ROLE_LABEL[me.role]||me.role)+'</p></div>');
+  cards.push('<div class="end-stat-card"><p class="end-stat-label">'+(survived?'Survival streak':'Streak')+'</p><p class="end-stat-value"'+(survived?'':' style="color:var(--danger);"')+'>'+streak.current+(survived?'':' (reset)')+'</p></div>');
+  cards.push('<div class="end-stat-card"><p class="end-stat-label">Best streak</p><p class="end-stat-value">'+streak.best+'</p></div>');
+  document.getElementById('end-stats-grid').innerHTML = cards.join('');
+
   document.getElementById('replay-log').innerHTML = (view.history||[]).map(function(line){ return '<div class="replay-item">'+escapeHtmlMp(line)+'</div>'; }).join('');
 }
 
@@ -3721,12 +3959,26 @@ function openPlayerActionModal(id){
   document.getElementById('player-action-modal').style.display = 'flex';
 }
 
+function renderChatTagOptions(){
+  var select = document.getElementById('chat-tag-select');
+  if(!select || !latestView) return;
+  var prevValue = select.value;
+  var options = living().filter(function(p){ return p.id !== myPlayerId; });
+  select.innerHTML = '<option value="">No tag</option>' + options.map(function(p){
+    return '<option value="'+p.id+'">Accuse '+escapeHtmlMp(p.name)+'</option>';
+  }).join('');
+  if(options.some(function(p){ return p.id === prevValue; })) select.value = prevValue;
+}
+
 function sendHumanChatMessage(){
   var input = document.getElementById('chat-input');
   var text = input.value.trim();
   if(!text) return;
   input.value = '';
-  sendWS({type:'dayChat', text: text});
+  var tagSelect = document.getElementById('chat-tag-select');
+  var targetId = tagSelect ? (tagSelect.value || null) : null;
+  sendWS({type:'dayChat', text: text, targetId: targetId});
+  if(tagSelect) tagSelect.value = '';
 }
 
 function appendMafiaChatLine(entry){
@@ -3857,6 +4109,7 @@ function leaveCurrentRoom(){
   myRoomCode = null; myPlayerId = null; amHost = false;
   phaseEndsAt = null;
   localPlayerNotes = {};
+  latestRoundScore = null;
   if(mpPhaseTimerInterval){ clearInterval(mpPhaseTimerInterval); mpPhaseTimerInterval = null; }
   stopVoteTimer();
 }
@@ -3875,16 +4128,48 @@ function renderNotePanel(){
 function showRoleRevealScreen(onContinue){
   var h = you();
   if(!h){ onContinue(); return; }
-  SoundFX.playRoleReveal();
-  var body = document.getElementById('role-card-modal-body');
-  body.innerHTML = '<h2 class="sec" style="text-align:center; margin-top:0;">Your role tonight</h2>' + buildDossierCardHTML(h, true) +
-    '<button class="btn" id="role-reveal-continue-btn" style="width:100%; margin-top:16px;">Begin the Night</button>';
-  var modal = document.getElementById('role-card-modal');
-  modal.style.display = 'flex';
+  var screen = document.getElementById('role-reveal-screen');
+
+  var img = portraitFor(h);
+  document.getElementById('role-reveal-card').innerHTML = img
+    ? ('<div class="portrait-frame"><img class="photo-img" src="'+img+'" alt="'+h.role+'"><img class="frame-overlay" src="'+FRAME_IMG+'" alt=""></div>')
+    : '';
+  var nameEl = document.getElementById('role-reveal-name');
+  nameEl.textContent = ROLE_SHORT[h.role] || h.role;
+  nameEl.className = 'role-reveal-name' + (h.align==='mafia' ? ' align-mafia' : h.align==='neutral' ? ' align-neutral' : '');
+  document.getElementById('role-reveal-flavor').textContent = ROLE_BIO[h.role] || '';
+  document.getElementById('role-reveal-extra').innerHTML = (h.align==='mafia') ? buildAllyExtraHTML(h) : '';
+
+  // Restart every staged animation from scratch, in case this screen is
+  // somehow shown twice in one session.
+  screen.style.display = 'none';
+  void screen.offsetWidth;
+  screen.style.display = 'block';
+  void screen.offsetWidth;
+
+  setTimeout(function(){ SoundFX.playRoleReveal(); }, 1400);
+
   document.getElementById('role-reveal-continue-btn').onclick = function(){
-    modal.style.display = 'none';
+    screen.style.display = 'none';
     onContinue();
   };
+}
+
+function showPhaseTransition(kind, num, onDone){
+  var screen = document.getElementById('phase-transition-screen');
+  screen.className = kind==='night' ? 'pt-night' : 'pt-day';
+  document.getElementById('phase-transition-label').textContent = (kind==='night' ? 'Night ' : 'Day ') + num;
+  screen.style.display = 'flex';
+  void screen.offsetWidth;
+  screen.classList.add('pt-active');
+  if(kind==='night') SoundFX.setAmbience(null);
+  setTimeout(function(){
+    screen.classList.remove('pt-active');
+    setTimeout(function(){
+      screen.style.display = 'none';
+      onDone();
+    }, 450);
+  }, 1600);
 }
 
 initGame();

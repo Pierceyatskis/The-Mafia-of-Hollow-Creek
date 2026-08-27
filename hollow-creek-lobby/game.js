@@ -106,8 +106,29 @@ function createGame(seats, config){
     chatLog: [], mafiaChatLog: [], voteLog: [], winner: null, gameOver: false,
     pendingNightVotes: {}, // playerId -> {kill, silence, protect, investigate, bounty, hideBehind}
     pendingDayVotes: {}, // playerId -> targetId
-    detectiveLog: [], farmerRevengeName: null, farmerRevengePending: null
+    detectiveLog: [], farmerRevengeName: null, farmerRevengePending: null,
+    // Scoring infrastructure (Task 17/18) - append-only, never cleared between
+    // rounds, each entry tagged with which round (`night`) it happened in so
+    // scoring.js can look at either a single round or the whole game's history.
+    voteSubmissionOrder: [], // [{night, playerId, targetId, submittedAt}] in real submission order, not tally order
+    livingCountAtAction: [], // [{night, playerId, role, actionType, livingCount}] - Doctor/Coward/Farmer blind-guess snapshots
+    accusationLog: [] // [{night, accuserId, targetId, ts}] - Task 18
   };
+}
+
+// Records a day-vote the moment it's actually submitted (real player or
+// placeholder fallback), preserving true chronological order - this is what
+// lets scoring.js tell an early, independent vote from a late bandwagon one.
+function recordDayVoteSubmission(state, playerId, targetId){
+  state.pendingDayVotes[playerId] = targetId;
+  state.voteSubmissionOrder.push({ night: state.night, playerId, targetId, submittedAt: Date.now() });
+}
+
+// Snapshots how many players were alive at the moment a Doctor/Coward/Farmer
+// made their blind guess - a guess made with 3 people left is a much bigger
+// bet than one made with 10 left, and scoring rewards it accordingly.
+function recordLivingCountSnapshot(state, playerId, role, actionType){
+  state.livingCountAtAction.push({ night: state.night, playerId, role, actionType, livingCount: living(state).length });
 }
 
 function byId(state, id){ return state.players.find(p => p.id === id); }
@@ -231,16 +252,23 @@ function resolveNight(state){
   let deathSummary;
   let nightDeathOccurred = false;
   let revealVictim = null;
+  let cowardRedirected = false;
 
   if(killTarget && killTarget.role==='Coward' && hideBehindId){
     const hideTarget = byId(state, hideBehindId);
     if(hideTarget && hideTarget.alive && hideTarget.id !== killTarget.id){
       log(state, 'The mafia came for '+killTarget.name+', but found '+hideTarget.name+' instead.');
       killTarget = hideTarget;
+      cowardRedirected = true;
     }
   }
 
   const doctorSaved = protectTargetId && killTarget && protectTargetId === killTarget.id;
+  // Who the kill mechanism was actually pointed at, post coward-swap, right
+  // before the doctor-save check - this is what scoring.js needs to know
+  // whether the Bounty Hunter's target was the night-kill target (even when
+  // saved), without ever exposing *why* they survived to anyone.
+  const killTargetId = killTarget ? killTarget.id : null;
   const navySealCounter = killTarget && killTarget.role==='NavySeal' && !killTarget.usedNavySealCounter && !doctorSaved;
 
   if(navySealCounter){
@@ -303,7 +331,7 @@ function resolveNight(state){
   state.pendingNightVotes = {};
   state.phase = 'day-discuss';
 
-  return {reportLines, deathSummary, nightDeathOccurred, revealVictim, silencedPlayerId, investigationResult, gameOver};
+  return {reportLines, deathSummary, nightDeathOccurred, revealVictim, silencedPlayerId, investigationResult, gameOver, killTargetId, doctorSaved: !!doctorSaved, cowardRedirected};
 }
 
 function resolveDayVote(state, timedOutFallbackId){
@@ -313,6 +341,7 @@ function resolveDayVote(state, timedOutFallbackId){
   living(state).forEach(p => {
     if(p.silencedToday) return;
     let target = state.pendingDayVotes[p.id];
+    const alreadySubmitted = target !== undefined && target !== null;
     if(!target && (p.isPlaceholder || p.connected === false)){
       const options = living(state).filter(q => q.id !== p.id);
       target = options.length ? options[Math.floor(Math.random()*options.length)].id : null;
@@ -320,6 +349,13 @@ function resolveDayVote(state, timedOutFallbackId){
     if(!target && timedOutFallbackId && p.id === timedOutFallbackId){
       const options = living(state).filter(q => q.id !== p.id);
       target = options.length ? options[Math.floor(Math.random()*options.length)].id : null;
+    }
+    if(!alreadySubmitted && target){
+      // Generated as a fallback at resolution time rather than submitted in
+      // real time - still recorded so voteSubmissionOrder reflects the whole
+      // round, chronologically last since it only happens once everyone who
+      // was going to vote for real already has.
+      state.voteSubmissionOrder.push({ night: state.night, playerId: p.id, targetId: target, submittedAt: Date.now() });
     }
     if(target && tally[target] !== undefined) tally[target]++;
     if(target) state.pendingDayVotes[p.id] = target;
@@ -352,7 +388,10 @@ function resolveDayVote(state, timedOutFallbackId){
 
   let farmerRevengePending = null;
   if(lead.role==='Farmer'){
-    if(lead.isHuman){
+    // A disconnected human has no socket left to ever answer, so treat them
+    // like a placeholder here too - same fallback pattern as resolveNight's
+    // and resolveDayVote's own tally fill-in for a disconnected player.
+    if(lead.isHuman && lead.connected !== false){
       farmerRevengePending = lead.id; // caller must collect a target then call resolveFarmerRevenge
       state.farmerRevengePending = lead.id;
     } else {
@@ -377,19 +416,49 @@ function resolveDayVote(state, timedOutFallbackId){
 function resolveFarmerRevenge(state, farmerId, targetId){
   const farmer = byId(state, farmerId);
   const target = targetId ? byId(state, targetId) : null;
+  let revengeKillOccurred = false;
   if(target && target.alive && target.id !== farmerId){
     target.alive = false;
     checkBountyHit(state, target);
     log(state, farmer.name+' took '+target.name+' down with them on the way out.');
     state.farmerRevengeName = target.name;
+    revengeKillOccurred = true;
   }
   state.farmerRevengePending = null;
-  return checkWin(state);
+  const gameOver = checkWin(state);
+  return { gameOver, revengeKillOccurred, revengeTargetId: revengeKillOccurred ? target.id : null };
 }
 
 function startNextNight(state){
   state.night++;
   state.phase = 'night';
+}
+
+// Task 18 - purely mechanical "who said it first" tracking. No LLM, no
+// judgment of message content: a message either was tagged to a target
+// player id when sent, or it wasn't.
+function recordAccusation(state, accuserId, targetId){
+  state.accusationLog.push({ night: state.night, accuserId, targetId, ts: Date.now() });
+}
+
+// Who first publicly accused targetId (optionally scoped to a single round),
+// plus how that accusation's timing relates to the room's actual day-vote
+// sequence for that same target: did it land before any vote for them came
+// in, and what fraction of the eventual votes-for-them were already
+// submitted at that moment (0 = accused before anyone voted for them at all,
+// 1 = accused only after every vote for them was already in - i.e. just
+// narrating what the room had already decided).
+function firstAccuserOf(state, targetId, night){
+  const entries = state.accusationLog.filter(e => e.targetId === targetId && (night === undefined || e.night === night));
+  if(!entries.length) return null;
+  const first = entries.reduce((a, b) => (a.ts <= b.ts ? a : b));
+  const votesForTarget = state.voteSubmissionOrder.filter(v => v.targetId === targetId && v.night === first.night);
+  const votesBeforeAccusation = votesForTarget.filter(v => v.submittedAt < first.ts).length;
+  return {
+    accuserId: first.accuserId, targetId, night: first.night, ts: first.ts,
+    precededAnyVoteForTarget: votesBeforeAccusation === 0,
+    fractionVotesAlreadyInWhenAccused: votesForTarget.length ? votesBeforeAccusation / votesForTarget.length : 0
+  };
 }
 
 // What ONE specific player is allowed to see. Never leaks other players'
@@ -429,5 +498,6 @@ module.exports = {
   CHARACTERS, ROLE_LABEL, SPECIAL_ROLES, MIN_PLAYERS, MAX_PLAYERS, MAX_MAFIA_COUNT, DEFAULT_ROLES_CONFIG,
   shuffle, alignOf, createGame, byId, living, mafiaAlive, mafiaVoters, checkWin, checkBountyHit, checkGrannyFlip,
   detectiveRead, investigateAndRead, resolveNight, resolveDayVote, resolveFarmerRevenge, startNextNight,
-  getPlayerView, log, specialRoleCount, validateSeatCapacity
+  getPlayerView, log, specialRoleCount, validateSeatCapacity,
+  recordDayVoteSubmission, recordLivingCountSnapshot, recordAccusation, firstAccuserOf
 };
