@@ -4205,7 +4205,7 @@ function startVoteTimer(){
   var fillEl = document.getElementById('timer-fill');
   numEl.classList.remove('timer-danger');
   fillEl.classList.remove('timer-danger');
-  var totalMs = phaseEndsAt ? Math.max(1, phaseEndsAt - Date.now()) : 45000;
+  var totalMs = phaseEndsAt ? Math.max(1, phaseEndsAt - Date.now()) : 105000;
   voteTimerInterval = setInterval(function(){
     if(!phaseEndsAt){ return; }
     var remaining = Math.max(0, Math.round((phaseEndsAt - Date.now())/1000));

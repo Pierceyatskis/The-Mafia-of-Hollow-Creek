@@ -432,6 +432,13 @@ async function testPlayAgainSameLobby() {
   const mafiaIdx = gsResults.findIndex(r => r.view.myAlign === 'mafia');
   const mafiaPlayer = players[mafiaIdx];
   const townPlayers = players.filter((p, i) => i !== mafiaIdx);
+  // Guaranteed non-host regardless of where the shuffle put the mafia role -
+  // `host` (players[0]) is the room's real host for the whole test, so any
+  // OTHER player id is unambiguously a non-host. townPlayers[0] alone isn't
+  // safe here: if the mafia role landed on someone other than the host,
+  // townPlayers[0] IS the host, and the "non-host rejected" check below
+  // would silently exercise the host's own (successful) request instead.
+  const nonHostPlayer = players.find(p => p.playerId !== host.playerId);
 
   const voteReachedPromise = Promise.all(players.map(p => once(p.ws, m => m.type === 'gameState' && m.view.phase === 'day-vote', 8000)));
   players.forEach(p => send(p.ws, { type: 'nightAction', action: {} }));
@@ -444,8 +451,8 @@ async function testPlayAgainSameLobby() {
   send(mafiaPlayer.ws, { type: 'dayVote', targetId: townPlayers[0].playerId });
   await gameOverPromise;
 
-  const rejectPromise = once(townPlayers[0].ws, m => m.type === 'error', 3000);
-  send(townPlayers[0].ws, { type: 'playAgain' });
+  const rejectPromise = once(nonHostPlayer.ws, m => m.type === 'error', 3000);
+  send(nonHostPlayer.ws, { type: 'playAgain' });
   const rejection = await rejectPromise;
   assert(/only the host/i.test(rejection.message || ''), 'Task-PlayAgain: a non-host sending playAgain is rejected with a clear error, not silently honored');
 

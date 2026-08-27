@@ -17,7 +17,7 @@ const PORT = process.env.PORT || 8080;
 // phaseEndsAt, they never run their own independent clock.
 const NIGHT_DURATION_MS = Number(process.env.NIGHT_DURATION_MS) || 60000;
 const DAY_DISCUSS_DURATION_MS = Number(process.env.DAY_DISCUSS_DURATION_MS) || 90000;
-const DAY_VOTE_DURATION_MS = Number(process.env.DAY_VOTE_DURATION_MS) || 45000;
+const DAY_VOTE_DURATION_MS = Number(process.env.DAY_VOTE_DURATION_MS) || 105000; // was 45s - extended by an extra minute of actual voting time
 const DAY_REVEAL_DURATION_MS = Number(process.env.DAY_REVEAL_DURATION_MS) || 12000;
 const FARMER_REVENGE_DURATION_MS = Number(process.env.FARMER_REVENGE_DURATION_MS) || 20000;
 
