@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "hollow-creek-lobby",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["hollow-creek-lobby/server.js"],
+      "port": 8080
+    }
+  ]
+}
