@@ -205,7 +205,10 @@ function resolveNightPhase(room) {
   clearPhaseTimer(room);
   const result = G.resolveNight(room.state);
   room.lastNightResult = result; // held onto so scoring can see this round's night outcome once the day vote also resolves
-  sendGameState(room);
+  // No sendGameState here - beginDayDiscussPhase (or endGame) sends the next
+  // broadcast momentarily with the correct phaseEndsAt already set. Sending
+  // here too would double-broadcast the same transition with a stale timer,
+  // which is what caused the client's phase-transition screen to flicker.
   if (result.gameOver) { endGame(room); return; }
   beginDayDiscussPhase(room);
 }
@@ -252,7 +255,9 @@ function beginDayVotePhase(room) {
 function resolveDayVotePhase(room) {
   clearPhaseTimer(room);
   const result = G.resolveDayVote(room.state);
-  sendGameState(room);
+  // No sendGameState here - see the note in resolveNightPhase. Whichever of
+  // beginFarmerRevengeWait/endGame/beginDayRevealPhase runs next sends the
+  // real broadcast with its own correct phaseEndsAt.
   if (result.farmerRevengePending) { room.lastDayResult = result; beginFarmerRevengeWait(room); return; }
   finishRoundScoring(room, result, null);
   if (result.gameOver) { endGame(room); return; }
@@ -266,7 +271,6 @@ function beginFarmerRevengeWait(room) {
   room.timer = setTimeout(() => {
     const farmerId = room.state.farmerRevengePending;
     const result = G.resolveFarmerRevenge(room.state, farmerId, null);
-    sendGameState(room);
     finishRoundScoring(room, room.lastDayResult, result);
     if (result.gameOver) { endGame(room); return; }
     beginDayRevealPhase(room);
@@ -497,7 +501,6 @@ wss.on('connection', (socket) => {
       const targetId = msg.targetId ? String(msg.targetId) : null;
       G.recordLivingCountSnapshot(room.state, player.id, 'Farmer', 'farmerRevenge');
       const result = G.resolveFarmerRevenge(room.state, player.id, targetId);
-      sendGameState(room);
       finishRoundScoring(room, room.lastDayResult, result);
       if (result.gameOver) { endGame(room); } else { beginDayRevealPhase(room); }
     }
