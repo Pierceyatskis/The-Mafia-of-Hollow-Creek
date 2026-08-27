@@ -624,7 +624,7 @@ h2.sec{font-family:var(--font-type); font-size:12px; letter-spacing:2px; text-tr
         <span class="ember" style="left:88%; animation-delay:5.4s;"></span>
       </div>
       <div class="poster-actions">
-        <button class="btn" id="create-game-btn">Create Game</button>
+        <button class="btn" id="create-game-btn">Play</button>
         <div class="poster-actions-row">
           <div class="coming-soon-toast" id="coming-soon-toast"></div>
           <button class="btn" id="howto-btn">How to Play</button>
@@ -1035,6 +1035,7 @@ var latestView = null;
 var previousView = null;
 var phaseEndsAt = null;
 var pendingNightAction = {};
+var localPlayerNotes = {}; // per-room, client-only scratch notes on other players - keyed by player id, reset on every create/join
 var pendingDayVoteId = null;
 var mpNightSubmitted = false;
 var mpVoteSubmitted = false;
@@ -1070,6 +1071,7 @@ function sendWS(obj){ if(ws && ws.readyState===WebSocket.OPEN) ws.send(JSON.stri
 function handleServerMessage(msg){
   if(msg.type==='created' || msg.type==='joined'){
     myPlayerId = msg.playerId; myRoomCode = msg.roomCode;
+    localPlayerNotes = {}; // notes are per-room scratch, never carry over from an earlier game
     var codeEl = document.getElementById('mp-room-code');
     if(codeEl) codeEl.textContent = myRoomCode;
     switchPanel('lobby');
@@ -2669,10 +2671,10 @@ document.getElementById('player-action-whisper-input').addEventListener('keydown
   if(e.key==='Enter') document.getElementById('player-action-whisper-send-btn').click();
 });
 document.getElementById('player-action-note-input').addEventListener('input', function(){
-  var p = byId(actionModalTargetId);
-  if(!p) return;
-  p.playerNote = this.value;
-  saveGame();
+  if(!actionModalTargetId) return;
+  var text = this.value.trim();
+  if(text) localPlayerNotes[actionModalTargetId] = text;
+  else delete localPlayerNotes[actionModalTargetId];
   renderTownBoard();
 });
 
@@ -3563,9 +3565,19 @@ function renderFromServerView(view){
       switchPanel('night');
       renderNightAction();
     } else {
+      unlockTownBoard();
       switchPanel('day');
       renderDayPanel();
     }
+  }
+
+  if(!prev && view.phase==='night' && view.night===1){
+    // The very first view of a brand new game - show the role reveal before
+    // anything else, rather than dropping straight into the night screen.
+    // (Guarded to night 1 specifically so a mid-game page refresh - which
+    // also has no previousView yet - doesn't wrongly replay this.)
+    showRoleRevealScreen(finish);
+    return;
   }
 
   var justLeftNight = prev && prev.phase==='night' && view.phase!=='night';
@@ -3628,6 +3640,10 @@ function switchPanel(p){
   document.getElementById('top-header').style.display = isMenu ? 'none' : 'block';
   document.getElementById('statusbar').style.display = isMenu ? 'none' : 'flex';
   document.getElementById('global-home-btn').style.display = isMenu ? 'none' : 'block';
+  var homeBtn = document.getElementById('home-nav-btn');
+  if(homeBtn){
+    homeBtn.textContent = (p==='lobby') ? 'Leave Lobby' : (p==='night'||p==='day') ? 'Leave Game' : 'Back to Home';
+  }
   var dayNightSwap = (p==='night' && document.body.classList.contains('bg-day')) || (p==='day' && document.body.classList.contains('bg-night'));
   if(dayNightSwap){
     var outgoing = document.body.classList.contains('bg-night') ? 'bg-night' : 'bg-day';
@@ -3675,9 +3691,12 @@ function renderTownBoard(){
     if(pendingDayVoteId === p.id) classes.push('selected');
     var checkBadge = votedIds[p.id] ? '<span class="town-tile-check"><img src="'+PAINTED_CHECK_IMG+'" alt="voted"></span>' : '';
     var xOverlay = !p.alive ? '<span class="town-tile-x"><img src="'+PAINTED_X_IMG+'" alt="eliminated"></span>' : '';
+    var note = localPlayerNotes[p.id];
+    var noteHTML = note ? '<div class="town-tile-note">'+escapeHtmlMp(note)+'</div>' : '';
     return '<div class="'+classes.join(' ')+'" data-id="'+p.id+'">'+
       '<div class="town-tile-label">'+escapeHtmlMp(label)+'</div>'+
       '<div class="town-tile-avatar"><img src="'+UNKNOWN_AVATAR_IMG+'" alt="">'+checkBadge+xOverlay+'</div>'+
+      noteHTML+
       '</div>';
   }).join('');
 }
@@ -3818,9 +3837,7 @@ document.getElementById('mpentry-join-btn').addEventListener('click', function()
   whenConnected(function(){ sendWS({type:'join', name: CURRENT_PROFILE.username||'Player', roomCode: code}); });
 });
 document.getElementById('mp-leave-btn').addEventListener('click', function(){
-  sendWS({type:'leave'});
-  if(ws) ws.close();
-  ws = null;
+  leaveCurrentRoom();
   renderMpEntryScreen();
   switchPanel('mpentry');
 });
@@ -3828,6 +3845,47 @@ document.getElementById('mpentry-edit-profile-btn').addEventListener('click', fu
   renderProfileScreen();
   switchPanel('profile');
 });
+
+// Disconnects from the current room/game cleanly: tells the server, closes the
+// socket, and wipes every piece of client-side state tied to that room so a
+// stray late gameState/roster push can't silently pull the player back in.
+function leaveCurrentRoom(){
+  sendWS({type:'leave'});
+  if(ws) ws.close();
+  ws = null;
+  latestView = null; previousView = null;
+  myRoomCode = null; myPlayerId = null; amHost = false;
+  phaseEndsAt = null;
+  localPlayerNotes = {};
+  if(mpPhaseTimerInterval){ clearInterval(mpPhaseTimerInterval); mpPhaseTimerInterval = null; }
+  stopVoteTimer();
+}
+
+function goToHome(){
+  leaveCurrentRoom();
+  switchPanel('home');
+}
+
+function renderNotePanel(){
+  var p = byId(actionModalTargetId);
+  if(!p) return;
+  document.getElementById('player-action-note-input').value = localPlayerNotes[actionModalTargetId] || '';
+}
+
+function showRoleRevealScreen(onContinue){
+  var h = you();
+  if(!h){ onContinue(); return; }
+  SoundFX.playRoleReveal();
+  var body = document.getElementById('role-card-modal-body');
+  body.innerHTML = '<h2 class="sec" style="text-align:center; margin-top:0;">Your role tonight</h2>' + buildDossierCardHTML(h, true) +
+    '<button class="btn" id="role-reveal-continue-btn" style="width:100%; margin-top:16px;">Begin the Night</button>';
+  var modal = document.getElementById('role-card-modal');
+  modal.style.display = 'flex';
+  document.getElementById('role-reveal-continue-btn').onclick = function(){
+    modal.style.display = 'none';
+    onContinue();
+  };
+}
 
 initGame();
 </script>
