@@ -78,9 +78,20 @@ function scoreRound(state, round){
   const snapshotsThisRound = state.livingCountAtAction.filter(e => e.night === night);
   const lead = dayResult.lead || null;
 
+  // votesThisRound is append-only (see game.js's recordDayVoteSubmission) -
+  // every resubmission before the phase ended gets its own entry, on
+  // purpose, since that's genuinely useful timing data. But every scoring
+  // rule below cares about what a player actually *decided*, not how many
+  // times they changed their mind - build each player's single latest
+  // submission once and score against that, never the raw array directly.
+  // Same principle already applied to livingCountAtAction above.
+  const latestVoteByPlayer = new Map();
+  votesThisRound.forEach(v => { latestVoteByPlayer.set(v.playerId, v); });
+  const finalVotesThisRound = Array.from(latestVoteByPlayer.values());
+
   // --- Town baseline (all non-Detective town-aligned roles): correct vote only ---
   if(lead && lead.align === 'mafia'){
-    const votesForLead = votesThisRound.filter(v => v.targetId === lead.id);
+    const votesForLead = finalVotesThisRound.filter(v => v.targetId === lead.id);
     votesForLead.forEach(v => {
       const voter = G.byId(state, v.playerId);
       if(!voter || voter.align !== 'town' || voter.role === 'Detective') return;
@@ -95,7 +106,7 @@ function scoreRound(state, round){
   // --- Detective (replaces baseline) ---
   const detective = state.players.find(p => p.role === 'Detective');
   if(detective){
-    const detectiveVote = votesThisRound.find(v => v.playerId === detective.id);
+    const detectiveVote = latestVoteByPlayer.get(detective.id) || null;
     const detectiveTargetId = detectiveVote ? detectiveVote.targetId : null;
     const readsByTargetId = {};
     (state.detectiveLog || []).forEach(entry => {
@@ -154,7 +165,7 @@ function scoreRound(state, round){
     } else {
       // Never expose *why* a near miss happened (e.g. a doctor save) - the
       // reason string stays generic even here, server-side.
-      const receivedVotes = votesThisRound.some(v => v.targetId === bountyTargetId);
+      const receivedVotes = finalVotesThisRound.some(v => v.targetId === bountyTargetId);
       const nearMissLynch = receivedVotes && (!lead || lead.id !== bountyTargetId);
       const nearMissNightSave = nightResult.killTargetId === bountyTargetId && !!nightResult.doctorSaved;
       if(nearMissLynch || nearMissNightSave){
@@ -194,10 +205,10 @@ function scoreRound(state, round){
   const miller = state.players.find(p => p.role === 'Miller');
   if(miller){
     const accusedThisRound = state.accusationLog.some(e => e.night === night && e.targetId === miller.id);
-    const votedThisRound = votesThisRound.some(v => v.targetId === miller.id);
+    const votedThisRound = finalVotesThisRound.some(v => v.targetId === miller.id);
     const millerSurvived = miller.alive === true;
     if((accusedThisRound || votedThisRound) && millerSurvived){
-      votesThisRound.forEach(v => {
+      finalVotesThisRound.forEach(v => {
         if(v.targetId === miller.id) return;
         const voter = G.byId(state, v.playerId);
         if(voter && voter.align === 'town'){

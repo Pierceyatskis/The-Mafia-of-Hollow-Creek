@@ -34,6 +34,22 @@ const ALL_OFF = {Godfather:false, DoubleAgent:false, Detective:false, Doctor:fal
   assert(!scores[mafia.id], 'Task19 town-baseline: the mafia-aligned lynch target never earns town-baseline points for itself');
 })();
 
+// SCORING_BUGS Bug B: town-baseline scoring must evaluate only a voter's
+// FINAL submission, not every historical entry in the append-only
+// voteSubmissionOrder array.
+(function testTownBaselineVoteChange(){
+  const state = G.createGame(seats('tbc', 6), {playerCount:6, mafiaCount:1, roles: Object.assign({}, ALL_OFF)});
+  const mafia = state.players.find(p => p.role === 'Mafia');
+  mafia.alive = false;
+  const civs = state.players.filter(p => p.role === 'Civilian');
+  // civs[0] first votes for the eventual lynch target (would-be correct),
+  // then changes their mind and finalizes on someone else entirely.
+  G.recordDayVoteSubmission(state, civs[0].id, mafia.id);
+  G.recordDayVoteSubmission(state, civs[0].id, civs[1].id);
+  const scores = Scoring.scoreRound(state, {night:1, nightResult:{}, dayResult:{lead: mafia}});
+  assert(!scores[civs[0].id], 'SCORING_BUGS Bug B: a voter whose final vote was NOT the lynch target earns no town-baseline credit, even though an earlier abandoned vote targeted them');
+})();
+
 // ============================================================
 // Rule: Detective (replaces baseline) - +15 consistent with own investigation
 // result, -10 voted against own confirmed guilty read.
@@ -66,6 +82,22 @@ const ALL_OFF = {Godfather:false, DoubleAgent:false, Detective:false, Doctor:fal
   G.recordDayVoteSubmission(s3, det3.id, civs3[1].id);
   const scores3 = Scoring.scoreRound(s3, {night:1, nightResult:{}, dayResult:{}});
   assert(scores3[det3.id].total === 15, 'Task19 detective: +15 for defending a confirmed-innocent read instead of voting for them');
+})();
+
+// SCORING_BUGS Bug C: detective-consistency scoring must evaluate only the
+// Detective's FINAL vote, not the first entry `.find()` happened to hit.
+(function testDetectiveVoteChange(){
+  const s = G.createGame(seats('dvc', 6), {playerCount:6, mafiaCount:1, roles: Object.assign({}, ALL_OFF, {Detective:true})});
+  const det = s.players.find(p => p.role === 'Detective');
+  const suspect = s.players.find(p => p.role === 'Mafia');
+  const innocentCiv = s.players.find(p => p.role === 'Civilian');
+  s.detectiveLog.push({name: suspect.name, read: 'guilty'});
+  // Detective first votes their own confirmed-guilty read, then changes
+  // their mind and finalizes on someone else entirely.
+  G.recordDayVoteSubmission(s, det.id, suspect.id);
+  G.recordDayVoteSubmission(s, det.id, innocentCiv.id);
+  const scores = Scoring.scoreRound(s, {night:1, nightResult:{}, dayResult:{}});
+  assert(scores[det.id].total === -10, 'SCORING_BUGS Bug C: scoring judges the Detective\'s FINAL vote (penalized for not voting the confirmed-guilty suspect), not the abandoned first vote that would have earned +15');
 })();
 
 // ============================================================
@@ -148,6 +180,21 @@ const ALL_OFF = {Godfather:false, DoubleAgent:false, Detective:false, Doctor:fal
   assert(scores4[bh4.id].total === 5, 'Task19 bounty hunter: +5 near miss when the bounty target received votes but wasn\'t the lynch leader');
 })();
 
+// SCORING_BUGS pattern also found in the near-miss check: an abandoned vote
+// for the bounty target must not register as "received votes" if that
+// voter's actual final vote went elsewhere.
+(function testBountyNearMissVoteChange(){
+  const s = G.createGame(seats('bhvc', 7), {playerCount:7, mafiaCount:1, roles: Object.assign({}, ALL_OFF, {BountyHunter:true})});
+  const bh = s.players.find(p => p.role === 'BountyHunter');
+  const civs = s.players.filter(p => p.role === 'Civilian');
+  const target = civs[0], voter = civs[1], lynched = civs[2];
+  s.bountyTarget = target.id;
+  G.recordDayVoteSubmission(s, voter.id, target.id); // abandoned
+  G.recordDayVoteSubmission(s, voter.id, lynched.id); // final
+  const scores = Scoring.scoreRound(s, {night:1, nightResult:{}, dayResult:{lead: lynched}});
+  assert(!scores[bh.id], 'SCORING_BUGS pattern (bounty near-miss): an abandoned vote for the bounty target earns no near-miss bonus once the voter\'s final vote went elsewhere');
+})();
+
 // ============================================================
 // Rule: Mafia-aligned - accelerating survival curve, +15 night-kill target
 // was the Detective/Doctor, misdirection bonus (scaled earlier = bigger),
@@ -220,6 +267,22 @@ const ALL_OFF = {Godfather:false, DoubleAgent:false, Detective:false, Doctor:fal
   assert(scores[civs[0].id].total === 5, 'Task19 saved-the-miller: a town player who voted for someone other than an accused-but-surviving Miller earns the bonus');
   assert(!scores[civs[2].id], 'Task19 saved-the-miller: a town player who voted FOR the Miller does not earn the bonus');
   assert(!(scores[mafia.id] && scores[mafia.id].breakdown.some(b => b.rule === 'saved-the-miller')), 'Task19 saved-the-miller: a mafia-aligned player never earns this town-only bonus');
+})();
+
+// SCORING_BUGS pattern also found here: a player whose FINAL vote was
+// actually for the Miller must not earn "saved the miller" credit just
+// because an earlier, abandoned vote targeted someone else.
+(function testSavedTheMillerVoteChange(){
+  const s = G.createGame(seats('smvc', 7), {playerCount:7, mafiaCount:1, roles: Object.assign({}, ALL_OFF, {Miller:true})});
+  const miller = s.players.find(p => p.role === 'Miller');
+  const civs = s.players.filter(p => p.role === 'Civilian');
+  G.recordAccusation(s, civs[0].id, miller.id);
+  // civs[1] first votes elsewhere, then changes their mind and actually
+  // votes for the Miller as their final choice.
+  G.recordDayVoteSubmission(s, civs[1].id, civs[2].id); // abandoned
+  G.recordDayVoteSubmission(s, civs[1].id, miller.id);  // final
+  const scores = Scoring.scoreRound(s, {night:1, nightResult:{}, dayResult:{}});
+  assert(!scores[civs[1].id], 'SCORING_BUGS pattern (saved-the-miller): a player whose FINAL vote was for the Miller earns no credit, even though an earlier abandoned vote targeted someone else');
 })();
 
 // ============================================================
