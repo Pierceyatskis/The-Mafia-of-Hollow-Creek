@@ -641,6 +641,15 @@ h2.sec{font-family:var(--font-type); font-size:12px; letter-spacing:2px; text-tr
     </div>
   </div>
 </div>
+<div id="detective-reveal-modal" class="role-card-overlay" style="display:none;">
+  <div class="role-card-modal-content intro-modal-content" style="max-width:420px; text-align:center;">
+    <h2 class="intro-modal-title">Case Notes</h2>
+    <p class="intro-modal-text" id="detective-reveal-text" style="font-size:16px;"></p>
+    <div class="intro-modal-actions">
+      <button class="btn" id="detective-reveal-continue-btn">Continue</button>
+    </div>
+  </div>
+</div>
 <div id="final-guess-modal" class="role-card-overlay" style="display:none;">
   <div class="role-card-modal-content intro-modal-content" style="max-width:560px;">
     <h2 class="intro-modal-title">One Last Guess</h2>
@@ -3123,6 +3132,21 @@ function showSilenceScreen(onContinue){
   };
 }
 
+function showDetectiveReveal(entry, onContinue){
+  // A dedicated moment for the Detective's own read, shown the instant
+  // night resolves - before the kill reveal or day panel, so it lands as
+  // part of the night beat instead of a passive line buried in the next
+  // day's report (which single-player shows instantly on submission, but
+  // multiplayer can't resolve until the whole table is done acting).
+  document.getElementById('detective-reveal-text').innerHTML =
+    'You investigated <b>'+escapeHtmlMp(entry.name)+'</b>. It reads <span class="detective-log-read detective-log-'+entry.read+'">'+entry.read+'</span>.';
+  document.getElementById('detective-reveal-modal').style.display = 'flex';
+  SoundFX.playCaseFileOpen();
+  document.getElementById('detective-reveal-continue-btn').onclick = function(){
+    document.getElementById('detective-reveal-modal').style.display = 'none';
+    onContinue();
+  };
+}
 function showNightKillRevealScreen(victim, onContinue){
   SoundFX.setAmbience(null);
   var ids = ['nightkill-eyebrow','nightkill-card','nightkill-name','nightkill-role','nightkill-flavor','nightkill-continue-btn'];
@@ -3971,11 +3995,13 @@ function renderFromServerView(view){
     }
   }
 
-  var justLeftNight = prev && prev.phase==='night' && view.phase!=='night';
-  if(justLeftNight){
+  function handlePostNightBranches(){
+    // Returns true if it handed off to an async modal (the caller must NOT
+    // also call finish() - that modal's own onContinue chain will), or
+    // false if nothing applied and the caller should proceed to finish().
     if(prevMe && prevMe.alive && me && !me.alive){
       showDeathScreen('night', finish);
-      return;
+      return true;
     }
     var overnightVictim = view.players.find(function(p){
       var was = prev.players.find(function(q){return q.id===p.id;});
@@ -3986,12 +4012,26 @@ function renderFromServerView(view){
         if(me && me.silencedToday && !(prevMe && prevMe.silencedToday)) showSilenceScreen(finish);
         else finish();
       });
-      return;
+      return true;
     }
     if(me && me.silencedToday && !(prevMe && prevMe.silencedToday)){
       showSilenceScreen(finish);
+      return true;
+    }
+    return false;
+  }
+
+  var justLeftNight = prev && prev.phase==='night' && view.phase!=='night';
+  if(justLeftNight){
+    var prevDetectiveLogLen = (prev.detectiveLog||[]).length;
+    var curDetectiveLogLen = (view.detectiveLog||[]).length;
+    if(me && me.role==='Detective' && curDetectiveLogLen > prevDetectiveLogLen){
+      showDetectiveReveal(view.detectiveLog[curDetectiveLogLen-1], function(){
+        if(!handlePostNightBranches()) finish();
+      });
       return;
     }
+    if(handlePostNightBranches()) return;
   }
 
   var justEnteredReveal = prev && (prev.phase==='day-vote'||prev.phase==='farmer-revenge') && view.phase==='day-reveal';
