@@ -112,7 +112,8 @@ function createGame(seats, config){
     // scoring.js can look at either a single round or the whole game's history.
     voteSubmissionOrder: [], // [{night, playerId, targetId, submittedAt}] in real submission order, not tally order
     livingCountAtAction: [], // [{night, playerId, role, actionType, livingCount}] - Doctor/Coward/Farmer blind-guess snapshots
-    accusationLog: [] // [{night, accuserId, targetId, ts}] - Task 18
+    accusationLog: [], // [{night, accuserId, targetId, ts}] - Task 18
+    whisperLog: [] // [{fromId, toId, text, ts}] - private day-vote whispers, visible only to the two players involved (see getPlayerView)
   };
 }
 
@@ -196,7 +197,7 @@ function placeholderNightAction(state, player){
   if(player.role==='Detective') action.investigate = pick(options);
   if(player.role==='Doctor') action.protect = pick(options);
   if(player.role==='Coward') action.hideBehind = pick(options);
-  if(player.role==='BountyHunter' && !state.bountyTarget) action.bounty = pick(options);
+  if(player.role==='BountyHunter') action.bounty = pick(options);
   return action;
 }
 
@@ -242,7 +243,9 @@ function resolveNight(state){
   const investigateTargetId = detective ? (state.pendingNightVotes[detective.id]||{}).investigate : null;
   const protectTargetId = doctor ? (state.pendingNightVotes[doctor.id]||{}).protect : null;
   const hideBehindId = coward ? (state.pendingNightVotes[coward.id]||{}).hideBehind : null;
-  const bountyId = bountyHunter && !state.bountyTarget ? (state.pendingNightVotes[bountyHunter.id]||{}).bounty : null;
+  // Bounty Hunter re-aims every night, not just once ever - the role's own
+  // description promises "place a bounty on someone each night."
+  const bountyId = bountyHunter ? (state.pendingNightVotes[bountyHunter.id]||{}).bounty : null;
   const silenceId = godfather ? (state.pendingNightVotes[godfather.id]||{}).silence : null;
 
   if(bountyId) state.bountyTarget = bountyId;
@@ -339,7 +342,8 @@ function resolveDayVote(state, timedOutFallbackId){
   living(state).forEach(p => { tally[p.id] = 0; });
 
   living(state).forEach(p => {
-    if(p.silencedToday) return;
+    // Silenced blocks speaking only - every living player still votes and
+    // is counted in the tally, silenced or not.
     let target = state.pendingDayVotes[p.id];
     const alreadySubmitted = target !== undefined && target !== null;
     if(!target && (p.isPlaceholder || p.connected === false)){
@@ -369,17 +373,19 @@ function resolveDayVote(state, timedOutFallbackId){
   log(state, lead.name+' ('+lead.role+') was voted out by the town.');
   checkBountyHit(state, lead);
 
-  // Anyone silenced gets a "did not vote" row; anyone else who had a vote
-  // recorded this round (including the player who just got lynched) gets
-  // their target listed. Players already dead before this round never had
-  // a pendingDayVotes entry, so they're naturally excluded.
+  // Silenced players still vote and appear with their real target here too -
+  // silenced only means they couldn't speak, not that they didn't vote.
+  // Anyone with no recorded vote at all (silenced or not) shows as "did not
+  // vote." Players already dead before this round never had a
+  // pendingDayVotes entry, so they're naturally excluded.
   const voteBreakdown = [];
   state.players.forEach(p => {
-    if(p.silencedToday){ voteBreakdown.push({name:p.name, target:null, silenced:true, voterId:p.id}); return; }
     const t = state.pendingDayVotes[p.id];
     if(t !== undefined){
       const targetP = t ? byId(state, t) : null;
-      voteBreakdown.push({name:p.name, target: targetP ? targetP.name : 'no one', voterId:p.id});
+      voteBreakdown.push({name:p.name, target: targetP ? targetP.name : 'no one', silenced: !!p.silencedToday, voterId:p.id});
+    } else if(p.silencedToday){
+      voteBreakdown.push({name:p.name, target:null, silenced:true, voterId:p.id});
     }
   });
   state.voteLog = voteBreakdown;
@@ -490,7 +496,11 @@ function getPlayerView(state, playerId){
     mafiaChatLog: (me && me.align==='mafia') ? state.mafiaChatLog : undefined,
     chatLog: state.chatLog, voteLog: state.voteLog, history: state.history,
     cachedOvernightReport: state.cachedOvernightReport, farmerRevengeName: state.farmerRevengeName,
-    farmerRevengePending: state.farmerRevengePending
+    farmerRevengePending: state.farmerRevengePending,
+    // A whisper is visible only to the two players in it, same scoping
+    // principle as mafiaChatLog above - everyone else's whispers are
+    // filtered out entirely, not just hidden client-side.
+    whisperLog: me ? state.whisperLog.filter(w => w.fromId === playerId || w.toId === playerId) : undefined
   };
 }
 

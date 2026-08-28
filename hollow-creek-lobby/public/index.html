@@ -185,6 +185,18 @@ header p{font-family:var(--font-type); font-size:11px; letter-spacing:3px; text-
 #global-home-btn .btn{padding:7px 16px; font-size:11px;}
 #role-badge{position:fixed; bottom:24px; right:24px; z-index:90; display:flex; flex-direction:column; align-items:center; width:104px; background:linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%); border:1px solid var(--gold-dim); border-radius:10px; padding:9px; box-shadow:0 6px 20px rgba(0,0,0,0.5); cursor:pointer; transition:transform .15s ease, box-shadow .15s ease;}
 #role-badge:hover{transform:translateY(-4px); box-shadow:0 12px 28px rgba(0,0,0,0.6);}
+/* During day phase the chat sidebar's input row can sit in the same
+   bottom-right corner as this fixed badge once there's enough chat history
+   to fill the panel - shift the badge up out of that zone specifically. */
+body.bg-day #role-badge{bottom:210px;}
+@media (max-width:900px){
+  /* Below 900px the day layout stacks and scrolls to an unbounded height,
+     so a fixed bottom-right badge can end up over whatever the reader has
+     scrolled to - including the chat send button, at some widths in this
+     range even at full badge size. Anchoring to the top instead keeps it
+     clear of that scrolled content regardless of how far down they go. */
+  body.bg-day #role-badge{bottom:auto; top:165px; right:12px;}
+}
 #role-badge .role-badge-img{position:relative; width:86px; height:130px; border-radius:4px; overflow:hidden; flex-shrink:0; background:var(--panel-2); display:flex; align-items:center; justify-content:center;}
 #role-badge .role-badge-img .photo-img{width:100%; height:100%; object-fit:cover; display:block; filter:grayscale(35%) sepia(12%);}
 #role-badge .role-badge-img .frame-overlay{position:absolute; inset:0; width:100%; height:100%; pointer-events:none;}
@@ -861,14 +873,14 @@ h2.sec{font-family:var(--font-type); font-size:12px; letter-spacing:2px; text-tr
         </div>
         <div id="silenced-notice" style="display:none;">
           <div class="status-notice">
-            <p class="msg err">You've been silenced today. You cannot speak or vote.</p>
+            <p class="msg err">You've been silenced today. You cannot speak, but your vote still counts.</p>
             <button class="btn" id="silenced-continue-btn">Let the town decide without you</button>
           </div>
         </div>
         <div id="dead-notice" style="display:none;">
           <div class="status-notice danger">
             <img class="status-notice-stamp" id="dead-notice-stamp" src="" alt="">
-            <p class="msg err">You've been eliminated. You can watch how the case unfolds, but you can no longer speak or vote.</p>
+            <p class="msg err">You've been eliminated and are out for the rest of this game. You can keep watching how the case unfolds, but you can no longer speak or vote.</p>
             <button class="btn" id="dead-continue-btn">Watch the town decide</button>
           </div>
         </div>
@@ -1135,6 +1147,8 @@ var pendingNightAction = {};
 var localPlayerNotes = {}; // per-room, client-only scratch notes on other players - keyed by player id, reset on every create/join
 var latestNightProgress = null; // {submitted, total} - counts only, refreshed live during the night phase
 var latestRoundScore = null; // {night, total, breakdown, cumulativeTotal} - this player's OWN round score, never anyone else's
+var deadNoticeDismissed = false; // once acknowledged, stays dismissed for the rest of THIS game - being eliminated is permanent, the notice shouldn't re-nag every phase
+var multiplayerWhisperLog = []; // [{fromId,toId,text,ts}] - re-synced from each gameState's (already privacy-scoped) whisperLog, topped up live by whisperMsg pushes in between
 var pendingDayVoteId = null;
 var mpNightSubmitted = false;
 var mpVoteSubmitted = false;
@@ -1173,6 +1187,8 @@ function handleServerMessage(msg){
     localPlayerNotes = {}; // notes are per-room scratch, never carry over from an earlier game
     latestRoundScore = null;
     pendingReplyTo = null;
+    deadNoticeDismissed = false;
+    multiplayerWhisperLog = [];
     var codeEl = document.getElementById('mp-room-code');
     if(codeEl) codeEl.textContent = myRoomCode;
     switchPanel('lobby');
@@ -1182,7 +1198,7 @@ function handleServerMessage(msg){
     // Same room/players/host - the game just reset back to a pre-start
     // lobby, with last game's presets carried over for the host.
     latestView = null; previousView = null;
-    latestRoundScore = null; pendingReplyTo = null;
+    latestRoundScore = null; pendingReplyTo = null; deadNoticeDismissed = false; multiplayerWhisperLog = [];
     if(msg.config){
       GAME_CONFIG.playerCount = msg.config.playerCount;
       GAME_CONFIG.mafiaCount = msg.config.mafiaCount;
@@ -1201,6 +1217,14 @@ function handleServerMessage(msg){
     appendChatLine(msg);
   } else if(msg.type==='mafiaChatMsg'){
     appendMafiaChatLine(msg);
+  } else if(msg.type==='whisperMsg'){
+    // Live top-up between full gameState resyncs - only ever delivered to
+    // the sender and the target (see server's whisper handler), never
+    // broadcast, so it's always relevant to append to our local log.
+    multiplayerWhisperLog.push(msg);
+    if(actionModalTargetId && (msg.fromId===actionModalTargetId || msg.toId===actionModalTargetId) && document.getElementById('player-action-modal').style.display==='flex'){
+      renderWhisperPanel();
+    }
   } else if(msg.type==='nightProgress'){
     latestNightProgress = msg;
     renderNightProgress();
@@ -1247,7 +1271,11 @@ function renderPhaseTimer(){
   var riserFired = false;
   function tick(){
     if(!labelEl) return;
-    var base = latestView ? ('night '+latestView.night) : '';
+    // No "night"/"day" word here - #phase-label right beside it already
+    // shows the phase name; repeating it here was Bug 7/8's duplication.
+    // Leading space since the two spans sit directly adjacent with no
+    // separator of their own (e.g. "night" + " round 3 — 45s").
+    var base = latestView ? (' round '+latestView.night) : '';
     if(phaseEndsAt){
       var remaining = Math.max(0, Math.round((phaseEndsAt - Date.now())/1000));
       labelEl.textContent = base + ' \u2014 ' + remaining + 's';
@@ -1965,7 +1993,11 @@ function openCaseLogModal(){
     var c = classifyLogEntry(text);
     if(c.private) return; // skip - not public information
     if(!groups[roundNum]){ groups[roundNum] = []; order.push(roundNum); }
-    groups[roundNum].push({text: redactRoleMentions(text), c: c});
+    // A day-vote elimination is a public unmasking (see renderLynchReveal) -
+    // its role stays in the case file. Night deaths and everything else
+    // stay anonymous, matching the reveal screens.
+    var entryText = c.tag === 'VERDICT' ? text : redactRoleMentions(text);
+    groups[roundNum].push({text: entryText, c: c});
   });
   if(!order.length){
     list.innerHTML = '<p class="case-log-empty">Nothing on record yet. Check back once the case gets moving.</p>';
@@ -2298,19 +2330,20 @@ function renderNightAction(){
   } else if(h.role==='CrazyGranny' && h.align==='mafia'){
     renderMafiaVoteUI(h, {silence:false, introText:'The last of the mafia. Choose who to eliminate tonight.'});
   } else if(h.role==='BountyHunter'){
-    if(latestView.bountyTarget){
-      area.innerHTML = '<p style="font-size:13px; color:var(--parchment-dim);">Your bounty is already placed. Nothing to do tonight but wait.</p><button class="btn" id="night-confirm-btn">Continue</button>';
-      document.getElementById('night-confirm-btn').addEventListener('click', function(){ submitNightAction(); });
-    } else {
-      area.innerHTML = '<p style="font-size:13px; color:var(--parchment-dim);">Place your bounty for tonight.</p><div class="chipgrid" id="grid-a"></div><button class="btn" id="night-confirm-btn">Confirm</button>';
-      var opts3 = living();
-      document.getElementById('grid-a').innerHTML = chipGridHTML(opts3,'pick-a');
-      wireSingleSelect(document.getElementById('grid-a'), 'pick-a', function(id){pendingNightAction.bounty=id;});
-      document.getElementById('night-confirm-btn').addEventListener('click', function(){
-        if(!pendingNightAction.bounty){document.getElementById('night-error').textContent='Place a bounty first.'; document.getElementById('night-error').style.display='block'; return;}
-        submitNightAction();
-      });
-    }
+    // Re-aim every night, not a one-time pick - matches the role's own
+    // description ("place a bounty on someone each night").
+    var currentBounty = latestView.bountyTarget ? byId(latestView.bountyTarget) : null;
+    var bountyIntro = currentBounty
+      ? 'Currently bountied: <b>'+escapeHtmlMp(currentBounty.name)+'</b>'+(currentBounty.alive?'':' (already collected)')+'. Keep the same target, or pick someone new for tonight.'
+      : 'Place your bounty for tonight.';
+    area.innerHTML = '<p style="font-size:13px; color:var(--parchment-dim);">'+bountyIntro+'</p><div class="chipgrid" id="grid-a"></div><button class="btn" id="night-confirm-btn">Confirm</button>';
+    var opts3 = living();
+    document.getElementById('grid-a').innerHTML = chipGridHTML(opts3,'pick-a');
+    wireSingleSelect(document.getElementById('grid-a'), 'pick-a', function(id){pendingNightAction.bounty=id;});
+    document.getElementById('night-confirm-btn').addEventListener('click', function(){
+      if(!pendingNightAction.bounty){document.getElementById('night-error').textContent='Place a bounty first.'; document.getElementById('night-error').style.display='block'; return;}
+      submitNightAction();
+    });
   } else {
     var flavor = h.role==='CrazyGranny' ? "Just an ordinary grandmother tonight. Nothing to do but sleep." : "You have no special power tonight. Try to get some rest, or don't.";
     area.innerHTML = '<p style="font-size:13px; color:var(--parchment-dim);">'+flavor+'</p><button class="btn" id="night-confirm-btn">Continue</button>';
@@ -2894,7 +2927,14 @@ document.getElementById('day-confirm-btn').addEventListener('click', function(){
   renderDayPanel();
 });
 document.getElementById('silenced-continue-btn').addEventListener('click', function(){});
-document.getElementById('dead-continue-btn').addEventListener('click', function(){});
+document.getElementById('dead-continue-btn').addEventListener('click', function(){
+  // Bug 4: this used to be a no-op, so the notice just sat there forever
+  // instead of getting out of the way. Once acknowledged it stays dismissed
+  // for the rest of this game (see deadNoticeDismissed) - being eliminated
+  // is permanent, so there's nothing left to re-confirm each phase.
+  deadNoticeDismissed = true;
+  document.getElementById('dead-notice').style.display = 'none';
+});
 
 async function handleFarmerRevenge(farmer){
   var options = living().filter(function(p){return p.id!==farmer.id;});
@@ -3620,13 +3660,20 @@ function renderLynchReveal(view){
   if(!lead) return;
   var reportEl = document.getElementById('lynch-report');
   var youTag = (lead.id===myPlayerId) ? ' (You)' : '';
-  reportEl.innerHTML = '<b>'+lead.name+youTag+' is</b> voted out.'+
+  // Role shown here on purpose, unlike the night-kill reveal: being voted
+  // out by the town publicly reveals who you were, since it happened in
+  // the open. A night kill stays anonymous (mystery portrait) since it's a
+  // secret act - only a day-vote elimination is a public unmasking.
+  reportEl.innerHTML = '<b>'+lead.name+youTag+' is</b> voted out. The file photo comes out from under the folder: <b>'+(ROLE_LABEL[lead.role]||lead.role)+'</b>.'+
     (view.farmerRevengeName ? ' On the way out, they took <b>'+view.farmerRevengeName+'</b> down with them.' : '');
-  // No role shown here - same as the night-kill reveal, this stays a
-  // generic mystery portrait so nobody's role leaks just from dying.
-  document.getElementById('lynch-card').innerHTML = '<div class="portrait-frame mystery-portrait"><img class="photo-img" src="'+UNKNOWN_AVATAR_IMG+'" alt=""><img class="frame-overlay" src="'+FRAME_IMG+'" alt=""></div><span class="deceased-stamp">deceased</span>';
+  var img = portraitFor(lead);
+  document.getElementById('lynch-card').innerHTML = img ? ('<div class="portrait-frame"><img class="photo-img" src="'+img+'" alt="'+lead.role+'"><img class="frame-overlay" src="'+FRAME_IMG+'" alt=""></div><span class="deceased-stamp">deceased</span>') : '<span class="deceased-stamp">deceased</span>';
   document.getElementById('vote-log').innerHTML = (view.voteLog||[]).map(function(v){
-    return v.silenced ? '<div class="replay-item">'+escapeHtmlMp(v.name)+' \u2014 silenced, did not vote</div>' : '<div class="replay-item">'+escapeHtmlMp(v.name)+' voted for <b>'+escapeHtmlMp(v.target)+'</b></div>';
+    // Silenced only blocks speaking - a silenced player who DID vote still
+    // shows their real vote, just like anyone else. "Did not vote" only
+    // applies when there's genuinely no recorded target.
+    if(v.target) return '<div class="replay-item">'+escapeHtmlMp(v.name)+(v.silenced?' (silenced)':'')+' voted for <b>'+escapeHtmlMp(v.target)+'</b></div>';
+    return '<div class="replay-item">'+escapeHtmlMp(v.name)+' \u2014 '+(v.silenced?'silenced, ':'')+'did not vote</div>';
   }).join('');
 }
 
@@ -3792,7 +3839,17 @@ function renderDayPanel(){
   var view = latestView;
   var me = meFromView(view);
   document.getElementById('night-num-b').textContent = view.night;
-  document.getElementById('overnight-report').innerHTML = view.cachedOvernightReport || '';
+  // Bug 1: the Detective's read needs to show the moment day begins, not
+  // only if they happen to click into the role badge or wait for the next
+  // night's action screen - the multiplayer client never had an equivalent
+  // of single-player's instant "Case notes: X reads guilty" reveal, since
+  // the read is computed server-side and only known once night resolves.
+  var overnightHTML = view.cachedOvernightReport || '';
+  if(me && me.role==='Detective' && view.detectiveLog && view.detectiveLog.length){
+    var lastRead = view.detectiveLog[view.detectiveLog.length-1];
+    overnightHTML += '<p class="detective-last-read">Your case notes: <b>'+escapeHtmlMp(lastRead.name)+'</b> read <span class="detective-log-read detective-log-'+lastRead.read+'">'+lastRead.read+'</span>.</p>';
+  }
+  document.getElementById('overnight-report').innerHTML = overnightHTML;
   renderChatLog();
   renderChatTagOptions();
   renderTownBoard();
@@ -3809,14 +3866,16 @@ function renderDayPanel(){
   if(view.phase!=='day-vote') stopVoteTimer();
 
   if(view.phase==='day-discuss'){
-    if(!me || !me.alive){ deadNotice.style.display='block'; }
+    if(!me || !me.alive){ if(!deadNoticeDismissed) deadNotice.style.display='block'; }
     else if(me.silencedToday){ silencedNotice.style.display='block'; }
     else { chatInputRow.style.display='flex'; }
   } else if(view.phase==='day-vote'){
-    if(!me || !me.alive){ deadNotice.style.display='block'; stopVoteTimer(); }
-    else if(me.silencedToday){ silencedNotice.style.display='block'; stopVoteTimer(); }
+    if(!me || !me.alive){ if(!deadNoticeDismissed) deadNotice.style.display='block'; stopVoteTimer(); }
     else {
-      chatInputRow.style.display='flex';
+      // Silenced blocks speaking only - the vote itself still goes through,
+      // just with the chat input hidden instead of the whole vote section.
+      if(me.silencedToday){ silencedNotice.style.display='block'; }
+      else { chatInputRow.style.display='flex'; }
       voteSection.style.display='block';
       if(mpVoteSubmitted){
         document.getElementById('day-confirm-btn').disabled = true;
@@ -3858,6 +3917,19 @@ function renderFromServerView(view){
     pendingNightAction = {}; pendingDayVoteId = null;
     mpNightSubmitted = false; mpVoteSubmitted = false; mpFarmerSubmitted = false;
     latestNightProgress = null;
+  }
+
+  // Server's whisperLog is already privacy-scoped to just this viewer (see
+  // getPlayerView) and is the authoritative full history - resync from it
+  // on every full view update; whisperMsg pushes top it up live in between.
+  if(view.whisperLog) multiplayerWhisperLog = view.whisperLog;
+
+  // Bug 13: this had no multiplayer trigger at all - bountyPoints is only
+  // ever present in the Bounty Hunter's own view (see getPlayerView), so
+  // compare it against the previous view to catch a fresh mark, the same
+  // way single-player compares against its own pre-round snapshot.
+  if(me && me.role==='BountyHunter' && typeof view.bountyPoints==='number' && prev && typeof prev.bountyPoints==='number' && view.bountyPoints > prev.bountyPoints){
+    SoundFX.playBountyCollect();
   }
 
   renderRoleBadge();
@@ -4090,7 +4162,18 @@ function switchPanel(p){
   if(isMenu) return;
   ['mpentry','lobby','night','day','end'].forEach(function(k){document.getElementById('panel-'+k).style.display=(k===p)?'block':'none';});
   document.getElementById('phase-label').textContent = p;
-  document.getElementById('night-label').textContent = (p==='lobby'||p==='mpentry')? '' : ('night '+(latestView?latestView.night:''));
+  // Bugs 5-8: this used to ALSO write '#night-label' with a second,
+  // independent "night N" string on EVERY panel switch - always saying
+  // "night" even during day, and duplicating the word "night"/"day" that
+  // #phase-label right next to it already shows (reading as "Night Night
+  // 3" / "Day Night 3"). It also raced with renderPhaseTimer()'s own
+  // countdown-driven write to the same element: every switchPanel() call
+  // stomped the live countdown back to this static text until the next 1s
+  // tick caught up - the "pauses, then jumps" symptom. renderPhaseTimer()
+  // is the sole source of truth for it during an active night/day phase
+  // now; this only clears it for the panels that sit outside any phase
+  // (post-"Play again" can return here with stale text from the last game).
+  if(p==='lobby' || p==='mpentry') document.getElementById('night-label').textContent = '';
 }
 
 function renderTownBoard(){
@@ -4132,14 +4215,17 @@ function openPlayerActionModal(id){
 
   var h = you();
   var voteOk = latestView.phase==='day-vote' && h && h.alive && !h.silencedToday && p.alive && !mpVoteSubmitted;
+  var mpWhispersUsed = myPlayerId ? multiplayerWhisperLog.filter(function(w){return w.fromId===myPlayerId;}).length : 0;
+  var whisperOk = latestView.phase==='day-vote' && h && h.alive && !h.silencedToday && p.alive && mpWhispersUsed < 3;
   var voteBtn = document.getElementById('player-action-tab-vote');
   var whisperBtn = document.getElementById('player-action-tab-whisper');
   voteBtn.disabled = !voteOk;
-  whisperBtn.disabled = true;
+  whisperBtn.disabled = !whisperOk;
 
   document.getElementById('player-action-vote-error').style.display = 'none';
   renderNotePanel(); // refresh the note textarea for THIS target - otherwise it keeps showing whatever was last typed for a previous player
-  setPlayerActionTab(voteOk ? 'vote' : 'note');
+  renderWhisperPanel();
+  setPlayerActionTab(voteOk ? 'vote' : (whisperOk ? 'whisper' : 'note'));
   document.getElementById('player-action-modal').style.display = 'flex';
 }
 
@@ -4297,6 +4383,8 @@ function leaveCurrentRoom(){
   localPlayerNotes = {};
   latestRoundScore = null;
   pendingReplyTo = null;
+  deadNoticeDismissed = false;
+  multiplayerWhisperLog = [];
   if(mpPhaseTimerInterval){ clearInterval(mpPhaseTimerInterval); mpPhaseTimerInterval = null; }
   stopVoteTimer();
 }
@@ -4311,6 +4399,45 @@ function renderNotePanel(){
   if(!p) return;
   document.getElementById('player-action-note-input').value = localPlayerNotes[actionModalTargetId] || '';
 }
+
+function renderWhisperPanel(){
+  var p = byId(actionModalTargetId);
+  var h = you();
+  if(!p || !h) return;
+  var log = document.getElementById('player-action-whisper-log');
+  log.innerHTML = multiplayerWhisperLog.filter(function(w){
+    return (w.fromId===myPlayerId && w.toId===actionModalTargetId) || (w.fromId===actionModalTargetId && w.toId===myPlayerId);
+  }).map(function(w){
+    var who = w.fromId===myPlayerId ? 'You whispered' : escapeHtmlMp(p.name)+' whispered';
+    return '<div class="whisper-log-line"><b>'+who+'</b>'+escapeHtmlMp(w.text)+'</div>';
+  }).join('') || '<p style="font-size:12px; color:var(--parchment-dim);">No whispers yet.</p>';
+  var used = multiplayerWhisperLog.filter(function(w){return w.fromId===myPlayerId;}).length;
+  var remaining = 3 - used;
+  document.getElementById('player-action-whisper-remaining').textContent = remaining+' whisper'+(remaining===1?'':'s')+' remaining this round.';
+  var blocked = document.getElementById('player-action-whisper-blocked');
+  var form = document.getElementById('player-action-whisper-form');
+  var reason = null;
+  if(!h.alive) reason = "You can't whisper — you've been eliminated.";
+  else if(h.silencedToday) reason = "You've been silenced today and can't whisper.";
+  else if(!p.alive) reason = "You can't whisper to someone who's been eliminated.";
+  else if(used >= 3) reason = "You're out of whispers for this round.";
+  else if(latestView.phase!=='day-vote') reason = "Whispers are only available during the day.";
+  if(reason){ blocked.textContent = reason; blocked.style.display = 'block'; form.style.display = 'none'; }
+  else { blocked.style.display = 'none'; form.style.display = 'flex'; }
+}
+
+function sendWhisper(){
+  var input = document.getElementById('player-action-whisper-input');
+  var msg = (input.value||'').trim();
+  if(!msg) return;
+  var p = byId(actionModalTargetId);
+  var h = you();
+  var used = multiplayerWhisperLog.filter(function(w){return w.fromId===myPlayerId;}).length;
+  if(!p || !h || !h.alive || h.silencedToday || !p.alive || used >= 3 || latestView.phase!=='day-vote') return;
+  sendWS({type:'whisper', targetId: actionModalTargetId, text: msg});
+  input.value = '';
+}
+document.getElementById('player-action-whisper-send-btn').addEventListener('click', sendWhisper);
 
 function showRoleRevealScreen(onContinue){
   var h = you();

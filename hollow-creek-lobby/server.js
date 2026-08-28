@@ -186,7 +186,9 @@ function maybeEarlyResolve(room) {
     if (connectedLivingHumans(room).every(p => room.nightSubmitted.has(p.id))) { resolveNightPhase(room); return; }
     broadcastNightProgress(room);
   } else if (room.state.phase === 'day-vote') {
-    const eligible = connectedLivingHumans(room).filter(p => !p.silencedToday);
+    // Silenced blocks speaking only, not voting - every living connected
+    // human is eligible to vote, silenced or not.
+    const eligible = connectedLivingHumans(room);
     if (eligible.every(p => room.dayVoteSubmitted.has(p.id))) resolveDayVotePhase(room);
   }
 }
@@ -520,11 +522,41 @@ wss.on('connection', (socket) => {
       const { room, player } = getRoomAndPlayer(socket);
       if (!room || !room.started || room.state.phase !== 'day-vote') return;
       const sp = G.byId(room.state, player.id);
-      if (!sp || !sp.alive || !sp.isHuman || sp.silencedToday) return;
+      // Silenced blocks speaking (see dayChat above), never voting.
+      if (!sp || !sp.alive || !sp.isHuman) return;
       const targetId = msg.targetId ? String(msg.targetId) : null;
       G.recordDayVoteSubmission(room.state, player.id, targetId);
       room.dayVoteSubmitted.add(player.id);
       maybeEarlyResolve(room);
+    }
+
+    else if (msg.type === 'whisper') {
+      // Bug 14: previously had no server implementation at all - the
+      // multiplayer client hard-disabled the whisper tab unconditionally.
+      const { room, player } = getRoomAndPlayer(socket);
+      if (!room || !room.started || room.state.phase !== 'day-vote') return;
+      const sp = G.byId(room.state, player.id);
+      // Whispering is speaking - silenced blocks it, same as dayChat.
+      if (!sp || !sp.alive || sp.silencedToday) return;
+      const targetId = msg.targetId ? String(msg.targetId) : null;
+      const targetSp = targetId ? G.byId(room.state, targetId) : null;
+      if (!targetSp || !targetSp.alive || targetSp.id === player.id) return;
+      const usedByPlayer = room.state.whisperLog.filter(w => w.fromId === player.id).length;
+      if (usedByPlayer >= 3) {
+        socket.send(JSON.stringify({ type: 'error', message: "You're out of whispers for this round." }));
+        return;
+      }
+      const text = String(msg.text || '').trim().slice(0, 140);
+      if (!text) return;
+      const entry = { fromId: player.id, toId: targetSp.id, text, ts: Date.now() };
+      room.state.whisperLog.push(entry);
+      // Delivered privately - only the sender and the target ever see it,
+      // never broadcast to the room like dayChat.
+      const targetPlayer = room.players.find(rp => rp.id === targetSp.id);
+      if (targetPlayer && targetPlayer.socket.readyState === WebSocket.OPEN) {
+        targetPlayer.socket.send(JSON.stringify(Object.assign({ type: 'whisperMsg' }, entry)));
+      }
+      socket.send(JSON.stringify(Object.assign({ type: 'whisperMsg' }, entry)));
     }
 
     else if (msg.type === 'farmerRevenge') {
