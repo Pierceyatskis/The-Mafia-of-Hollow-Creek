@@ -118,7 +118,19 @@ function scoreRound(state, round){
   }
 
   // --- Doctor / Coward (hideBehind) / Farmer (revenge) - successful blind guess ---
+  // A player can resubmit their night action before the phase ends (Doctor
+  // changing their protect target, etc.), and each submission records its
+  // own snapshot - so snapshotsThisRound can hold more than one entry for
+  // the same player/actionType this round. Only the latest one reflects
+  // what they actually ended up doing; scoring every entry would pay out
+  // once per resubmission instead of once per player. Array order is
+  // submission order (see recordLivingCountSnapshot), so keeping the last
+  // match per playerId+actionType keeps only their final choice.
+  const latestSnapshotByPlayerAction = new Map();
   snapshotsThisRound.forEach(snap => {
+    latestSnapshotByPlayerAction.set(snap.playerId + '|' + snap.actionType, snap);
+  });
+  latestSnapshotByPlayerAction.forEach(snap => {
     let success = false;
     if(snap.actionType === 'protect') success = !!nightResult.doctorSaved;
     else if(snap.actionType === 'hideBehind') success = !!nightResult.cowardRedirected;

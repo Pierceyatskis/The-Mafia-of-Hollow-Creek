@@ -93,6 +93,19 @@ const ALL_OFF = {Godfather:false, DoubleAgent:false, Detective:false, Doctor:fal
   G.recordLivingCountSnapshot(s3, farmer.id, 'Farmer', 'farmerRevenge');
   const scoresFarmer = Scoring.scoreRound(s3, {night:1, nightResult:{}, dayResult:{}, revengeResult:{revengeKillOccurred:true}});
   assert(scoresFarmer[farmer.id].total === Math.round(2*6), 'Task19 blind-guess: a successful Farmer revenge kill earns round(2 * livingCount)');
+
+  // SERVER_VERIFICATION Item 3: a player can resubmit their night action
+  // before the phase ends (server doesn't block resubmission - see
+  // server.js's nightAction handler), and each submission records its own
+  // livingCountAtAction snapshot. scoreRound must count that as ONE blind
+  // guess based on their final submission, not one payout per snapshot.
+  const s4 = G.createGame(seats('bg4', 6), {playerCount:6, mafiaCount:1, roles: Object.assign({}, ALL_OFF, {Doctor:true})});
+  const doc4 = s4.players.find(p => p.role === 'Doctor');
+  G.recordLivingCountSnapshot(s4, doc4.id, 'Doctor', 'protect'); // first pick
+  G.recordLivingCountSnapshot(s4, doc4.id, 'Doctor', 'protect'); // changed their mind
+  G.recordLivingCountSnapshot(s4, doc4.id, 'Doctor', 'protect'); // changed it again - final pick
+  const scoresDoc4 = Scoring.scoreRound(s4, {night:1, nightResult:{doctorSaved:true}, dayResult:{}});
+  assert(scoresDoc4[doc4.id].total === Math.round(2*6), 'Task19 blind-guess resubmission: three resubmissions in one round still earn exactly one blind-guess payout, not three');
 })();
 
 // ============================================================
