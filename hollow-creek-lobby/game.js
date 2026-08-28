@@ -494,7 +494,19 @@ function getPlayerView(state, playerId){
     // Mafia chat is scoped strictly by align==='mafia' - never sent to a
     // town-aligned player, living or dead.
     mafiaChatLog: (me && me.align==='mafia') ? state.mafiaChatLog : undefined,
-    chatLog: state.chatLog, voteLog: state.voteLog, history: state.history,
+    // Regular chat lines pass through untouched; a whisper announcement's
+    // `text` is stripped for anyone who isn't the sender or the target -
+    // same scoping principle as whisperLog and mafiaChatLog above, just
+    // applied per-entry instead of filtering whole entries out.
+    chatLog: state.chatLog.map(entry => {
+      if(entry.kind === 'whisperAnnounce' && playerId !== entry.fromId && playerId !== entry.toId){
+        const redacted = Object.assign({}, entry);
+        delete redacted.text;
+        return redacted;
+      }
+      return entry;
+    }),
+    voteLog: state.voteLog, history: state.history,
     cachedOvernightReport: state.cachedOvernightReport, farmerRevengeName: state.farmerRevengeName,
     farmerRevengePending: state.farmerRevengePending,
     // A whisper is visible only to the two players in it, same scoping

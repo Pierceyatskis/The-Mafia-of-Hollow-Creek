@@ -550,13 +550,31 @@ wss.on('connection', (socket) => {
       if (!text) return;
       const entry = { fromId: player.id, toId: targetSp.id, text, ts: Date.now() };
       room.state.whisperLog.push(entry);
-      // Delivered privately - only the sender and the target ever see it,
-      // never broadcast to the room like dayChat.
+      // The full whisper thread is still delivered privately - only the
+      // sender and the target ever get this message.
       const targetPlayer = room.players.find(rp => rp.id === targetSp.id);
       if (targetPlayer && targetPlayer.socket.readyState === WebSocket.OPEN) {
         targetPlayer.socket.send(JSON.stringify(Object.assign({ type: 'whisperMsg' }, entry)));
       }
       socket.send(JSON.stringify(Object.assign({ type: 'whisperMsg' }, entry)));
+
+      // Everyone else still gets to know a whisper happened, just not what
+      // was said - drop it into the general chat log as an announcement.
+      // The stored entry keeps the real text (getPlayerView redacts it per
+      // viewer on resync, same scoping as whisperLog above), but the live
+      // broadcast below has to redact it per-socket itself too - this push
+      // goes straight to the wire, not through getPlayerView, so sending
+      // the raw entry to everyone would leak the text to bystanders.
+      // `kind` (not `type`) so it doesn't collide with the chatMsg envelope's
+      // own `type` field once the two get merged below.
+      const announceEntry = { kind: 'whisperAnnounce', fromId: player.id, fromName: sp.name, toId: targetSp.id, toName: targetSp.name, text, ts: entry.ts };
+      room.state.chatLog.push(announceEntry);
+      room.players.forEach(rp => {
+        if (rp.socket.readyState !== WebSocket.OPEN) return;
+        const canSeeText = rp.id === player.id || rp.id === targetSp.id;
+        const payload = canSeeText ? announceEntry : Object.assign({}, announceEntry, { text: undefined });
+        rp.socket.send(JSON.stringify(Object.assign({ type: 'chatMsg' }, payload)));
+      });
     }
 
     else if (msg.type === 'farmerRevenge') {

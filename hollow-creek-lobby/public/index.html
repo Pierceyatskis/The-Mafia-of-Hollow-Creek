@@ -378,6 +378,9 @@ h2.sec{font-family:var(--font-type); font-size:12px; letter-spacing:2px; text-tr
 .chatline{display:flex; align-items:flex-start; flex-wrap:wrap; gap:4px 10px; padding:12px 4px; margin-bottom:4px; border-bottom:1px solid var(--line); font-size:13px; cursor:pointer; border-radius:4px;}
 .chatline.chatline-you{cursor:default; background:rgba(217,164,65,0.06); border-left:2px solid var(--lantern); padding-left:8px;}
 .chatline.chatline-mafia{cursor:default; background:rgba(193,84,75,0.06); border-left:2px solid var(--danger); padding-left:8px;}
+.chatline.chatline-whisper-announce{cursor:default; background:rgba(160,140,200,0.06); border-left:2px solid #9b8ec4; padding-left:8px;}
+.chatline-whisper-announce .who{color:#b3a4d9; font-style:italic; min-width:0;}
+.chatline-whisper-announce .line{color:var(--parchment-dim);}
 .chatline:hover{background:var(--panel-2);}
 .chatline:last-child{border-bottom:none; animation:chatLineIn .4s ease;}
 @keyframes chatLineIn{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);}}
@@ -3780,6 +3783,22 @@ function appendChatLine(entry){
   var log = document.getElementById('discussion');
   if(!log) return;
   var shouldFollow = chatAutoFollow;
+  if(entry.kind==='whisperAnnounce'){
+    // Everyone gets to know a whisper happened (and between whom) - only
+    // the sender/target's own view carries `text`, already redacted
+    // server-side for anyone else (see getPlayerView's chatLog scoping).
+    var wdiv = document.createElement('div');
+    wdiv.className = 'chatline chatline-whisper-announce';
+    var contentHTML = entry.text
+      ? '<span class="line">"'+escapeHtmlMp(entry.text)+'"</span>'
+      : '';
+    wdiv.innerHTML = '<span class="who">'+escapeHtmlMp(entry.fromName)+' whispered to '+escapeHtmlMp(entry.toName)+'</span>'+contentHTML;
+    log.appendChild(wdiv);
+    SoundFX.chatBlip();
+    if(shouldFollow){ log.scrollTop = log.scrollHeight; }
+    else { var jbtn = document.getElementById('chat-jump-btn'); if(jbtn) jbtn.style.display = 'block'; }
+    return;
+  }
   var div = document.createElement('div');
   var youClass = entry.playerId===myPlayerId ? ' chatline-you' : '';
   var clickable = entry.playerId!==myPlayerId;
@@ -3823,7 +3842,10 @@ function renderChatLog(){
   var scrollable = log.scrollHeight - log.clientHeight;
   if(!wasFollowing && scrollable > 0) prevRatio = log.scrollTop / scrollable;
   log.innerHTML = '';
-  (latestView.chatLog||[]).forEach(function(m){ appendChatLine({playerId:m.playerId, name:m.name, text:m.text, targetId:m.targetId, replyTo:m.replyTo}); });
+  (latestView.chatLog||[]).forEach(function(m){
+    if(m.kind==='whisperAnnounce') appendChatLine({kind:'whisperAnnounce', fromId:m.fromId, fromName:m.fromName, toId:m.toId, toName:m.toName, text:m.text});
+    else appendChatLine({playerId:m.playerId, name:m.name, text:m.text, targetId:m.targetId, replyTo:m.replyTo});
+  });
   if(wasFollowing){
     scrollChatToBottom();
   } else {
