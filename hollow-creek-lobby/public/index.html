@@ -375,6 +375,8 @@ h2.sec{font-family:var(--font-type); font-size:12px; letter-spacing:2px; text-tr
 .portrait-frame .photo-img{width:100%; height:100%; object-fit:cover; display:block; border-radius:2px; filter:grayscale(35%) sepia(12%);}
 .portrait-frame .frame-overlay{position:absolute; inset:0; width:100%; height:100%; pointer-events:none;}
 .deceased-stamp{font-family:var(--font-type); font-size:11px; letter-spacing:1px; padding:2px 8px; border-radius:3px; background:rgba(193,84,75,0.15); color:var(--danger); border:1px solid var(--danger);}
+.deceased-stamp.stamp-in{animation:stampPopIn .5s cubic-bezier(.34,1.56,.64,1);}
+@keyframes stampPopIn{0%{opacity:0; transform:scale(0.5) rotate(-8deg);} 60%{opacity:1; transform:scale(1.1) rotate(-8deg);} 100%{opacity:1; transform:scale(1) rotate(-8deg);}}
 .chatline{display:flex; align-items:flex-start; flex-wrap:wrap; gap:4px 10px; padding:12px 4px; margin-bottom:4px; border-bottom:1px solid var(--line); font-size:13px; cursor:pointer; border-radius:4px;}
 .chatline.chatline-you{cursor:default; background:rgba(217,164,65,0.06); border-left:2px solid var(--lantern); padding-left:8px;}
 .chatline.chatline-mafia{cursor:default; background:rgba(193,84,75,0.06); border-left:2px solid var(--danger); padding-left:8px;}
@@ -1197,6 +1199,7 @@ function handleServerMessage(msg){
     pendingReplyTo = null;
     deadNoticeDismissed = false;
     multiplayerWhisperLog = [];
+    renderLynchReveal._key = null;
     var codeEl = document.getElementById('mp-room-code');
     if(codeEl) codeEl.textContent = myRoomCode;
     switchPanel('lobby');
@@ -1207,6 +1210,7 @@ function handleServerMessage(msg){
     // lobby, with last game's presets carried over for the host.
     latestView = null; previousView = null;
     latestRoundScore = null; pendingReplyTo = null; deadNoticeDismissed = false; multiplayerWhisperLog = [];
+    renderLynchReveal._key = null;
     if(msg.config){
       GAME_CONFIG.playerCount = msg.config.playerCount;
       GAME_CONFIG.mafiaCount = msg.config.mafiaCount;
@@ -3681,23 +3685,59 @@ function findLynchedFromHistory(view){
 function renderLynchReveal(view){
   var lead = findLynchedFromHistory(view);
   if(!lead) return;
+  // Task 14: name, portrait, and role used to land in one simultaneous
+  // innerHTML write - no perceptible beats at all. Stage it instead: who ->
+  // pause -> their photo -> pause -> the role, the actual payoff, timed
+  // with the same stamp-slam treatment the night-kill screen already uses.
+  // Guarded so a second gameState for the SAME lynch (e.g. round score
+  // arriving separately) can't restart the sequence mid-flight.
+  var key = view.night+':'+lead.id;
+  if(renderLynchReveal._key === key) return;
+  renderLynchReveal._key = key;
+  clearTimeout(renderLynchReveal._t1);
+  clearTimeout(renderLynchReveal._t2);
+
   var reportEl = document.getElementById('lynch-report');
+  var cardEl = document.getElementById('lynch-card');
   var youTag = (lead.id===myPlayerId) ? ' (You)' : '';
-  // Role shown here on purpose, unlike the night-kill reveal: being voted
-  // out by the town publicly reveals who you were, since it happened in
-  // the open. A night kill stays anonymous (mystery portrait) since it's a
-  // secret act - only a day-vote elimination is a public unmasking.
-  reportEl.innerHTML = '<b>'+lead.name+youTag+' is</b> voted out. The file photo comes out from under the folder: <b>'+(ROLE_LABEL[lead.role]||lead.role)+'</b>.'+
-    (view.farmerRevengeName ? ' On the way out, they took <b>'+view.farmerRevengeName+'</b> down with them.' : '');
   var img = portraitFor(lead);
-  document.getElementById('lynch-card').innerHTML = img ? ('<div class="portrait-frame"><img class="photo-img" src="'+img+'" alt="'+lead.role+'"><img class="frame-overlay" src="'+FRAME_IMG+'" alt=""></div><span class="deceased-stamp">deceased</span>') : '<span class="deceased-stamp">deceased</span>';
-  document.getElementById('vote-log').innerHTML = (view.voteLog||[]).map(function(v){
-    // Silenced only blocks speaking - a silenced player who DID vote still
-    // shows their real vote, just like anyone else. "Did not vote" only
-    // applies when there's genuinely no recorded target.
-    if(v.target) return '<div class="replay-item">'+escapeHtmlMp(v.name)+(v.silenced?' (silenced)':'')+' voted for <b>'+escapeHtmlMp(v.target)+'</b></div>';
-    return '<div class="replay-item">'+escapeHtmlMp(v.name)+' \u2014 '+(v.silenced?'silenced, ':'')+'did not vote</div>';
-  }).join('');
+
+  reportEl.classList.remove('reveal-in'); cardEl.classList.remove('reveal-in');
+  void reportEl.offsetWidth;
+  reportEl.innerHTML = '<b>'+escapeHtmlMp(lead.name)+youTag+' is</b> voted out.';
+  reportEl.classList.add('reveal-in');
+  cardEl.innerHTML = '';
+  document.getElementById('vote-log').innerHTML = '';
+
+  renderLynchReveal._t1 = setTimeout(function(){
+    reportEl.innerHTML += ' The file photo comes out from under the folder...';
+    cardEl.innerHTML = img ? ('<div class="portrait-frame"><img class="photo-img" src="'+img+'" alt=""><img class="frame-overlay" src="'+FRAME_IMG+'" alt=""></div>') : '';
+    cardEl.classList.remove('reveal-in');
+    void cardEl.offsetWidth;
+    cardEl.classList.add('reveal-in');
+  }, 900);
+
+  renderLynchReveal._t2 = setTimeout(function(){
+    // Role shown here on purpose, unlike the night-kill reveal: being voted
+    // out by the town publicly reveals who you were, since it happened in
+    // the open. A night kill stays anonymous (mystery portrait) since it's
+    // a secret act - only a day-vote elimination is a public unmasking.
+    reportEl.innerHTML = '<b>'+escapeHtmlMp(lead.name)+youTag+' is</b> voted out. The file photo comes out from under the folder: <b>'+(ROLE_LABEL[lead.role]||lead.role)+'</b>.'+
+      (view.farmerRevengeName ? ' On the way out, they took <b>'+view.farmerRevengeName+'</b> down with them.' : '');
+    var stamp = document.createElement('span');
+    stamp.className = 'deceased-stamp stamp-in';
+    stamp.textContent = 'deceased';
+    cardEl.appendChild(stamp);
+    SoundFX.playGavel();
+    vibrate([30,50,30]);
+    document.getElementById('vote-log').innerHTML = (view.voteLog||[]).map(function(v){
+      // Silenced only blocks speaking - a silenced player who DID vote
+      // still shows their real vote, just like anyone else. "Did not vote"
+      // only applies when there's genuinely no recorded target.
+      if(v.target) return '<div class="replay-item">'+escapeHtmlMp(v.name)+(v.silenced?' (silenced)':'')+' voted for <b>'+escapeHtmlMp(v.target)+'</b></div>';
+      return '<div class="replay-item">'+escapeHtmlMp(v.name)+' \u2014 '+(v.silenced?'silenced, ':'')+'did not vote</div>';
+    }).join('');
+  }, 1800);
 }
 
 // Task 20 - each player's own point breakdown for the round that just
@@ -4443,6 +4483,7 @@ function leaveCurrentRoom(){
   pendingReplyTo = null;
   deadNoticeDismissed = false;
   multiplayerWhisperLog = [];
+  renderLynchReveal._key = null;
   if(mpPhaseTimerInterval){ clearInterval(mpPhaseTimerInterval); mpPhaseTimerInterval = null; }
   stopVoteTimer();
 }
