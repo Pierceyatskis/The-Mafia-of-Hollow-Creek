@@ -241,6 +241,31 @@ body.bg-day #role-badge{bottom:auto; top:165px; right:12px;}
 .intro-modal-title{font-family:var(--font-display); font-weight:700; font-size:24px; color:var(--gold-bright); margin:0 0 14px;}
 .intro-modal-text{font-family:var(--font-type); font-size:13px; line-height:1.7; color:var(--parchment-dim); margin:0 0 24px;}
 .intro-modal-actions{display:flex; flex-wrap:wrap; gap:10px; justify-content:center;}
+/* Task 17 guided tour */
+.howto-tour-content{max-width:620px; width:100%; text-align:left;}
+.howto-tour-header{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;}
+.howto-tour-step-counter{font-family:var(--font-type); font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--parchment-dim);}
+.howto-tour-skip{background:none; border:none; font-family:var(--font-type); font-size:11px; letter-spacing:0.5px; color:var(--parchment-dim); text-decoration:underline; cursor:pointer; padding:0;}
+.howto-tour-skip:hover{color:var(--gold-bright);}
+.howto-tour-body{min-height:260px;}
+.howto-tour-title{font-family:var(--font-display); font-weight:700; font-size:21px; color:var(--gold-bright); margin:0 0 10px;}
+.howto-tour-text{font-family:var(--font-type); font-size:13px; line-height:1.7; color:var(--parchment-dim); margin:0 0 16px;}
+.howto-tour-mockup{background:var(--panel-2); border:1px solid var(--line); border-radius:8px; padding:14px; margin-bottom:6px;}
+.howto-tour-nav{display:flex; justify-content:space-between; align-items:center; margin-top:18px; padding-top:14px; border-top:1px solid var(--line);}
+.howto-tour-conflict{display:flex; gap:14px; align-items:stretch;}
+.howto-tour-faction{flex:1; background:var(--panel-2); border:1px solid var(--line); border-radius:8px; padding:14px; text-align:center;}
+.howto-tour-faction .portrait-frame{width:74px; height:100px; margin:0 auto 10px;}
+.howto-tour-faction-name{font-family:var(--font-type); font-size:11px; letter-spacing:1.5px; text-transform:uppercase; color:var(--gold); margin:0 0 6px;}
+.howto-tour-faction-goal{font-size:12px; color:var(--parchment-dim); line-height:1.5; margin:0;}
+.howto-tour-vs{align-self:center; font-family:var(--font-display); font-size:16px; color:var(--parchment-dim); padding:0 2px;}
+.howto-tour-roles-extra{font-size:12px; color:var(--parchment-dim); line-height:1.7; margin:10px 0 0;}
+.howto-tour-mockup .chip{pointer-events:none;}
+/* Spotlight/zoom: a box-shadow spread large enough to cover the rest of the
+   modal reads as a full-screen dark cutout around just this element, paired
+   with a small scale so it also visually "zooms" - the technique DESIGN_TASKS
+   asked for, without needing a second overlay element or a hand-computed
+   cutout mask. */
+.tour-spotlight{position:relative; z-index:2; border-radius:6px; transform:scale(1.05); box-shadow:0 0 0 2000px rgba(8,7,6,0.8); transition:transform .4s ease, box-shadow .4s ease;}
 .role-card-modal-content .dossier-card{margin-bottom:0;}
 .role-card-close{position:absolute; top:8px; right:10px; z-index:5; background:none; border:none; color:var(--parchment-dim); font-size:26px; line-height:1; cursor:pointer; padding:4px 8px; transition:color .15s ease;}
 .role-card-close:hover{color:var(--gold-bright);}
@@ -663,6 +688,19 @@ h2.sec{font-family:var(--font-type); font-size:12px; letter-spacing:2px; text-tr
     <div class="intro-modal-actions">
       <button class="btn" id="intro-modal-howto-btn">Show Me How to Play</button>
       <button class="btn ghost" id="intro-modal-skip-btn">Skip, I've Got It</button>
+    </div>
+  </div>
+</div>
+<div id="howto-tour-modal" class="role-card-overlay" style="display:none;">
+  <div class="role-card-modal-content howto-tour-content">
+    <div class="howto-tour-header">
+      <span class="howto-tour-step-counter" id="howto-tour-counter"></span>
+      <button class="howto-tour-skip" id="howto-tour-skip-btn">Skip tutorial</button>
+    </div>
+    <div class="howto-tour-body" id="howto-tour-body"></div>
+    <div class="howto-tour-nav">
+      <button class="btn ghost" id="howto-tour-back-btn">Back</button>
+      <button class="btn" id="howto-tour-next-btn">Next</button>
     </div>
   </div>
 </div>
@@ -3533,8 +3571,7 @@ document.getElementById('create-game-btn').addEventListener('click', function(){
 });
 document.getElementById('intro-modal-howto-btn').addEventListener('click', function(){
   document.getElementById('intro-modal').style.display = 'none';
-  renderHowTo();
-  switchPanel('howto');
+  openHowToTour(proceedToCreateGame);
 });
 document.getElementById('intro-modal-skip-btn').addEventListener('click', function(){
   document.getElementById('intro-modal').style.display = 'none';
@@ -3651,12 +3688,146 @@ function renderHowTo(){
     return '<div class="howtocard">'+pic+'<div><p class="name">'+ROLE_LABEL[r]+'</p><p>'+ROLE_BIO[r]+'</p></div></div>';
   }).join('');
 }
-document.getElementById('howto-btn').addEventListener('click', function(){
-  renderHowTo();
-  switchPanel('howto');
-});
 document.getElementById('howto-back-btn').addEventListener('click', function(){
   switchPanel('home');
+});
+
+// Task 17: a guided tour replaces the static role wall as the default
+// teaching experience. Every mockup below calls the SAME rendering
+// functions the real game uses (chipGridHTML, buildDossierCardHTML) with
+// sample/placeholder data, so the tutorial can never visually drift out of
+// sync with the actual UI - the old static list isn't deleted, it's one
+// click away as "Browse All Roles" for players who want the exhaustive
+// version after the overview.
+function tourStep0(){
+  return '<h2 class="howto-tour-title">Two sides, one town.</h2>'+
+    '<p class="howto-tour-text">Hollow Creek is a game of hidden identity. Every player gets a secret role belonging to one of two sides, and everything that happens - every vote, every whispered suspicion - is really just one side trying to beat the other.</p>'+
+    '<div class="howto-tour-conflict">'+
+      '<div class="howto-tour-faction"><div class="portrait-frame"><img class="photo-img" src="'+IMG.civilian+'" alt=""><img class="frame-overlay" src="'+FRAME_IMG+'" alt=""></div>'+
+        '<p class="howto-tour-faction-name">The Town</p>'+
+        '<p class="howto-tour-faction-goal">Wins by finding and eliminating every mafia-aligned player.</p></div>'+
+      '<span class="howto-tour-vs">vs</span>'+
+      '<div class="howto-tour-faction"><div class="portrait-frame"><img class="photo-img" src="'+IMG.godfather+'" alt=""><img class="frame-overlay" src="'+FRAME_IMG+'" alt=""></div>'+
+        '<p class="howto-tour-faction-name">The Mafia</p>'+
+        '<p class="howto-tour-faction-goal">Wins the moment their numbers equal the town\'s remaining numbers.</p></div>'+
+    '</div>';
+}
+function tourStep1(){
+  var sample = CHARACTERS.slice(0,4).map(function(c){return {id:c.id, name:c.name};});
+  return '<h2 class="howto-tour-title">Each round begins at night.</h2>'+
+    '<p class="howto-tour-text">Every role with a power acts here - investigating, protecting, silencing, eliminating - all at the same time, all in secret. Nobody sees what anyone else chose until morning.</p>'+
+    '<div class="howto-tour-mockup"><p style="font-size:13px; color:var(--parchment-dim); margin:0 0 10px;">Choose someone to investigate tonight.</p>'+
+      '<div class="chipgrid" id="tour-night-grid">'+chipGridHTML(sample,'tour-pick')+'</div>'+
+      '<button class="btn" style="margin-top:12px;" disabled>Confirm</button></div>';
+}
+function tourStep2(){
+  var lines = [
+    {name:'Otis Redwood', text:'Where were you standing when it happened?'},
+    {name:'Mabel Finch', text:"I don't like how quiet Corky's been all morning."}
+  ];
+  return '<h2 class="howto-tour-title">Morning comes, and the town talks.</h2>'+
+    '<p class="howto-tour-text">Whoever the night claimed is announced, then the whole town discusses openly in one shared chat - who seems suspicious, who\'s been quiet, who\'s covering for someone.</p>'+
+    '<div class="howto-tour-mockup" id="tour-chat-mockup">'+lines.map(function(m){
+      return '<div class="chatline"><span class="who">'+m.name+'</span><span class="line">"'+m.text+'"</span></div>';
+    }).join('')+'</div>';
+}
+function tourStep3(){
+  var sample = CHARACTERS.slice(0,4).map(function(c){return {id:c.id, name:c.name};});
+  return '<h2 class="howto-tour-title">When discussion ends, the town votes.</h2>'+
+    '<p class="howto-tour-text">Everyone picks who they think is mafia. Once the votes are locked in, whoever has the most is voted out - permanently, for the rest of the game.</p>'+
+    '<div class="howto-tour-mockup"><div class="chipgrid">'+chipGridHTML(sample,'tour-pick')+'</div>'+
+      '<button class="btn" id="tour-vote-confirm-btn" style="margin-top:12px;" disabled>Confirm Vote</button></div>';
+}
+function tourStep4(){
+  var sampleRole = 'Doctor';
+  return '<h2 class="howto-tour-title">The reveal.</h2>'+
+    '<p class="howto-tour-text">Whoever the town votes out has their role publicly revealed - the whole town finds out who they really were. And that\'s it for them: once you\'re out, you\'re out for the rest of this game.</p>'+
+    '<div class="howto-tour-mockup"><div class="report"><b>Otis Redwood is</b> voted out. The file photo comes out from under the folder: <b>'+ROLE_LABEL[sampleRole]+'</b>.</div>'+
+      '<div class="deceased-card" id="tour-reveal-card"><div class="portrait-frame"><img class="photo-img" src="'+ROLE_IMG[sampleRole]+'" alt=""><img class="frame-overlay" src="'+FRAME_IMG+'" alt=""></div><span class="deceased-stamp">deceased</span></div></div>';
+}
+function tourStep5(){
+  return '<h2 class="howto-tour-title">Some roles carry a power.</h2>'+
+    '<p class="howto-tour-text">A few examples - the full list is one tap away whenever you want it.</p>'+
+    '<div class="howto-tour-mockup">'+buildDossierCardHTML({role:'Detective', flipped:false}, false)+'</div>'+
+    '<p class="howto-tour-roles-extra">A couple more: the <b>Doctor</b> protects one player from the mafia\'s kill each night. The <b>Godfather</b> leads the mafia and can silence one player each day.</p>';
+}
+function tourStep6(){
+  return '<h2 class="howto-tour-title">That\'s the whole game.</h2>'+
+    '<p class="howto-tour-text">Night, then day - act, discuss, vote, reveal - round after round, until one side runs out of numbers. Town wins by clearing out the mafia. Mafia wins by evening the odds.</p>'+
+    '<div class="intro-modal-actions" style="justify-content:flex-start; margin-top:6px;"><button class="btn ghost" id="tour-browse-roles-btn">Browse All Roles</button></div>';
+}
+var TOUR_STEPS = [
+  {html: tourStep0},
+  {html: tourStep1, spotlight: '#tour-night-grid'},
+  {html: tourStep2},
+  {html: tourStep3, spotlight: '#tour-vote-confirm-btn', after: function(body){
+    var chips = body.querySelectorAll('.tour-pick');
+    if(chips[2]) chips[2].classList.add('selected');
+  }},
+  {html: tourStep4, spotlight: '#tour-reveal-card'},
+  {html: tourStep5},
+  {html: tourStep6}
+];
+var tourStepIndex = 0;
+var tourSpotlightTimer = null;
+var tourOnClose = null;
+// onClose lets the tour finish into whatever its entry point actually
+// wanted: reached from the home screen's own "How to Play" button, closing
+// should just return there (nobody was mid-attempt to start a game); reached
+// from the first-time intro modal, the player WAS trying to play, so "Let's
+// Play"/"Skip tutorial" should carry them into game setup, same as the
+// intro modal's own "Skip, I've Got It" already does.
+function openHowToTour(onClose){
+  tourStepIndex = 0;
+  tourOnClose = onClose || function(){ switchPanel('home'); };
+  document.getElementById('howto-tour-modal').style.display = 'flex';
+  renderTourStep();
+}
+function closeHowToTour(){
+  clearTimeout(tourSpotlightTimer);
+  document.getElementById('howto-tour-modal').style.display = 'none';
+  var cb = tourOnClose; tourOnClose = null;
+  if(cb) cb();
+}
+function renderTourStep(){
+  clearTimeout(tourSpotlightTimer);
+  var step = TOUR_STEPS[tourStepIndex];
+  document.getElementById('howto-tour-counter').textContent = 'Step '+(tourStepIndex+1)+' of '+TOUR_STEPS.length;
+  var body = document.getElementById('howto-tour-body');
+  // Reuse the same reveal-in fade the rest of the game already uses for a
+  // fresh screen, rather than a new, disconnected transition style.
+  body.classList.remove('reveal-in');
+  void body.offsetWidth;
+  body.innerHTML = step.html();
+  body.classList.add('reveal-in');
+  if(step.after) step.after(body);
+  document.getElementById('howto-tour-back-btn').style.visibility = (tourStepIndex===0) ? 'hidden' : 'visible';
+  document.getElementById('howto-tour-next-btn').textContent = (tourStepIndex===TOUR_STEPS.length-1) ? "Let's Play" : 'Next';
+  if(step.spotlight){
+    tourSpotlightTimer = setTimeout(function(){
+      var el = body.querySelector(step.spotlight);
+      if(el) el.classList.add('tour-spotlight');
+    }, 700);
+  }
+  var browseBtn = document.getElementById('tour-browse-roles-btn');
+  if(browseBtn){
+    browseBtn.addEventListener('click', function(){
+      document.getElementById('howto-tour-modal').style.display = 'none';
+      renderHowTo();
+      switchPanel('howto');
+    });
+  }
+}
+document.getElementById('howto-tour-next-btn').addEventListener('click', function(){
+  if(tourStepIndex < TOUR_STEPS.length-1){ tourStepIndex++; renderTourStep(); }
+  else { closeHowToTour(); }
+});
+document.getElementById('howto-tour-back-btn').addEventListener('click', function(){
+  if(tourStepIndex>0){ tourStepIndex--; renderTourStep(); }
+});
+document.getElementById('howto-tour-skip-btn').addEventListener('click', closeHowToTour);
+document.getElementById('howto-btn').addEventListener('click', function(){
+  openHowToTour();
 });
 
 async function initGame(){
