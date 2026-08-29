@@ -252,6 +252,9 @@ body.bg-day #role-badge{bottom:auto; top:165px; right:12px;}
 .howto-tour-text{font-family:var(--font-type); font-size:13px; line-height:1.7; color:var(--parchment-dim); margin:0 0 16px;}
 .howto-tour-mockup{background:var(--panel-2); border:1px solid var(--line); border-radius:8px; padding:14px; margin-bottom:6px;}
 .howto-tour-nav{display:flex; justify-content:space-between; align-items:center; margin-top:18px; padding-top:14px; border-top:1px solid var(--line);}
+#howto-tour-next-btn{filter:brightness(1.2); box-shadow:0 0 16px 3px rgba(227,177,85,0.5); animation:tourNextGlow 2.2s ease-in-out infinite;}
+#howto-tour-next-btn:hover{filter:brightness(1.35) drop-shadow(0 3px 6px rgba(0,0,0,0.4)); transform:translateY(-1px);}
+@keyframes tourNextGlow{0%,100%{box-shadow:0 0 16px 3px rgba(227,177,85,0.5);} 50%{box-shadow:0 0 22px 5px rgba(227,177,85,0.75);}}
 .howto-tour-conflict{display:flex; gap:14px; align-items:stretch;}
 .howto-tour-faction{flex:1; background:var(--panel-2); border:1px solid var(--line); border-radius:8px; padding:14px; text-align:center;}
 .howto-tour-faction .portrait-frame{width:74px; height:100px; margin:0 auto 10px;}
@@ -261,11 +264,22 @@ body.bg-day #role-badge{bottom:auto; top:165px; right:12px;}
 .howto-tour-roles-extra{font-size:12px; color:var(--parchment-dim); line-height:1.7; margin:10px 0 0;}
 .howto-tour-mockup .chip{pointer-events:none;}
 /* Spotlight/zoom: a box-shadow spread large enough to cover the rest of the
-   modal reads as a full-screen dark cutout around just this element, paired
-   with a small scale so it also visually "zooms" - the technique DESIGN_TASKS
-   asked for, without needing a second overlay element or a hand-computed
-   cutout mask. */
-.tour-spotlight{position:relative; z-index:2; border-radius:6px; transform:scale(1.05); box-shadow:0 0 0 2000px rgba(8,7,6,0.8); transition:transform .4s ease, box-shadow .4s ease;}
+   modal reads as a full-screen dark cutout around just this element - the
+   technique DESIGN_TASKS asked for, without needing a second overlay element
+   or a hand-computed cutout mask. The zoom itself is a real punch-in (not a
+   subtle nudge): overshoots past its final scale then settles, same
+   cubic-bezier used elsewhere for chip pops and the role-reveal card, then
+   holds a slow gold-glow breathing pulse so the highlight reads as alive,
+   not just dimmed. */
+.tour-spotlight{position:relative; z-index:2; border-radius:8px; animation:tourSpotlightZoom .55s cubic-bezier(.34,1.56,.64,1) forwards, tourSpotlightPulse 2.4s ease-in-out .55s infinite;}
+@keyframes tourSpotlightZoom{
+  0%{transform:scale(1); box-shadow:0 0 0 0 rgba(8,7,6,0), 0 0 0 0 rgba(227,177,85,0);}
+  100%{transform:scale(1.22); box-shadow:0 0 0 2000px rgba(8,7,6,0.87), 0 0 32px 7px rgba(227,177,85,0.4);}
+}
+@keyframes tourSpotlightPulse{
+  0%,100%{box-shadow:0 0 0 2000px rgba(8,7,6,0.87), 0 0 32px 7px rgba(227,177,85,0.4);}
+  50%{box-shadow:0 0 0 2000px rgba(8,7,6,0.87), 0 0 46px 12px rgba(227,177,85,0.6);}
+}
 .role-card-modal-content .dossier-card{margin-bottom:0;}
 .role-card-close{position:absolute; top:8px; right:10px; z-index:5; background:none; border:none; color:var(--parchment-dim); font-size:26px; line-height:1; cursor:pointer; padding:4px 8px; transition:color .15s ease;}
 .role-card-close:hover{color:var(--gold-bright);}
