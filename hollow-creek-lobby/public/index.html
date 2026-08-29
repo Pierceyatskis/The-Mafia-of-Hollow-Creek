@@ -72,6 +72,21 @@ header p{font-family:var(--font-type); font-size:11px; letter-spacing:3px; text-
   box-shadow:0 10px 30px rgba(0,0,0,0.4);
 }
 .app-frame{position:fixed; inset:10px; z-index:80; pointer-events:none; border:1.5px solid var(--gold-dim); border-radius:6px;}
+/* DESIGN_TASKS Task 16: night-only drifting fog. Night-phase panel content
+   sits above this (z-index:auto), same relationship #role-badge/#app-frame
+   already rely on - only shown at all via body.bg-night, so it never
+   renders during the day. Each layer only animates transform (translateX
+   sway) so it stays GPU-composited with zero layout cost; blur/opacity are
+   static per layer, not animated. */
+#night-fog{position:fixed; inset:0; z-index:3; overflow:hidden; pointer-events:none; display:none;}
+body.bg-night #night-fog{display:block;}
+.fog-layer{position:absolute; left:-25%; bottom:0; width:150%; filter:blur(22px); will-change:transform; background:linear-gradient(to top, rgba(215,220,230,var(--fog-op)) 0%, rgba(215,220,230,calc(var(--fog-op) * 0.4)) 45%, transparent 85%);}
+.fog-layer-1{height:34vh; --fog-op:0.20; animation:fogSway1 40s ease-in-out infinite alternate;}
+.fog-layer-2{height:26vh; --fog-op:0.14; animation:fogSway2 58s ease-in-out infinite alternate;}
+.fog-layer-3{height:20vh; --fog-op:0.10; animation:fogSway3 74s ease-in-out infinite alternate;}
+@keyframes fogSway1{from{transform:translateX(-6%);} to{transform:translateX(6%);}}
+@keyframes fogSway2{from{transform:translateX(5%);} to{transform:translateX(-5%);}}
+@keyframes fogSway3{from{transform:translateX(-4%);} to{transform:translateX(4%);}}
 #panel-night, #panel-day, #panel-end{
   margin:-22px; padding:22px; border-radius:9px;
   background-size:cover; background-position:center; background-attachment:fixed;
@@ -551,6 +566,11 @@ h2.sec{font-family:var(--font-type); font-size:12px; letter-spacing:2px; text-tr
   <svg class="corner corner-tr" viewBox="0 0 60 60"><path d="M5 40 L5 5 L40 5" fill="none" stroke="var(--gold)" stroke-width="2"/><path d="M12 34 L12 12 L34 12" fill="none" stroke="var(--gold)" stroke-width="1" opacity="0.55"/><rect x="1.5" y="1.5" width="7" height="7" fill="var(--gold)" transform="rotate(45 5 5)"/></svg>
   <svg class="corner corner-bl" viewBox="0 0 60 60"><path d="M5 40 L5 5 L40 5" fill="none" stroke="var(--gold)" stroke-width="2"/><path d="M12 34 L12 12 L34 12" fill="none" stroke="var(--gold)" stroke-width="1" opacity="0.55"/><rect x="1.5" y="1.5" width="7" height="7" fill="var(--gold)" transform="rotate(45 5 5)"/></svg>
   <svg class="corner corner-br" viewBox="0 0 60 60"><path d="M5 40 L5 5 L40 5" fill="none" stroke="var(--gold)" stroke-width="2"/><path d="M12 34 L12 12 L34 12" fill="none" stroke="var(--gold)" stroke-width="1" opacity="0.55"/><rect x="1.5" y="1.5" width="7" height="7" fill="var(--gold)" transform="rotate(45 5 5)"/></svg>
+</div>
+<div id="night-fog" aria-hidden="true">
+  <div class="fog-layer fog-layer-1"></div>
+  <div class="fog-layer fog-layer-2"></div>
+  <div class="fog-layer fog-layer-3"></div>
 </div>
 <div id="global-home-btn" style="display:none;">
   <button class="btn ghost" id="home-nav-btn">Back to home</button>
