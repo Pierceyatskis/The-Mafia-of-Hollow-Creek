@@ -1395,7 +1395,8 @@ var SoundFX = (function(){
     bountyCollect: 'assets/sounds/bounty-collect.mp3',
     roleReveal: 'assets/sounds/role-reveal.mp3',
     caseFileOpen: 'assets/sounds/case-file-open.mp3',
-    townBell: 'assets/sounds/town-bell.mp3'
+    townBell: 'assets/sounds/town-bell.mp3',
+    doorCreak: 'assets/sounds/door-creak.mp3'
   };
   var warnedMissing = {};
   function warnIfMissing(a, key){
@@ -1469,6 +1470,7 @@ var SoundFX = (function(){
     playRoleReveal: function(){ playFile('roleReveal', 0.55); },
     playCaseFileOpen: function(){ playFile('caseFileOpen', 0.5); },
     playTownBell: function(){ playFile('townBell', 0.6); },
+    playDoorCreak: function(){ playFile('doorCreak', 0.6); },
     setAmbience: function(phase){
       var key = null;
       if(key !== ambienceKey){
@@ -4575,7 +4577,11 @@ function showPhaseTransition(kind, num, onDone){
   screen.style.display = 'flex';
   void screen.offsetWidth;
   screen.classList.add('pt-active');
-  if(kind==='night') SoundFX.setAmbience(null);
+  // DESIGN_TASKS Task 13: the exact same beat every night, every round -
+  // same framing (this transition screen was already consistent), now
+  // paired with the same sound every time too, so it becomes a recognized
+  // cue rather than blending into whatever ambience was already playing.
+  if(kind==='night'){ SoundFX.setAmbience(null); SoundFX.playDoorCreak(); }
   setTimeout(function(){
     screen.classList.remove('pt-active');
     setTimeout(function(){
