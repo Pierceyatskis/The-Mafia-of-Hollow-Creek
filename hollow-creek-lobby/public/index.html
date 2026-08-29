@@ -3941,7 +3941,9 @@ function renderLynchReveal(view){
     stamp.className = 'deceased-stamp stamp-in';
     stamp.textContent = 'deceased';
     cardEl.appendChild(stamp);
-    SoundFX.playGavel();
+    // Gavel already played once when day-reveal began (see the
+    // justEnteredReveal branch in renderFromServerView) - a second one
+    // here just doubled up, so only the vibrate stays for this beat.
     vibrate([30,50,30]);
     document.getElementById('vote-log').innerHTML = (view.voteLog||[]).map(function(v){
       // Silenced only blocks speaking - a silenced player who DID vote
