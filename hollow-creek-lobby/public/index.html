@@ -803,7 +803,10 @@ h2.sec{font-family:var(--font-type); font-size:12px; letter-spacing:2px; text-tr
     </p>
     <h2 class="sec">The cast of roles</h2>
     <div class="howtogrid" id="howtogrid"></div>
-    <button class="btn ghost" id="howto-back-btn" style="margin-top:18px;">Back to town</button>
+    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:18px;">
+      <button class="btn" id="howto-take-tour-btn">Take the Guided Tour</button>
+      <button class="btn ghost" id="howto-back-btn">Back to town</button>
+    </div>
   </div>
 </div>
 
@@ -3690,6 +3693,9 @@ function renderHowTo(){
 }
 document.getElementById('howto-back-btn').addEventListener('click', function(){
   switchPanel('home');
+});
+document.getElementById('howto-take-tour-btn').addEventListener('click', function(){
+  openHowToTour();
 });
 
 // Task 17: a guided tour replaces the static role wall as the default
