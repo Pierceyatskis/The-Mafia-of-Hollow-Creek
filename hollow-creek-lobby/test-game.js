@@ -397,4 +397,38 @@ const resG2 = G.resolveNight(stateOnce);
 assert(secondTargetG.alive === true, 'Task 3: once-per-game - a second shot attempt on a later night does nothing, the target survives');
 assert(resG2.vigilanteKillVictim === null, 'Task 3: the resolution result confirms no second shot was fired');
 
+// --- PREBETA Task 4: Consigliere - investigates a target and learns their
+// exact role by name, not a guilty/innocent read. Correctly bypasses Miller
+// and Double Agent's Detective-trick mechanics by construction (it never
+// touches detectiveRead/investigateAndRead at all). ---
+const CONS_BASE = Object.assign({}, VIG_OFF, {Consigliere:true});
+
+// (a) investigating a Miller returns "Miller" specifically, not guilty/innocent
+const stateConsMiller = G.createGame(seats, {playerCount: 8, mafiaCount: 0, roles: Object.assign({}, CONS_BASE, {Miller:true})});
+const consA = stateConsMiller.players.find(p => p.role === 'Consigliere');
+const millerA = stateConsMiller.players.find(p => p.role === 'Miller');
+stateConsMiller.pendingNightVotes[consA.id] = {consigliereInvestigate: millerA.id};
+const resConsA = G.resolveNight(stateConsMiller);
+assert(resConsA.consigliereResult && resConsA.consigliereResult.role === 'Miller', 'Task 4: investigating a Miller returns "Miller" specifically, not a guilty/innocent read');
+assert(stateConsMiller.consigliereLog[stateConsMiller.consigliereLog.length-1].role === 'Miller', 'Task 4: the Miller investigation is recorded in consigliereLog with the literal role name');
+
+// (b) investigating a Double Agent (itself mafia-aligned) still returns
+// "DoubleAgent" specifically when exercised directly - the "no teammates"
+// rule is a UI-level restriction only (see game.js), never re-checked here
+// by alignment, so this always resolves cleanly no matter who the target is.
+const stateConsDA = G.createGame(seats, {playerCount: 8, mafiaCount: 0, roles: Object.assign({}, CONS_BASE, {DoubleAgent:true})});
+const consB = stateConsDA.players.find(p => p.role === 'Consigliere');
+const daB = stateConsDA.players.find(p => p.role === 'DoubleAgent');
+stateConsDA.pendingNightVotes[consB.id] = {consigliereInvestigate: daB.id};
+const resConsB = G.resolveNight(stateConsDA);
+assert(resConsB.consigliereResult && resConsB.consigliereResult.role === 'DoubleAgent', 'Task 4: investigating a Double Agent returns "DoubleAgent" specifically, not a guilty/innocent read');
+
+// (c) mafiaAlive/checkWin correctness (found while wiring the role in):
+// Consigliere is mafia-aligned and must count toward the mafia's living
+// headcount for win-condition purposes, same as Godfather/Mafia/DoubleAgent -
+// otherwise town would be incorrectly declared the winner while a
+// mafia-aligned Consigliere is still alive and well.
+const stateConsWin = G.createGame(seats, {playerCount: 6, mafiaCount: 0, roles: Object.assign({}, CONS_BASE)});
+assert(G.mafiaAlive(stateConsWin).some(p => p.role === 'Consigliere'), 'Task 4: a living Consigliere counts as mafia-alive for win-condition purposes');
+
 console.log('\nAll game.js checks completed.');

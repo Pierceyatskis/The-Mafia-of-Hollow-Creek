@@ -21,16 +21,17 @@ const ROLE_LABEL = {
   Detective:'the detective', Godfather:'the godfather', Mafia:'a mafia enforcer',
   DoubleAgent:'the double agent', Doctor:'the doctor', Miller:'the miller',
   BountyHunter:'the bounty hunter', CrazyGranny:'the crazy granny', Coward:'the coward',
-  Farmer:'the farmer', NavySeal:'the war veteran', Vigilante:'the vigilante', Civilian:'a civilian'
+  Farmer:'the farmer', NavySeal:'the war veteran', Vigilante:'the vigilante',
+  Consigliere:'the consigliere', Civilian:'a civilian'
 };
 
-const SPECIAL_ROLES = ['Godfather','Mafia','DoubleAgent','Detective','Doctor','Miller','BountyHunter','CrazyGranny','Coward','Farmer','NavySeal','Vigilante'];
+const SPECIAL_ROLES = ['Godfather','Mafia','DoubleAgent','Detective','Doctor','Miller','BountyHunter','CrazyGranny','Coward','Farmer','NavySeal','Vigilante','Consigliere'];
 
 const MIN_PLAYERS = 6;
 const MAX_PLAYERS = CHARACTERS.length + 1; // +1 for at least one real seat beyond the character pool isn't needed; kept for parity with single-player (12)
 const MAX_MAFIA_COUNT = 4;
 
-const DEFAULT_ROLES_CONFIG = {Godfather:true, DoubleAgent:true, Detective:true, Doctor:true, Miller:true, BountyHunter:true, CrazyGranny:true, Coward:false, Farmer:false, NavySeal:false, Vigilante:false};
+const DEFAULT_ROLES_CONFIG = {Godfather:true, DoubleAgent:true, Detective:true, Doctor:true, Miller:true, BountyHunter:true, CrazyGranny:true, Coward:false, Farmer:false, NavySeal:false, Vigilante:false, Consigliere:false};
 
 function shuffle(arr){
   const a = arr.slice();
@@ -42,7 +43,7 @@ function shuffle(arr){
 }
 
 function alignOf(role){
-  if(role==='Godfather'||role==='DoubleAgent'||role==='Mafia') return 'mafia';
+  if(role==='Godfather'||role==='DoubleAgent'||role==='Mafia'||role==='Consigliere') return 'mafia';
   if(role==='BountyHunter') return 'neutral';
   return 'town';
 }
@@ -106,7 +107,7 @@ function createGame(seats, config){
     chatLog: [], mafiaChatLog: [], voteLog: [], winner: null, gameOver: false,
     pendingNightVotes: {}, // playerId -> {kill, silence, protect, investigate, bounty, hideBehind}
     pendingDayVotes: {}, // playerId -> targetId
-    detectiveLog: [], farmerRevengeName: null, farmerRevengePending: null,
+    detectiveLog: [], consigliereLog: [], farmerRevengeName: null, farmerRevengePending: null,
     // Scoring infrastructure (Task 17/18) - append-only, never cleared between
     // rounds, each entry tagged with which round (`night`) it happened in so
     // scoring.js can look at either a single round or the whole game's history.
@@ -134,7 +135,7 @@ function recordLivingCountSnapshot(state, playerId, role, actionType){
 
 function byId(state, id){ return state.players.find(p => p.id === id); }
 function living(state){ return state.players.filter(p => p.alive); }
-function mafiaAlive(state){ return state.players.filter(p => p.alive && (p.role==='Godfather' || p.role==='DoubleAgent' || p.role==='Mafia' || (p.role==='CrazyGranny' && p.flipped))); }
+function mafiaAlive(state){ return state.players.filter(p => p.alive && (p.role==='Godfather' || p.role==='DoubleAgent' || p.role==='Mafia' || p.role==='Consigliere' || (p.role==='CrazyGranny' && p.flipped))); }
 function mafiaVoters(state){
   const flippedGranny = state.players.find(p => p.alive && p.role==='CrazyGranny' && p.flipped);
   if(flippedGranny) return [flippedGranny];
@@ -198,6 +199,13 @@ function placeholderNightAction(state, player){
   if(player.role==='Doctor') action.protect = pick(options);
   if(player.role==='Coward') action.hideBehind = pick(options);
   if(player.role==='BountyHunter') action.bounty = pick(options);
+  if(player.role==='Consigliere'){
+    // Cannot target teammates - already visible directly, so investigating
+    // one would be a wasted, redundant action. Same UI-level restriction the
+    // real client applies; a placeholder just picks from the same allowed pool.
+    const nonTeammates = options.filter(p => p.align !== 'mafia');
+    action.consigliereInvestigate = pick(nonTeammates.length ? nonTeammates : options);
+  }
   // Deliberately no Vigilante case here (assumption, not spec'd): unlike
   // Doctor/Coward/BountyHunter, a shot is permanent, once-per-game, and can
   // kill the Vigilante themselves on a wrong guess - a placeholder has no
@@ -382,6 +390,30 @@ function resolveNight(state){
     }
   }
 
+  // --- Consigliere: learns a target's exact role by name, not a
+  // guilty/innocent read - this is why Miller and Double Agent's tricks
+  // (both built specifically to manipulate the Detective's guilty/innocent
+  // mechanic) never apply here: reading the literal role name never touches
+  // that mechanic at all, so Miller plainly reads "Miller" and Double Agent
+  // plainly reads "DoubleAgent" every time, with no special-casing needed. ---
+  const consigliere = state.players.find(p => p.alive && p.role==='Consigliere');
+  const consigliereTargetId = consigliere ? (state.pendingNightVotes[consigliere.id]||{}).consigliereInvestigate : null;
+  let consigliereResult = null;
+  if(consigliere && consigliereTargetId){
+    const target = byId(state, consigliereTargetId);
+    // "Cannot target teammates" is enforced at the UI/validation level only
+    // (the client never offers a teammate as an option), the same way
+    // self-targeting is typically blocked elsewhere in this game - not
+    // re-checked here by alignment, so investigating a Double Agent (itself
+    // mafia-aligned) still correctly resolves to "DoubleAgent" whenever it's
+    // exercised directly, same as any other role.
+    if(target){
+      log(state, consigliere.name+' (Consigliere) looked into '+target.name+' and learned: '+target.role+'.');
+      state.consigliereLog.push({name: target.name, role: target.role});
+      consigliereResult = {consigliereId: consigliere.id, targetId: target.id, targetName: target.name, role: target.role};
+    }
+  }
+
   checkGrannyFlip(state);
   state.cachedOvernightReport = reportLines.join(' ');
   const gameOver = checkWin(state);
@@ -389,7 +421,7 @@ function resolveNight(state){
   state.pendingNightVotes = {};
   state.phase = 'day-discuss';
 
-  return {reportLines, deathSummary, nightDeathOccurred, revealVictim, silencedPlayerId, investigationResult, gameOver, killTargetId, doctorSaved: !!doctorSaved, cowardRedirected, vigilanteKillVictim, vigilanteDied, nightDeaths};
+  return {reportLines, deathSummary, nightDeathOccurred, revealVictim, silencedPlayerId, investigationResult, consigliereResult, gameOver, killTargetId, doctorSaved: !!doctorSaved, cowardRedirected, vigilanteKillVictim, vigilanteDied, nightDeaths};
 }
 
 function resolveDayVote(state, timedOutFallbackId){
@@ -547,6 +579,7 @@ function getPlayerView(state, playerId){
     bountyTarget: (me && me.role==='BountyHunter') ? state.bountyTarget : undefined,
     myRole: me ? me.role : null, myAlign: me ? me.align : null,
     detectiveLog: (me && me.role==='Detective') ? state.detectiveLog : undefined,
+    consigliereLog: (me && me.role==='Consigliere') ? state.consigliereLog : undefined,
     // Mafia chat is scoped strictly by align==='mafia' - never sent to a
     // town-aligned player, living or dead.
     mafiaChatLog: (me && me.align==='mafia') ? state.mafiaChatLog : undefined,
