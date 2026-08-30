@@ -2275,7 +2275,13 @@ function renderMafiaVoteUI(h, opts){
     if(opts.silence) renderSilenceGrid();
   });
   function renderSilenceGrid(){
-    var silOpts = otherLivingOptions([h.id, pendingNightAction.kill].concat(teammateIds));
+    // PREBETA Task 1: silence must have no alignment restriction - a
+    // Godfather who can only ever silence town players makes being
+    // silenced itself a tell that mechanically confirms you're not mafia.
+    // Only the current kill pick is excluded (silencing someone who'll be
+    // dead by morning is a wasted pick, not an alignment leak) - self and
+    // teammates are valid targets now, same as anyone else.
+    var silOpts = otherLivingOptions([pendingNightAction.kill].filter(Boolean));
     document.getElementById('grid-b').innerHTML = chipGridHTML(silOpts,'pick-b');
     wireSingleSelect(document.getElementById('grid-b'), 'pick-b', function(id){pendingNightAction.silence=id;});
   }

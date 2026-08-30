@@ -248,4 +248,28 @@ const afterEarlyVote = G.firstAccuserOf(stateT18, targetT18.id);
 assert(afterEarlyVote.precededAnyVoteForTarget === false, 'Task18: an accusation made after a vote for that target already landed does not read as having preceded it');
 assert(afterEarlyVote.fractionVotesAlreadyInWhenAccused === 1, 'Task18: fractionVotesAlreadyInWhenAccused reflects that the only vote for the target already landed before the first accusation');
 
+// --- PREBETA Task 1: Godfather silence has no alignment restriction -
+// server-side resolveNight already never filtered by alignment (the leak
+// was purely in the client's silence-target picker), but this test locks
+// in the backend behavior the fix depends on: a Godfather can silence a
+// mafia-aligned teammate or themselves, same as any town player.
+const stateSilence = G.createGame(seats, {playerCount: 8, mafiaCount: 1, roles: Object.assign({}, G.DEFAULT_ROLES_CONFIG)});
+const gfSilence = stateSilence.players.find(p => p.role === 'Godfather');
+const silenceMafiaTeammate = stateSilence.players.find(p => p.id !== gfSilence.id && p.align === 'mafia');
+const townDecoyTarget = stateSilence.players.find(p => p.align !== 'mafia' && p.alive);
+G.mafiaVoters(stateSilence).forEach(p => { stateSilence.pendingNightVotes[p.id] = {kill: townDecoyTarget.id}; });
+stateSilence.pendingNightVotes[gfSilence.id] = Object.assign({}, stateSilence.pendingNightVotes[gfSilence.id], {silence: silenceMafiaTeammate.id});
+const silenceResultTeammate = G.resolveNight(stateSilence);
+assert(silenceResultTeammate.silencedPlayerId === silenceMafiaTeammate.id, 'PREBETA Task 1: Godfather can successfully silence a mafia-aligned teammate');
+assert(silenceMafiaTeammate.silencedToday === true, 'PREBETA Task 1: the silenced mafia teammate is actually marked silencedToday');
+
+const stateSelfSilence = G.createGame(seats, {playerCount: 8, mafiaCount: 1, roles: Object.assign({}, G.DEFAULT_ROLES_CONFIG)});
+const gfSelfSilence = stateSelfSilence.players.find(p => p.role === 'Godfather');
+const townDecoyTarget2 = stateSelfSilence.players.find(p => p.align !== 'mafia' && p.alive);
+G.mafiaVoters(stateSelfSilence).forEach(p => { stateSelfSilence.pendingNightVotes[p.id] = {kill: townDecoyTarget2.id}; });
+stateSelfSilence.pendingNightVotes[gfSelfSilence.id] = Object.assign({}, stateSelfSilence.pendingNightVotes[gfSelfSilence.id], {silence: gfSelfSilence.id});
+const silenceResultSelf = G.resolveNight(stateSelfSilence);
+assert(silenceResultSelf.silencedPlayerId === gfSelfSilence.id, 'PREBETA Task 1: Godfather can successfully silence himself');
+assert(gfSelfSilence.silencedToday === true, 'PREBETA Task 1: the self-silenced Godfather is actually marked silencedToday');
+
 console.log('\nAll game.js checks completed.');
