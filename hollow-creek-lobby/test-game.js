@@ -513,4 +513,82 @@ const resMayorD = G.resolveDayVote(stateMayorD);
 assert([tiedAD.id, tiedBD.id, tiedCD.id].includes(resMayorD.lead.id), 'Task 6: with the Mayor\'s vote target outside the tied group, the tiebreak falls back to the normal random pick among the tied candidates');
 assert(resMayorD.mayorTiebreakResolved === false, 'Task 6: the flag correctly reports Ability 2 did NOT determine this outcome, since the Mayor\'s vote target wasn\'t among the tied candidates');
 
+// --- PREBETA Task 7: Mortician - starting Night 2 onward, learns the role
+// of whoever died the PREVIOUS night specifically. Never day-vote deaths
+// (already public via the lynch reveal), never this same night's own deaths.
+const MORT_BASE = Object.assign({}, VIG_OFF, {Mortician:true});
+
+// (a)+(b): no candidates on Night 1 (nothing has died yet), then correctly
+// reveals the previous night's single death starting Night 2.
+const stateMortAB = G.createGame(seats, {playerCount: 8, mafiaCount: 1, roles: Object.assign({}, MORT_BASE)});
+const morticianAB = stateMortAB.players.find(p => p.role === 'Mortician');
+const viewN1 = G.getPlayerView(stateMortAB, morticianAB.id);
+assert(viewN1.morticianCandidates.length === 0, 'Task 7: no candidates on Night 1 - nothing has died yet, not a special gate, just a fact about the game');
+
+const killTargetAB = stateMortAB.players.find(p => p.align !== 'mafia' && p.role !== 'Mortician' && p.alive);
+G.mafiaVoters(stateMortAB).forEach(p => { stateMortAB.pendingNightVotes[p.id] = {kill: killTargetAB.id}; });
+const resN1 = G.resolveNight(stateMortAB);
+assert(resN1.morticianResult === null, 'Task 7: Night 1 resolution never produces a Mortician result');
+assert(stateMortAB.lastNightDeaths.length === 1 && stateMortAB.lastNightDeaths[0].id === killTargetAB.id, 'Task 7 setup: the Night 1 kill is recorded as last night\'s death for Night 2 to reveal');
+
+G.startNextNight(stateMortAB);
+const viewN2 = G.getPlayerView(stateMortAB, morticianAB.id);
+assert(viewN2.morticianCandidates.length === 1 && viewN2.morticianCandidates[0].id === killTargetAB.id, 'Task 7: starting Night 2, the Mortician\'s candidate pool is exactly last night\'s single death');
+
+const fillerKillAB = stateMortAB.players.find(p => p.align !== 'mafia' && p.role !== 'Mortician' && p.alive && p.id !== killTargetAB.id);
+G.mafiaVoters(stateMortAB).forEach(p => { stateMortAB.pendingNightVotes[p.id] = {kill: fillerKillAB.id}; });
+stateMortAB.pendingNightVotes[morticianAB.id] = {morticianInvestigate: killTargetAB.id};
+const resN2 = G.resolveNight(stateMortAB);
+assert(resN2.morticianResult && resN2.morticianResult.role === killTargetAB.role, 'Task 7: starting the following night, the Mortician correctly learns the exact role of who died the previous night');
+assert(stateMortAB.morticianLog[0].name === killTargetAB.name && stateMortAB.morticianLog[0].role === killTargetAB.role, 'Task 7: the investigation is recorded in morticianLog');
+
+// (c) a two-death night forces a choice between the two, rather than
+// revealing both automatically.
+const stateMortC = G.createGame(seats, {playerCount: 8, mafiaCount: 1, roles: Object.assign({}, MORT_BASE, {Vigilante:true})});
+const morticianC = stateMortC.players.find(p => p.role === 'Mortician');
+const vigMortC = stateMortC.players.find(p => p.role === 'Vigilante');
+const mafiaKillTargetC = stateMortC.players.find(p => p.align !== 'mafia' && p.role !== 'Vigilante' && p.role !== 'Mortician' && p.alive);
+const vigTargetC = stateMortC.players.find(p => p.align === 'mafia'); // mafia-aligned, so the Vigilante's own guilt-death doesn't add a 3rd death
+G.mafiaVoters(stateMortC).forEach(p => { stateMortC.pendingNightVotes[p.id] = {kill: mafiaKillTargetC.id}; });
+stateMortC.pendingNightVotes[vigMortC.id] = {vigilanteKill: vigTargetC.id};
+const resC1 = G.resolveNight(stateMortC);
+assert(resC1.nightDeaths.length === 2, 'Task 7 setup: two deaths land the same night (mafia kill + Vigilante kill)');
+
+G.startNextNight(stateMortC);
+const viewC = G.getPlayerView(stateMortC, morticianC.id);
+assert(viewC.morticianCandidates.length === 2, 'Task 7: a two-death night gives the Mortician exactly two candidates the following night, not both revealed automatically');
+const candIdsC = viewC.morticianCandidates.map(c => c.id).sort();
+assert(candIdsC.includes(mafiaKillTargetC.id) && candIdsC.includes(vigTargetC.id), 'Task 7: both of last night\'s victims are present in the choice');
+
+const fillerKillC = stateMortC.players.find(p => p.align !== 'mafia' && p.role !== 'Mortician' && p.alive && p.id !== mafiaKillTargetC.id);
+G.mafiaVoters(stateMortC).forEach(p => { stateMortC.pendingNightVotes[p.id] = {kill: fillerKillC.id}; });
+stateMortC.pendingNightVotes[morticianC.id] = {morticianInvestigate: mafiaKillTargetC.id};
+const resC2 = G.resolveNight(stateMortC);
+assert(resC2.morticianResult && resC2.morticianResult.targetId === mafiaKillTargetC.id && resC2.morticianResult.role === mafiaKillTargetC.role, 'Task 7: choosing one of the two candidates reveals exactly that one\'s role');
+assert(stateMortC.morticianLog.length === 1, 'Task 7: only the CHOSEN candidate is recorded, not both automatically');
+
+// (d)+(e): a genuine zero-death night (Doctor-saved) yields nothing the
+// following night, and a subsequent day-vote elimination is never revealed
+// via this mechanic either - only night deaths ever populate the pool.
+const stateMortD = G.createGame(seats, {playerCount: 8, mafiaCount: 1, roles: Object.assign({}, MORT_BASE, {Doctor:true})});
+const morticianD = stateMortD.players.find(p => p.role === 'Mortician');
+const doctorD = stateMortD.players.find(p => p.role === 'Doctor');
+const killTargetD = stateMortD.players.find(p => p.align !== 'mafia' && p.role !== 'Mortician' && p.role !== 'Doctor' && p.alive);
+G.mafiaVoters(stateMortD).forEach(p => { stateMortD.pendingNightVotes[p.id] = {kill: killTargetD.id}; });
+stateMortD.pendingNightVotes[doctorD.id] = {protect: killTargetD.id};
+G.resolveNight(stateMortD);
+assert(stateMortD.lastNightDeaths.length === 0, 'Task 7 setup: the Doctor\'s save produces a genuine zero-death night');
+
+G.startNextNight(stateMortD);
+const viewD2 = G.getPlayerView(stateMortD, morticianD.id);
+assert(viewD2.morticianCandidates.length === 0, 'Task 7: a no-death night correctly yields nothing for the Mortician the following night');
+
+const lynchTargetD = stateMortD.players.find(p => p.id !== morticianD.id && p.alive);
+G.living(stateMortD).forEach(p => G.recordDayVoteSubmission(stateMortD, p.id, lynchTargetD.id));
+const resDayD = G.resolveDayVote(stateMortD);
+assert(resDayD.lead.id === lynchTargetD.id, 'Task 7 setup: the day-vote lynch lands on the intended target');
+assert(stateMortD.lastNightDeaths.length === 0, 'Task 7: a day-vote elimination never touches lastNightDeaths');
+const viewD3 = G.getPlayerView(stateMortD, morticianD.id);
+assert(viewD3.morticianCandidates.length === 0, 'Task 7: a day-vote elimination never appears in the Mortician\'s candidate pool - only night deaths qualify');
+
 console.log('\nAll game.js checks completed.');

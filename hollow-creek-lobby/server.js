@@ -307,7 +307,7 @@ function endGame(room) {
 function sanitizeNightAction(raw) {
   const a = raw && typeof raw === 'object' ? raw : {};
   const out = {};
-  ['kill', 'investigate', 'protect', 'hideBehind', 'bounty', 'silence', 'vigilanteKill', 'consigliereInvestigate'].forEach(k => {
+  ['kill', 'investigate', 'protect', 'hideBehind', 'bounty', 'silence', 'vigilanteKill', 'consigliereInvestigate', 'morticianInvestigate'].forEach(k => {
     if (typeof a[k] === 'string') out[k] = a[k];
   });
   return out;

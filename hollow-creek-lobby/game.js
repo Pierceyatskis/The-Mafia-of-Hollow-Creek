@@ -22,16 +22,16 @@ const ROLE_LABEL = {
   DoubleAgent:'the double agent', Doctor:'the doctor', Miller:'the miller',
   BountyHunter:'the bounty hunter', CrazyGranny:'the crazy granny', Coward:'the coward',
   Farmer:'the farmer', NavySeal:'the war veteran', Vigilante:'the vigilante',
-  Consigliere:'the consigliere', Mayor:'the mayor', Civilian:'a civilian'
+  Consigliere:'the consigliere', Mayor:'the mayor', Mortician:'the mortician', Civilian:'a civilian'
 };
 
-const SPECIAL_ROLES = ['Godfather','Mafia','DoubleAgent','Detective','Doctor','Miller','BountyHunter','CrazyGranny','Coward','Farmer','NavySeal','Vigilante','Consigliere','Mayor'];
+const SPECIAL_ROLES = ['Godfather','Mafia','DoubleAgent','Detective','Doctor','Miller','BountyHunter','CrazyGranny','Coward','Farmer','NavySeal','Vigilante','Consigliere','Mayor','Mortician'];
 
 const MIN_PLAYERS = 6;
 const MAX_PLAYERS = CHARACTERS.length + 1; // +1 for at least one real seat beyond the character pool isn't needed; kept for parity with single-player (12)
 const MAX_MAFIA_COUNT = 4;
 
-const DEFAULT_ROLES_CONFIG = {Godfather:true, DoubleAgent:true, Detective:true, Doctor:true, Miller:true, BountyHunter:true, CrazyGranny:true, Coward:false, Farmer:false, NavySeal:false, Vigilante:false, Consigliere:false, Mayor:false};
+const DEFAULT_ROLES_CONFIG = {Godfather:true, DoubleAgent:true, Detective:true, Doctor:true, Miller:true, BountyHunter:true, CrazyGranny:true, Coward:false, Farmer:false, NavySeal:false, Vigilante:false, Consigliere:false, Mayor:false, Mortician:false};
 
 function shuffle(arr){
   const a = arr.slice();
@@ -109,8 +109,14 @@ function createGame(seats, config){
     chatLog: [], mafiaChatLog: [], voteLog: [], winner: null, gameOver: false,
     pendingNightVotes: {}, // playerId -> {kill, silence, protect, investigate, bounty, hideBehind}
     pendingDayVotes: {}, // playerId -> targetId
-    detectiveLog: [], consigliereLog: [], farmerRevengeName: null, farmerRevengePending: null,
+    detectiveLog: [], consigliereLog: [], morticianLog: [], farmerRevengeName: null, farmerRevengePending: null,
     mayorRevealedId: null, lastDayVoteMayorTiebreak: false,
+    // PREBETA Task 7 - who died in the immediately preceding NIGHT
+    // specifically (never a day-vote elimination - those are already public
+    // via the lynch reveal). Set to this round's own nightDeaths at the end
+    // of every resolveNight call, so the Mortician's pool of choices for the
+    // FOLLOWING night is always exactly "last night's dead," nothing older.
+    lastNightDeaths: [],
     // Scoring infrastructure (Task 17/18) - append-only, never cleared between
     // rounds, each entry tagged with which round (`night`) it happened in so
     // scoring.js can look at either a single round or the whole game's history.
@@ -224,6 +230,15 @@ function placeholderNightAction(state, player){
     // real client applies; a placeholder just picks from the same allowed pool.
     const nonTeammates = options.filter(p => p.align !== 'mafia');
     action.consigliereInvestigate = pick(nonTeammates.length ? nonTeammates : options);
+  }
+  // PREBETA Task 7 - low-stakes, no-risk choice (unlike Vigilante's
+  // once-per-game shot), so a placeholder picks randomly among last night's
+  // dead just like a placeholder Detective/Doctor/Coward/BountyHunter picks
+  // randomly among the living. Naturally does nothing on Night 1 or any
+  // night with zero deaths, since state.lastNightDeaths is simply empty then.
+  if(player.role==='Mortician' && state.lastNightDeaths && state.lastNightDeaths.length){
+    const deadPick = state.lastNightDeaths[Math.floor(Math.random()*state.lastNightDeaths.length)];
+    action.morticianInvestigate = deadPick.id;
   }
   // Deliberately no Vigilante case here (assumption, not spec'd): unlike
   // Doctor/Coward/BountyHunter, a shot is permanent, once-per-game, and can
@@ -433,6 +448,28 @@ function resolveNight(state){
     }
   }
 
+  // --- Mortician: learns the role of whoever died the PREVIOUS night
+  // specifically - never a day-vote elimination (already public via the
+  // lynch reveal), never this same night's own deaths (nothing has happened
+  // yet to learn about until the FOLLOWING night). Reads state.lastNightDeaths
+  // as it stood BEFORE this call, i.e. whatever the previous resolveNight
+  // call set it to - it gets overwritten with this round's own deaths below,
+  // for the round after this one to read in turn. Naturally does nothing on
+  // Night 1 (nothing has died yet) or after a no-death night (empty pool),
+  // with no special-casing needed for either case. ---
+  const mortician = state.players.find(p => p.alive && p.role==='Mortician');
+  const morticianTargetId = mortician ? (state.pendingNightVotes[mortician.id]||{}).morticianInvestigate : null;
+  let morticianResult = null;
+  if(mortician && morticianTargetId){
+    const deadEntry = state.lastNightDeaths.find(d => d.id === morticianTargetId);
+    if(deadEntry){
+      log(state, mortician.name+' (Mortician) examined '+deadEntry.name+' and confirmed: '+deadEntry.role+'.');
+      state.morticianLog.push({name: deadEntry.name, role: deadEntry.role});
+      morticianResult = {morticianId: mortician.id, targetId: deadEntry.id, targetName: deadEntry.name, role: deadEntry.role};
+    }
+  }
+  state.lastNightDeaths = nightDeaths;
+
   checkGrannyFlip(state);
   state.cachedOvernightReport = reportLines.join(' ');
   const gameOver = checkWin(state);
@@ -440,7 +477,7 @@ function resolveNight(state){
   state.pendingNightVotes = {};
   state.phase = 'day-discuss';
 
-  return {reportLines, deathSummary, nightDeathOccurred, revealVictim, silencedPlayerId, investigationResult, consigliereResult, gameOver, killTargetId, doctorSaved: !!doctorSaved, cowardRedirected, vigilanteKillVictim, vigilanteDied, nightDeaths};
+  return {reportLines, deathSummary, nightDeathOccurred, revealVictim, silencedPlayerId, investigationResult, consigliereResult, morticianResult, gameOver, killTargetId, doctorSaved: !!doctorSaved, cowardRedirected, vigilanteKillVictim, vigilanteDied, nightDeaths};
 }
 
 function resolveDayVote(state, timedOutFallbackId){
@@ -628,6 +665,12 @@ function getPlayerView(state, playerId){
     myRole: me ? me.role : null, myAlign: me ? me.align : null,
     detectiveLog: (me && me.role==='Detective') ? state.detectiveLog : undefined,
     consigliereLog: (me && me.role==='Consigliere') ? state.consigliereLog : undefined,
+    morticianLog: (me && me.role==='Mortician') ? state.morticianLog : undefined,
+    // Who died last night, by name only (never role - that's the answer,
+    // withheld until after they choose) - the Mortician's pool of choices
+    // for tonight's investigation. Nobody else needs this: everyone already
+    // learns WHO died via the night-kill reveal, just never their role.
+    morticianCandidates: (me && me.role==='Mortician') ? state.lastNightDeaths.map(d => ({id: d.id, name: d.name})) : undefined,
     // Mafia chat is scoped strictly by align==='mafia' - never sent to a
     // town-aligned player, living or dead.
     mafiaChatLog: (me && me.align==='mafia') ? state.mafiaChatLog : undefined,
