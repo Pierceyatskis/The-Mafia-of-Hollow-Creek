@@ -227,6 +227,10 @@ body.bg-day #role-badge{bottom:auto; top:165px; right:12px;}
 #case-log-badge:hover{transform:translateY(-4px); box-shadow:0 12px 28px rgba(0,0,0,0.6);}
 .case-log-badge-icon{font-size:22px; line-height:1;}
 .case-log-badge-text{font-family:var(--font-type); font-size:9px; letter-spacing:0.5px; text-transform:uppercase; color:var(--gold-bright); line-height:1.3;}
+#ghost-chat-badge{position:fixed; bottom:24px; right:24px; z-index:90; display:flex; flex-direction:column; align-items:center; gap:4px; width:88px; background:linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%); border:1px solid var(--gold-dim); border-radius:10px; padding:11px 8px; box-shadow:0 6px 20px rgba(0,0,0,0.5); cursor:pointer; transition:transform .15s ease, box-shadow .15s ease; text-align:center;}
+#ghost-chat-badge:hover{transform:translateY(-4px); box-shadow:0 12px 28px rgba(0,0,0,0.6);}
+.ghost-chat-badge-icon{font-size:22px; line-height:1;}
+.ghost-chat-badge-text{font-family:var(--font-type); font-size:9px; letter-spacing:0.5px; text-transform:uppercase; color:var(--gold-bright); line-height:1.3;}
 .case-log-modal-content{max-width:min(520px, 92vw); max-height:80vh; display:flex; flex-direction:column;}
 .case-log-list{overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:6px; padding-right:4px;}
 .case-log-empty{font-family:var(--font-type); font-size:13px; color:var(--parchment-dim); text-align:center; padding:20px 0;}
@@ -693,6 +697,22 @@ h2.sec{font-family:var(--font-type); font-size:12px; letter-spacing:2px; text-tr
     <h2 class="intro-modal-title" style="font-size:20px; margin-bottom:4px;">The Case File So Far</h2>
     <p class="intro-modal-text" style="margin-bottom:16px;">Everything on record, night by night.</p>
     <div id="case-log-list" class="case-log-list"></div>
+  </div>
+</div>
+<div id="ghost-chat-badge" style="display:none;" title="Talk to the others who didn't make it">
+  <span class="ghost-chat-badge-icon">&#128123;</span>
+  <span class="ghost-chat-badge-text">Ghost Chat</span>
+</div>
+<div id="ghost-chat-modal" class="role-card-overlay" style="display:none;">
+  <div class="role-card-modal-content case-log-modal-content">
+    <button class="role-card-close" id="ghost-chat-close-btn" aria-label="Close">&times;</button>
+    <h2 class="intro-modal-title" style="font-size:20px; margin-bottom:4px;">Ghost Chat</h2>
+    <p class="intro-modal-text" style="margin-bottom:16px;">Only the other eliminated players can see this.</p>
+    <div id="ghost-chat-log" class="case-log-list" style="margin-bottom:14px;"></div>
+    <div style="display:flex; gap:8px;">
+      <input type="text" id="ghost-chat-input" maxlength="300" placeholder="Say something to the other ghosts..." style="flex:1; background:var(--panel-2); border:1px solid var(--line); border-radius:5px; padding:9px 11px; font-family:var(--font-body); font-size:13px; color:var(--parchment);">
+      <button class="btn" id="ghost-chat-send-btn" style="padding:9px 16px;">Send</button>
+    </div>
   </div>
 </div>
 
@@ -1348,6 +1368,12 @@ function handleServerMessage(msg){
     appendChatLine(msg);
   } else if(msg.type==='mafiaChatMsg'){
     appendMafiaChatLine(msg);
+  } else if(msg.type==='ghostChatMsg'){
+    // Live top-up between full gameState resyncs, same principle as
+    // mafiaChatMsg above - only ever delivered to already-eliminated
+    // players (see server's ghostChat handler), so it's always safe to
+    // append directly here.
+    if(document.getElementById('ghost-chat-modal').style.display === 'flex') appendGhostChatLine(msg);
   } else if(msg.type==='whisperMsg'){
     // Live top-up between full gameState resyncs - only ever delivered to
     // the sender and the target (see server's whisper handler), never
@@ -2245,6 +2271,7 @@ function switchPanel(p){
   document.getElementById('role-badge').style.display = showBadge ? 'flex' : 'none';
   document.getElementById('case-log-badge').style.display = showBadge ? 'flex' : 'none';
   if(showBadge) renderRoleBadge();
+  updateGhostChatBadge();
   var activeEl = isMenu ? document.getElementById(p+'-folder') : document.getElementById('panel-'+p);
   if(p !== lastActivePanelKey && activeEl){
     activeEl.classList.remove('panel-fade-in');
@@ -4404,6 +4431,12 @@ function renderFromServerView(view){
 
   renderRoleBadge();
   renderPhaseTimer();
+  updateGhostChatBadge();
+  // Live top-up: if the ghost chat modal happens to already be open (e.g. a
+  // fresh gameState arrives while an eliminated player is mid-conversation),
+  // resync its log from the authoritative server view rather than only
+  // relying on the separate ghostChatMsg live-push.
+  if(document.getElementById('ghost-chat-modal').style.display === 'flex') renderGhostChatLog();
 
   function finish(){
     // Reads latestView (not the `view` this closure captured) throughout -
@@ -4665,6 +4698,7 @@ function switchPanel(p){
   document.getElementById('role-badge').style.display = showBadge ? 'flex' : 'none';
   document.getElementById('case-log-badge').style.display = showBadge ? 'flex' : 'none';
   if(showBadge) renderRoleBadge();
+  updateGhostChatBadge();
   var activeEl = isMenu ? document.getElementById(p+'-folder') : document.getElementById('panel-'+p);
   if(p !== lastActivePanelKey && activeEl){
     activeEl.classList.remove('panel-fade-in');
@@ -4792,6 +4826,61 @@ function sendMafiaChatMessage(){
   input.value = '';
   sendWS({type:'mafiaChat', text: text});
 }
+
+// PREBETA Task 9 - a private channel for eliminated players. Unlike mafia
+// chat (night-only, rendered inline in the night panel), this needs to stay
+// reachable across both night and day once someone's dead, so it lives in
+// its own floating badge + modal instead (see updateGhostChatBadge below).
+function appendGhostChatLine(entry){
+  var log = document.getElementById('ghost-chat-log');
+  if(!log) return;
+  var div = document.createElement('div');
+  var youClass = entry.playerId===myPlayerId ? ' chatline-you' : ' chatline-mafia';
+  var p = byId(entry.playerId);
+  div.className = 'chatline'+youClass;
+  div.innerHTML = avatarHTML(p||{name:entry.name,color:'#5C6B47'},22)+'<span class="who">'+escapeHtmlMp(entry.name)+'</span><span class="line">"'+escapeHtmlMp(entry.text)+'"</span>';
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+  SoundFX.chatBlip();
+}
+function renderGhostChatLog(){
+  var log = document.getElementById('ghost-chat-log');
+  if(!log || !latestView) return;
+  log.innerHTML = '';
+  (latestView.ghostChatLog||[]).forEach(function(m){ appendGhostChatLine({playerId:m.playerId, name:m.name, text:m.text}); });
+}
+function sendGhostChatMessage(){
+  var input = document.getElementById('ghost-chat-input');
+  var text = input.value.trim();
+  if(!text) return;
+  input.value = '';
+  sendWS({type:'ghostChat', text: text});
+}
+// Visible only once the viewer's own character is eliminated, and only
+// while the night/day/end panel is actually on screen (not lobby/setup/menu)
+// - same three panels role-badge and case-log-badge already use.
+function updateGhostChatBadge(){
+  var badge = document.getElementById('ghost-chat-badge');
+  if(!badge) return;
+  var me = meFromView(latestView);
+  var roundVisible = ['panel-night','panel-day','panel-end'].some(function(id){
+    var el = document.getElementById(id);
+    return el && el.style.display === 'block';
+  });
+  badge.style.display = (me && !me.alive && roundVisible) ? 'flex' : 'none';
+}
+document.getElementById('ghost-chat-badge').addEventListener('click', function(){
+  SoundFX.playCaseFileOpen();
+  renderGhostChatLog();
+  document.getElementById('ghost-chat-modal').style.display = 'flex';
+});
+document.getElementById('ghost-chat-close-btn').addEventListener('click', function(){
+  document.getElementById('ghost-chat-modal').style.display = 'none';
+});
+document.getElementById('ghost-chat-send-btn').addEventListener('click', sendGhostChatMessage);
+document.getElementById('ghost-chat-input').addEventListener('keydown', function(e){
+  if(e.key === 'Enter') sendGhostChatMessage();
+});
 
 function stopVoteTimer(){
   clearInterval(voteTimerInterval);

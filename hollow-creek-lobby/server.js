@@ -518,6 +518,31 @@ wss.on('connection', (socket) => {
       });
     }
 
+    else if (msg.type === 'ghostChat') {
+      // PREBETA Task 9 - a private channel for eliminated players. Not
+      // scoped to any single phase the way mafiaChat (night only) or
+      // whisper (day-vote only) are - it persists for the rest of the game
+      // once a player is eliminated, so no room.state.phase check here.
+      const { room, player } = getRoomAndPlayer(socket);
+      if (!room || !room.started) return;
+      const sp = G.byId(room.state, player.id);
+      if (!sp || sp.alive) return;
+      const text = String(msg.text || '').trim().slice(0, 300);
+      if (!text) return;
+      const entry = { playerId: player.id, name: sp.name, text, ts: Date.now() };
+      room.state.ghostChatLog.push(entry);
+      // Scoped strictly to players whose CURRENT alive status is false -
+      // never sent to a living player under any circumstance, re-checked per
+      // recipient here at broadcast time (same double-sided pattern as
+      // mafiaChat/whisper above).
+      room.players.forEach(rp => {
+        const rsp = G.byId(room.state, rp.id);
+        if (rsp && !rsp.alive && rp.socket.readyState === WebSocket.OPEN) {
+          rp.socket.send(JSON.stringify(Object.assign({ type: 'ghostChatMsg' }, entry)));
+        }
+      });
+    }
+
     else if (msg.type === 'dayVote') {
       const { room, player } = getRoomAndPlayer(socket);
       if (!room || !room.started || room.state.phase !== 'day-vote') return;

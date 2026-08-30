@@ -470,6 +470,70 @@ async function testPlayAgainSameLobby() {
   players.forEach(p => { try { p.ws.close(); } catch (e) {} });
 }
 
+// ============================================================
+// PREBETA Task 9: ghost chat. A private channel for eliminated players,
+// persisting for the rest of the game (not scoped to a single phase the way
+// whisper is day-vote-only). Scoped strictly by CURRENT alive status, both
+// on send and on broadcast - never reaches a living player under any
+// circumstance, including one deliberately watching raw socket traffic.
+// ============================================================
+async function testGhostChatScoping() {
+  const host = await createRoom('GC1');
+  const players = [host];
+  for (let i = 2; i <= 6; i++) players.push(await joinRoom(host.roomCode, 'GC' + i));
+
+  // All 6 seats are real players and mafiaCount:1 with every other special
+  // role disabled - deterministic pool (one Mafia, five Civilians), no
+  // placeholders, so who dies is fully under this test's control rather than
+  // left to a placeholder's random pick.
+  const roles = { Godfather: false, DoubleAgent: false, Detective: false, Doctor: false, Miller: false, BountyHunter: false, CrazyGranny: false, Coward: false, Farmer: false, NavySeal: false };
+  const started = Promise.all(players.map(p => once(p.ws, m => m.type === 'gameState')));
+  send(host.ws, { type: 'start', playerCount: 6, mafiaCount: 1, roles });
+  const gsResults = await started;
+
+  const mafiaIdx = gsResults.findIndex(r => r.view.myAlign === 'mafia');
+  const mafiaPlayer = players[mafiaIdx];
+  const townPlayers = players.filter((p, i) => i !== mafiaIdx);
+
+  // Night 1: the mafia player deliberately kills townPlayers[0] - a
+  // controlled first death, not left to a placeholder's random pick.
+  // Everyone else passes (no other role enabled has anything to submit).
+  const voteReachedPromise = Promise.all(players.map(p => once(p.ws, m => m.type === 'gameState' && m.view.phase === 'day-vote', 8000)));
+  send(mafiaPlayer.ws, { type: 'nightAction', action: { kill: townPlayers[0].playerId } });
+  townPlayers.forEach(p => send(p.ws, { type: 'nightAction', action: {} }));
+  await voteReachedPromise;
+
+  // Day 1: everyone still living votes out townPlayers[1] (not the mafia
+  // player - eliminating the mafia here would end the game via a town win
+  // before this test gets its second death). Now exactly two real players
+  // are eliminated: townPlayers[0] (night) and townPlayers[1] (day-vote).
+  const livingPlayers = players.filter(p => p.playerId !== townPlayers[0].playerId);
+  const revealReachedPromise = Promise.all(livingPlayers.map(p => once(p.ws, m => m.type === 'gameState' && m.view.phase === 'day-reveal', 8000)));
+  livingPlayers.forEach(p => send(p.ws, { type: 'dayVote', targetId: townPlayers[1].playerId }));
+  await revealReachedPromise;
+
+  const ghostA = townPlayers[0]; // killed night 1
+  const ghostB = townPlayers[1]; // voted out day 1
+  const livingWitness = mafiaPlayer; // still alive, in the same room
+
+  // The living witness listens for ANY message for a short window - if a
+  // ghostChatMsg leaks to them, this promise fails the test below.
+  let livingLeakSeen = null;
+  const livingListener = (raw) => { const m = JSON.parse(raw); if (m.type === 'ghostChatMsg') livingLeakSeen = m; };
+  livingWitness.ws.on('message', livingListener);
+
+  const ghostBReceivedPromise = once(ghostB.ws, m => m.type === 'ghostChatMsg', 5000);
+  send(ghostA.ws, { type: 'ghostChat', text: 'so who actually was the mafia' });
+  const ghostBReceived = await ghostBReceivedPromise;
+  assert(ghostBReceived.text === 'so who actually was the mafia' && ghostBReceived.playerId === ghostA.playerId, 'Task 9: another eliminated player in the same room receives a ghostChat message');
+
+  await new Promise(r => setTimeout(r, 300));
+  livingWitness.ws.off('message', livingListener);
+  assert(!livingLeakSeen, 'Task 9: a living player in the same room, watching raw socket traffic, receives nothing from the ghost chat channel');
+
+  players.forEach(p => { try { p.ws.close(); } catch (e) {} });
+}
+
 async function main() {
   await testUndercapacityStartRejected();
   await testCustomRolesEnabled();
@@ -484,6 +548,7 @@ async function main() {
   await testDayChatAccusationTag();
   await testRoundScoreBreakdown();
   await testPlayAgainSameLobby();
+  await testGhostChatScoping();
 
   console.log('\n' + (failures === 0 ? 'All server.js integration checks passed.' : failures + ' CHECK(S) FAILED.'));
   process.exit(failures === 0 ? 0 : 1);

@@ -123,7 +123,11 @@ function createGame(seats, config){
     voteSubmissionOrder: [], // [{night, playerId, targetId, submittedAt}] in real submission order, not tally order
     livingCountAtAction: [], // [{night, playerId, role, actionType, livingCount}] - Doctor/Coward/Farmer blind-guess snapshots
     accusationLog: [], // [{night, accuserId, targetId, ts}] - Task 18
-    whisperLog: [] // [{fromId, toId, text, ts}] - private day-vote whispers, visible only to the two players involved (see getPlayerView)
+    whisperLog: [], // [{fromId, toId, text, ts}] - private day-vote whispers, visible only to the two players involved (see getPlayerView)
+    // PREBETA Task 9 - a private channel for eliminated players, visible only
+    // to other eliminated players. Persists for the rest of the game once a
+    // player is eliminated, unlike whisperLog which is scoped to day-vote only.
+    ghostChatLog: []
   };
 }
 
@@ -693,6 +697,10 @@ function getPlayerView(state, playerId){
     // principle as mafiaChatLog above - everyone else's whispers are
     // filtered out entirely, not just hidden client-side.
     whisperLog: me ? state.whisperLog.filter(w => w.fromId === playerId || w.toId === playerId) : undefined,
+    // PREBETA Task 9 - scoped strictly by the VIEWER's own current alive
+    // status, same double-sided principle as mafiaChatLog above (scoped by
+    // align) - never sent to a living player under any circumstance.
+    ghostChatLog: (me && !me.alive) ? state.ghostChatLog : undefined,
     // PREBETA Task 6 - Mayor Ability 2 resolves completely silently, with no
     // indication to anyone (including the Mayor's own identity) that it
     // happened. This flag is deliberately exposed to EVERY player equally,
