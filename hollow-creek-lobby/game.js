@@ -22,16 +22,16 @@ const ROLE_LABEL = {
   DoubleAgent:'the double agent', Doctor:'the doctor', Miller:'the miller',
   BountyHunter:'the bounty hunter', CrazyGranny:'the crazy granny', Coward:'the coward',
   Farmer:'the farmer', NavySeal:'the war veteran', Vigilante:'the vigilante',
-  Consigliere:'the consigliere', Civilian:'a civilian'
+  Consigliere:'the consigliere', Mayor:'the mayor', Civilian:'a civilian'
 };
 
-const SPECIAL_ROLES = ['Godfather','Mafia','DoubleAgent','Detective','Doctor','Miller','BountyHunter','CrazyGranny','Coward','Farmer','NavySeal','Vigilante','Consigliere'];
+const SPECIAL_ROLES = ['Godfather','Mafia','DoubleAgent','Detective','Doctor','Miller','BountyHunter','CrazyGranny','Coward','Farmer','NavySeal','Vigilante','Consigliere','Mayor'];
 
 const MIN_PLAYERS = 6;
 const MAX_PLAYERS = CHARACTERS.length + 1; // +1 for at least one real seat beyond the character pool isn't needed; kept for parity with single-player (12)
 const MAX_MAFIA_COUNT = 4;
 
-const DEFAULT_ROLES_CONFIG = {Godfather:true, DoubleAgent:true, Detective:true, Doctor:true, Miller:true, BountyHunter:true, CrazyGranny:true, Coward:false, Farmer:false, NavySeal:false, Vigilante:false, Consigliere:false};
+const DEFAULT_ROLES_CONFIG = {Godfather:true, DoubleAgent:true, Detective:true, Doctor:true, Miller:true, BountyHunter:true, CrazyGranny:true, Coward:false, Farmer:false, NavySeal:false, Vigilante:false, Consigliere:false, Mayor:false};
 
 function shuffle(arr){
   const a = arr.slice();
@@ -87,7 +87,8 @@ function createGame(seats, config){
     players.push({
       id: seat.id, name: seat.name, isHuman: true, isPlaceholder: false,
       alive: true, silencedToday: false, role: roles[idx], align: alignOf(roles[idx]),
-      flipped: false, investigateCount: 0, usedNavySealCounter: false, usedVigilanteShot: false
+      flipped: false, investigateCount: 0, usedNavySealCounter: false, usedVigilanteShot: false,
+      usedMayorReveal: false
     });
   });
   const remaining = config.playerCount - seats.length;
@@ -98,7 +99,8 @@ function createGame(seats, config){
     players.push({
       id: c.id, name: c.name, occ: c.occ, color: c.color, isHuman: false, isPlaceholder: true,
       alive: true, silencedToday: false, role: roles[roleIdx], align: alignOf(roles[roleIdx]),
-      flipped: false, investigateCount: 0, usedNavySealCounter: false, usedVigilanteShot: false
+      flipped: false, investigateCount: 0, usedNavySealCounter: false, usedVigilanteShot: false,
+      usedMayorReveal: false
     });
   });
 
@@ -108,6 +110,7 @@ function createGame(seats, config){
     pendingNightVotes: {}, // playerId -> {kill, silence, protect, investigate, bounty, hideBehind}
     pendingDayVotes: {}, // playerId -> targetId
     detectiveLog: [], consigliereLog: [], farmerRevengeName: null, farmerRevengePending: null,
+    mayorRevealedId: null, lastDayVoteMayorTiebreak: false,
     // Scoring infrastructure (Task 17/18) - append-only, never cleared between
     // rounds, each entry tagged with which round (`night`) it happened in so
     // scoring.js can look at either a single round or the whole game's history.
@@ -124,6 +127,22 @@ function createGame(seats, config){
 function recordDayVoteSubmission(state, playerId, targetId){
   state.pendingDayVotes[playerId] = targetId;
   state.voteSubmissionOrder.push({ night: state.night, playerId, targetId, submittedAt: Date.now() });
+}
+
+// PREBETA Task 6 - Mayor Ability 1: reveal to double this round's vote.
+// Single-use for the whole game, spent the moment it's exercised regardless
+// of how the vote itself ultimately resolves. Returns whether the reveal
+// actually took effect (false if this player isn't a not-yet-revealed Mayor).
+function recordMayorReveal(state, playerId){
+  const mayor = byId(state, playerId);
+  if(!mayor || mayor.role !== 'Mayor' || mayor.usedMayorReveal) return false;
+  mayor.usedMayorReveal = true;
+  state.mayorRevealedId = playerId;
+  // Ability 1 explicitly "requires revealing" - unlike Ability 2 (which is
+  // completely silent by design), this is public: logged into the same
+  // unscoped state.history every player already reads from.
+  log(state, mayor.name+' revealed themselves as the Mayor - their vote counts double today.');
+  return true;
 }
 
 // Snapshots how many players were alive at the moment a Doctor/Coward/Farmer
@@ -448,13 +467,39 @@ function resolveDayVote(state, timedOutFallbackId){
       // was going to vote for real already has.
       state.voteSubmissionOrder.push({ night: state.night, playerId: p.id, targetId: target, submittedAt: Date.now() });
     }
-    if(target && tally[target] !== undefined) tally[target]++;
+    if(target && tally[target] !== undefined){
+      // Mayor Ability 1: a revealed Mayor's OWN vote this round counts
+      // double - single-use for the whole game, already spent the moment
+      // recordMayorReveal was called, regardless of how this vote resolves.
+      const weight = (p.id === state.mayorRevealedId) ? 2 : 1;
+      tally[target] += weight;
+    }
     if(target) state.pendingDayVotes[p.id] = target;
   });
 
   const maxV = Math.max(...Object.values(tally));
   const leaders = Object.keys(tally).filter(k => tally[k]===maxV);
-  const leadId = leaders[Math.floor(Math.random()*leaders.length)];
+  let leadId;
+  // Mayor Ability 2: passive, always active, never requires revealing -
+  // whenever the vote resolves in a tie, whichever candidate the Mayor
+  // personally voted for silently wins the tiebreak (is eliminated). Falls
+  // back to the normal random tiebreak whenever there's no living Mayor, the
+  // Mayor didn't vote, or their vote target isn't among the tied candidates
+  // (covers both the "Mayor is one of the tied candidates" and "3+-way tie"
+  // cases the same way, with no separate branch needed for either).
+  let mayorTiebreakResolved = false;
+  if(leaders.length > 1){
+    const mayor = state.players.find(p => p.alive && p.role==='Mayor');
+    const mayorVoteTarget = mayor ? state.pendingDayVotes[mayor.id] : null;
+    if(mayorVoteTarget && leaders.includes(mayorVoteTarget)){
+      leadId = mayorVoteTarget;
+      mayorTiebreakResolved = true;
+    } else {
+      leadId = leaders[Math.floor(Math.random()*leaders.length)];
+    }
+  } else {
+    leadId = leaders[0];
+  }
   const lead = byId(state, leadId);
   lead.alive = false;
   log(state, lead.name+' ('+lead.role+') was voted out by the town.');
@@ -478,6 +523,8 @@ function resolveDayVote(state, timedOutFallbackId){
   state.voteLog = voteBreakdown;
   state.farmerRevengeName = null;
   state.pendingDayVotes = {};
+  state.mayorRevealedId = null;
+  state.lastDayVoteMayorTiebreak = mayorTiebreakResolved;
 
   let farmerRevengePending = null;
   if(lead.role==='Farmer'){
@@ -503,7 +550,7 @@ function resolveDayVote(state, timedOutFallbackId){
   const gameOver = checkWin(state);
   state.phase = 'day-reveal';
 
-  return {lead, voteBreakdown, farmerRevengePending, gameOver};
+  return {lead, voteBreakdown, farmerRevengePending, gameOver, mayorTiebreakResolved};
 }
 
 function resolveFarmerRevenge(state, farmerId, targetId){
@@ -570,6 +617,7 @@ function getPlayerView(state, playerId){
       base.role = p.role; base.align = p.align;
       if(p.role === 'NavySeal') base.usedNavySealCounter = p.usedNavySealCounter;
       if(p.role === 'Vigilante') base.usedVigilanteShot = p.usedVigilanteShot;
+      if(p.role === 'Mayor') base.usedMayorReveal = p.usedMayorReveal;
     }
     return base;
   });
@@ -601,7 +649,13 @@ function getPlayerView(state, playerId){
     // A whisper is visible only to the two players in it, same scoping
     // principle as mafiaChatLog above - everyone else's whispers are
     // filtered out entirely, not just hidden client-side.
-    whisperLog: me ? state.whisperLog.filter(w => w.fromId === playerId || w.toId === playerId) : undefined
+    whisperLog: me ? state.whisperLog.filter(w => w.fromId === playerId || w.toId === playerId) : undefined,
+    // PREBETA Task 6 - Mayor Ability 2 resolves completely silently, with no
+    // indication to anyone (including the Mayor's own identity) that it
+    // happened. This flag is deliberately exposed to EVERY player equally,
+    // never role-gated, so it never becomes a tell about who the Mayor is -
+    // it only ever says a tie was broken this round, not by whom.
+    mayorTiebreakResolved: state.lastDayVoteMayorTiebreak
   };
 }
 
@@ -610,5 +664,5 @@ module.exports = {
   shuffle, alignOf, createGame, byId, living, mafiaAlive, mafiaVoters, checkWin, checkBountyHit, checkGrannyFlip,
   detectiveRead, investigateAndRead, resolveNight, resolveDayVote, resolveFarmerRevenge, startNextNight,
   getPlayerView, log, specialRoleCount, validateSeatCapacity,
-  recordDayVoteSubmission, recordLivingCountSnapshot, recordAccusation, firstAccuserOf
+  recordDayVoteSubmission, recordMayorReveal, recordLivingCountSnapshot, recordAccusation, firstAccuserOf
 };

@@ -525,6 +525,11 @@ wss.on('connection', (socket) => {
       // Silenced blocks speaking (see dayChat above), never voting.
       if (!sp || !sp.alive || !sp.isHuman) return;
       const targetId = msg.targetId ? String(msg.targetId) : null;
+      // PREBETA Task 6 - Mayor Ability 1: revealing to double this round's
+      // vote is submitted together with the vote itself, not as a separate
+      // action. recordMayorReveal is a no-op (returns false) for anyone who
+      // isn't a not-yet-revealed Mayor, so this is safe to call unconditionally.
+      if (msg.revealMayor === true) G.recordMayorReveal(room.state, player.id);
       G.recordDayVoteSubmission(room.state, player.id, targetId);
       room.dayVoteSubmitted.add(player.id);
       maybeEarlyResolve(room);

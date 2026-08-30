@@ -431,4 +431,86 @@ assert(resConsB.consigliereResult && resConsB.consigliereResult.role === 'Double
 const stateConsWin = G.createGame(seats, {playerCount: 6, mafiaCount: 0, roles: Object.assign({}, CONS_BASE)});
 assert(G.mafiaAlive(stateConsWin).some(p => p.role === 'Consigliere'), 'Task 4: a living Consigliere counts as mafia-alive for win-condition purposes');
 
+// --- PREBETA Task 6: Mayor - Ability 1 (active, single-use, doubles the
+// Mayor's own vote for that round) and Ability 2 (passive, always-on,
+// silently breaks any day-vote tie in favor of whoever the Mayor personally
+// voted for). ---
+const MAYOR_BASE = Object.assign({}, VIG_OFF, {Mayor:true});
+
+// (a) Ability 1: doubles exactly one vote, tipping a would-be tie into an
+// outright win with no tiebreak needed - proves it's vote WEIGHT doing the
+// work, not the passive tiebreak (mayorTiebreakResolved must read false).
+// Every living player casts an explicit vote here (and in every scenario
+// below) - an unpinned placeholder's vote falls back to a random pick (see
+// resolveNight's own placeholder fallback), which would silently disturb a
+// carefully engineered tie/non-tie and make the test flaky.
+const stateMayorA = G.createGame(seats, {playerCount: 6, mafiaCount: 0, roles: Object.assign({}, MAYOR_BASE)});
+const mayorA = stateMayorA.players.find(p => p.role === 'Mayor');
+const [candXA, candYA, p2A, p3A, p4A] = stateMayorA.players.filter(p => p.id !== mayorA.id);
+G.recordDayVoteSubmission(stateMayorA, mayorA.id, candXA.id);
+G.recordDayVoteSubmission(stateMayorA, p2A.id, candXA.id);
+G.recordDayVoteSubmission(stateMayorA, p3A.id, candYA.id);
+G.recordDayVoteSubmission(stateMayorA, p4A.id, candYA.id);
+G.recordDayVoteSubmission(stateMayorA, candXA.id, candXA.id); // self-vote, safe filler
+G.recordDayVoteSubmission(stateMayorA, candYA.id, candYA.id); // self-vote, safe filler
+const revealedA = G.recordMayorReveal(stateMayorA, mayorA.id);
+assert(revealedA === true, 'Task 6: Mayor Ability 1 reveal succeeds the first time');
+assert(mayorA.usedMayorReveal === true, 'Task 6: the reveal is marked used the instant it\'s exercised');
+const resMayorA = G.resolveDayVote(stateMayorA);
+assert(resMayorA.lead.id === candXA.id, 'Task 6: Ability 1 doubles the Mayor\'s own vote - the extra weight is what tips this candidate into the outright lead');
+assert(resMayorA.mayorTiebreakResolved === false, 'Task 6: this outcome came from vote weight (Ability 1), not the passive tiebreak - no tie existed once the doubled vote was counted');
+
+// (a2) once used, a second reveal attempt does nothing
+const secondRevealA = G.recordMayorReveal(stateMayorA, mayorA.id);
+assert(secondRevealA === false, 'Task 6: Ability 1 cannot be used a second time in the same game');
+
+// (b) Ability 2: a tie where the Mayor is one of the tied candidates and
+// voted for the OTHER one - the other candidate is eliminated, meaning the
+// Mayor survives. Every player votes for themselves except the Mayor
+// (votes for their chosen target) and that target (votes back for the
+// Mayor) - this always resolves to a tie across every living player with
+// zero risk of any one of them accidentally landing a second vote, however
+// many players are in the game.
+const stateMayorB = G.createGame(seats, {playerCount: 6, mafiaCount: 0, roles: Object.assign({}, MAYOR_BASE)});
+const mayorB = stateMayorB.players.find(p => p.role === 'Mayor');
+const [candAB, ...restB] = stateMayorB.players.filter(p => p.id !== mayorB.id);
+G.recordDayVoteSubmission(stateMayorB, mayorB.id, candAB.id);
+G.recordDayVoteSubmission(stateMayorB, candAB.id, mayorB.id);
+restB.forEach(p => G.recordDayVoteSubmission(stateMayorB, p.id, p.id));
+const resMayorB = G.resolveDayVote(stateMayorB);
+assert(resMayorB.lead.id === candAB.id, 'Task 6: Ability 2 resolves a tie the Mayor is themselves part of by eliminating whoever the Mayor voted for');
+assert(mayorB.alive === true, 'Task 6: the Mayor survives their own tie since they voted for the OTHER tied candidate, not themselves');
+assert(resMayorB.mayorTiebreakResolved === true, 'Task 6: the tiebreak flag correctly reports that Ability 2 actually decided this outcome');
+
+// (c) Ability 2: a wider tie where the Mayor's vote target IS among the tied
+// candidates (but the Mayor themselves is not) - that target is eliminated,
+// deterministically, not randomly. Same vote-exchange pattern as (b), just
+// with the Mayor's target being a third party instead of the Mayor's own tie.
+const stateMayorC = G.createGame(seats, {playerCount: 7, mafiaCount: 0, roles: Object.assign({}, MAYOR_BASE)});
+const mayorC = stateMayorC.players.find(p => p.role === 'Mayor');
+const [targetC, ...restC] = stateMayorC.players.filter(p => p.id !== mayorC.id);
+G.recordDayVoteSubmission(stateMayorC, mayorC.id, targetC.id);
+G.recordDayVoteSubmission(stateMayorC, targetC.id, mayorC.id);
+restC.forEach(p => G.recordDayVoteSubmission(stateMayorC, p.id, p.id));
+const resMayorC = G.resolveDayVote(stateMayorC);
+assert(resMayorC.lead.id === targetC.id, 'Task 6: a wider tie resolves to exactly the Mayor\'s own vote target, deterministically');
+assert(resMayorC.mayorTiebreakResolved === true, 'Task 6: the tiebreak flag fires for a 3+-way tie the Mayor\'s vote actually decided');
+
+// (d) Ability 2: a 3-way tie where the Mayor's vote target is NOT among the
+// tied candidates - falls back to the normal random tiebreak, and the flag
+// correctly reports Ability 2 did NOT determine this outcome.
+const stateMayorD = G.createGame([{id:'d1',name:'D1'},{id:'d2',name:'D2'}], {playerCount: 7, mafiaCount: 0, roles: Object.assign({}, MAYOR_BASE)});
+const mayorD = stateMayorD.players.find(p => p.role === 'Mayor');
+const [tiedAD, tiedBD, tiedCD, voterD1, voterD2, offTargetD] = stateMayorD.players.filter(p => p.id !== mayorD.id);
+G.recordDayVoteSubmission(stateMayorD, voterD1.id, tiedAD.id);
+G.recordDayVoteSubmission(stateMayorD, voterD2.id, tiedAD.id);
+G.recordDayVoteSubmission(stateMayorD, offTargetD.id, tiedBD.id);
+G.recordDayVoteSubmission(stateMayorD, tiedAD.id, tiedBD.id);
+G.recordDayVoteSubmission(stateMayorD, tiedBD.id, tiedCD.id);
+G.recordDayVoteSubmission(stateMayorD, tiedCD.id, tiedCD.id);
+G.recordDayVoteSubmission(stateMayorD, mayorD.id, offTargetD.id);
+const resMayorD = G.resolveDayVote(stateMayorD);
+assert([tiedAD.id, tiedBD.id, tiedCD.id].includes(resMayorD.lead.id), 'Task 6: with the Mayor\'s vote target outside the tied group, the tiebreak falls back to the normal random pick among the tied candidates');
+assert(resMayorD.mayorTiebreakResolved === false, 'Task 6: the flag correctly reports Ability 2 did NOT determine this outcome, since the Mayor\'s vote target wasn\'t among the tied candidates');
+
 console.log('\nAll game.js checks completed.');
