@@ -3453,10 +3453,12 @@ function renderSetupScreen(){
   document.getElementById('mode-quick-btn').classList.toggle('active', !!GAME_CONFIG.quickMode);
   document.getElementById('setup-role-grid').innerHTML = SPECIAL_ROLES.filter(function(r){return r!=='Mafia';}).map(function(r){
     var on = GAME_CONFIG.roles[r];
-    var locked = (r==='Godfather');
-    return '<div class="chip'+(on?' selected':'')+(locked?' disabled':'')+'" data-role="'+r+'">'+
+    // PREBETA Task 2: Godfather used to be hard-locked "required" here - a
+    // game should be buildable with only generic Mafia seats (mafiaCount)
+    // and no named Godfather at all, same as any other optional special role.
+    return '<div class="chip'+(on?' selected':'')+'" data-role="'+r+'">'+
       '<span class="chip-avatar"><img src="'+ROLE_IMG[r]+'" alt=""></span>'+
-      '<span class="chip-name">'+ROLE_SHORT[r]+(locked?' <span class="cnt">required</span>':'')+'</span>'+
+      '<span class="chip-name">'+ROLE_SHORT[r]+'</span>'+
       '</div>';
   }).join('');
   updateSetupSlotsMsg();
