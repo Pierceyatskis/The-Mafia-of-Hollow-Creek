@@ -124,6 +124,15 @@ body.bg-night #night-fog{display:block;}
 #nightkill-screen .nightkill-overlay{position:absolute; inset:0; background:radial-gradient(ellipse at center, rgba(8,6,5,0.35) 0%, rgba(6,4,3,0.93) 100%);}
 #nightkill-screen .nightkill-content{position:relative; z-index:2; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:24px;}
 .nightkill-eyebrow{font-family:var(--font-type); font-size:12px; letter-spacing:4px; text-transform:uppercase; color:var(--parchment-dim); margin:0 0 22px; opacity:0; animation:deathTextIn 1.0s ease-out 0.3s forwards;}
+/* PREBETA Task 5: one or more of these render side by side - a single
+   victim still lands centered exactly as before (this wraps with no other
+   layout change), two wrap onto their own row on narrow screens instead of
+   overlapping or getting clipped. Each .nightkill-card/.nightkill-name
+   inside keeps using the SAME existing class-scoped animations below
+   unmodified, so every victim card still gets the identical staged reveal
+   regardless of how many are showing at once. */
+.nightkill-victims{display:flex; flex-wrap:wrap; justify-content:center; align-items:flex-start; gap:8px 40px;}
+.nightkill-victim{display:flex; flex-direction:column; align-items:center;}
 .nightkill-card{position:relative; width:190px; height:190px; margin-bottom:22px; opacity:0; transform:scale(0.85); animation:nightkillCardIn 1.0s cubic-bezier(.2,.8,.2,1) 1.5s forwards;}
 .nightkill-card .portrait-frame{width:100%; height:100%;}
 .nightkill-card .portrait-frame .photo-img{filter:grayscale(45%) sepia(15%);}
@@ -637,9 +646,7 @@ h2.sec{font-family:var(--font-type); font-size:12px; letter-spacing:2px; text-tr
   <div class="nightkill-overlay"></div>
   <div class="nightkill-content">
     <p class="nightkill-eyebrow" id="nightkill-eyebrow"></p>
-    <div class="nightkill-card" id="nightkill-card"></div>
-    <h2 class="nightkill-name" id="nightkill-name"></h2>
-    <p class="nightkill-role" id="nightkill-role"></p>
+    <div class="nightkill-victims" id="nightkill-victims"></div>
     <p class="nightkill-flavor" id="nightkill-flavor"></p>
     <button class="btn" id="nightkill-continue-btn">Continue</button>
   </div>
@@ -3254,23 +3261,36 @@ function showDetectiveReveal(entry, onContinue){
     onContinue();
   };
 }
-function showNightKillRevealScreen(victim, onContinue){
+function showNightKillRevealScreen(victims, onContinue){
+  // PREBETA Task 5: a mafia/Navy-Seal-counter kill and a Vigilante kill (and
+  // the Vigilante's own guilt-death) can now all land the same night, so
+  // this takes an array instead of a single victim - one entry renders
+  // exactly as the old single-victim screen did, more than one lay out side
+  // by side via .nightkill-victims (see the CSS above .nightkill-card).
   SoundFX.setAmbience(null);
-  var ids = ['nightkill-eyebrow','nightkill-card','nightkill-name','nightkill-role','nightkill-flavor','nightkill-continue-btn'];
+  var ids = ['nightkill-eyebrow','nightkill-flavor','nightkill-continue-btn'];
   document.getElementById('nightkill-bg-img').src = IMG.nightKillScene;
   document.getElementById('nightkill-eyebrow').textContent = 'Night '+latestView.night+' — the town wakes to find...';
-  // The victim's role is never shown here - only that someone died. A
-  // generic mystery portrait stands in for their photo, same as any living
+  // The victims' roles are never shown here - only that they died. A
+  // generic mystery portrait stands in for each photo, same as any living
   // player's face is anonymized elsewhere in multiplayer.
-  document.getElementById('nightkill-card').innerHTML = '<div class="portrait-frame mystery-portrait"><img class="photo-img" src="'+UNKNOWN_AVATAR_IMG+'" alt=""><img class="frame-overlay" src="'+FRAME_IMG+'" alt=""></div><span class="nightkill-stamp">eliminated</span>';
-  document.getElementById('nightkill-name').textContent = victim.name;
-  document.getElementById('nightkill-role').style.display = 'none';
-  document.getElementById('nightkill-flavor').textContent = 'Found this morning. The town gathers, uneasy.';
+  document.getElementById('nightkill-victims').innerHTML = victims.map(function(v){
+    return '<div class="nightkill-victim">'+
+      '<div class="nightkill-card"><div class="portrait-frame mystery-portrait"><img class="photo-img" src="'+UNKNOWN_AVATAR_IMG+'" alt=""><img class="frame-overlay" src="'+FRAME_IMG+'" alt=""></div><span class="nightkill-stamp">eliminated</span></div>'+
+      '<h2 class="nightkill-name">'+escapeHtmlMp(v.name)+'</h2>'+
+      '</div>';
+  }).join('');
+  document.getElementById('nightkill-flavor').textContent = victims.length > 1
+    ? 'Found this morning. The town gathers, uneasy — more than one, this time.'
+    : 'Found this morning. The town gathers, uneasy.';
+  var victimEls = Array.prototype.slice.call(document.querySelectorAll('#nightkill-victims .nightkill-card, #nightkill-victims .nightkill-name'));
   ids.forEach(function(id){ document.getElementById(id).style.animation = 'none'; });
+  victimEls.forEach(function(el){ el.style.animation = 'none'; });
   var bgImgEl = document.querySelector('#nightkill-screen .nightkill-bg');
   bgImgEl.style.animation = 'none';
   void document.getElementById('nightkill-screen').offsetWidth;
   ids.forEach(function(id){ document.getElementById(id).style.animation = ''; });
+  victimEls.forEach(function(el){ el.style.animation = ''; });
   bgImgEl.style.animation = '';
   document.getElementById('nightkill-screen').style.display = 'block';
   clearTimeout(showNightKillRevealScreen._payoffTimer);
@@ -4310,12 +4330,15 @@ function renderFromServerView(view){
       showDeathScreen('night', finish);
       return true;
     }
-    var overnightVictim = view.players.find(function(p){
+    // PREBETA Task 5: a mafia kill and a Vigilante kill (and the
+    // Vigilante's own guilt-death) can now all land the same night, so this
+    // collects every newly-dead player instead of stopping at the first.
+    var overnightVictims = view.players.filter(function(p){
       var was = prev.players.find(function(q){return q.id===p.id;});
       return was && was.alive && !p.alive;
     });
-    if(overnightVictim){
-      showNightKillRevealScreen(overnightVictim, function(){
+    if(overnightVictims.length){
+      showNightKillRevealScreen(overnightVictims, function(){
         if(me && me.silencedToday && !(prevMe && prevMe.silencedToday)) showSilenceScreen(finish);
         else finish();
       });
