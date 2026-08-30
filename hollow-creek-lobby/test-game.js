@@ -272,4 +272,129 @@ const silenceResultSelf = G.resolveNight(stateSelfSilence);
 assert(silenceResultSelf.silencedPlayerId === gfSelfSilence.id, 'PREBETA Task 1: Godfather can successfully silence himself');
 assert(gfSelfSilence.silencedToday === true, 'PREBETA Task 1: the self-silenced Godfather is actually marked silencedToday');
 
+// ============================================================
+// PREBETA Task 3: Vigilante - once per game, independent night kill,
+// isolated from the mafia's kill chain, guilt only on a town-aligned
+// target (Crazy Granny always exempt regardless of her current alignment).
+//
+// Every test below builds from a fully-off role baseline and enables ONLY
+// what that test needs - with the full DEFAULT_ROLES_CONFIG (Godfather +
+// DoubleAgent, both mafia-aligned) layered on top, any placeholder holding
+// one of those roles gets a random auto-filled kill vote (see
+// placeholderNightAction) that can land on whichever player a test is
+// making an unrelated assertion about, causing an occasional false
+// failure unrelated to the Vigilante logic actually being tested. Keeping
+// mafia voters absent (or explicitly pinned away) makes every one of
+// these deterministic instead of flaky.
+// ============================================================
+const VIG_OFF = {Godfather:false, DoubleAgent:false, Detective:false, Doctor:false, Miller:false, BountyHunter:false, CrazyGranny:false, Coward:false, Farmer:false, NavySeal:false, Vigilante:false};
+
+// (a) wrongful kill on a town-aligned target - Vigilante dies too
+const stateVigGuilty = G.createGame(seats, {playerCount: 8, mafiaCount: 0, roles: Object.assign({}, VIG_OFF, {Vigilante:true})});
+const vigA = stateVigGuilty.players.find(p => p.role === 'Vigilante');
+const townVictimA = stateVigGuilty.players.find(p => p.id !== vigA.id && p.align === 'town');
+stateVigGuilty.pendingNightVotes[vigA.id] = {vigilanteKill: townVictimA.id};
+const resA = G.resolveNight(stateVigGuilty);
+assert(townVictimA.alive === false, 'Task 3: the Vigilante\'s shot kills the chosen target');
+assert(!!resA.vigilanteKillVictim && resA.vigilanteKillVictim.id === townVictimA.id, 'Task 3: the kill victim is reported back in the resolution result');
+assert(vigA.alive === false && resA.vigilanteDied === true, 'Task 3: a wrongful kill on a town-aligned target kills the Vigilante too');
+
+// (b) Crazy Granny is exempt from guilt regardless of her CURRENT alignment
+const stateVigGranny1 = G.createGame(seats, {playerCount: 8, mafiaCount: 0, roles: Object.assign({}, VIG_OFF, {Vigilante:true, CrazyGranny:true})});
+const vigB1 = stateVigGranny1.players.find(p => p.role === 'Vigilante');
+const grannyB1 = stateVigGranny1.players.find(p => p.role === 'CrazyGranny');
+assert(grannyB1.align === 'town', 'sanity: Crazy Granny starts town-aligned, before any flip');
+stateVigGranny1.pendingNightVotes[vigB1.id] = {vigilanteKill: grannyB1.id};
+const resB1 = G.resolveNight(stateVigGranny1);
+assert(grannyB1.alive === false && vigB1.alive === true, 'Task 3: killing an unflipped (town-aligned) Crazy Granny never triggers guilt');
+
+const stateVigGranny2 = G.createGame(seats, {playerCount: 8, mafiaCount: 0, roles: Object.assign({}, VIG_OFF, {Vigilante:true, CrazyGranny:true})});
+const vigB2 = stateVigGranny2.players.find(p => p.role === 'Vigilante');
+const grannyB2 = stateVigGranny2.players.find(p => p.role === 'CrazyGranny');
+grannyB2.flipped = true; grannyB2.align = 'mafia'; // simulate her post-flip state directly
+// Flipping her makes mafiaVoters() return [grannyB2] alone (see game.js) -
+// if she's a placeholder, resolveNight would auto-fill her a random kill
+// vote unrelated to this test. Pin it away from everyone we assert on.
+const safeFillerB2 = stateVigGranny2.players.find(p => p.id !== vigB2.id && p.id !== grannyB2.id);
+stateVigGranny2.pendingNightVotes[grannyB2.id] = {kill: safeFillerB2.id};
+stateVigGranny2.pendingNightVotes[vigB2.id] = {vigilanteKill: grannyB2.id};
+const resB2 = G.resolveNight(stateVigGranny2);
+assert(grannyB2.alive === false && vigB2.alive === true, 'Task 3: killing a FLIPPED (mafia-aligned) Crazy Granny still never triggers guilt - the exception is role-specific, not alignment-based');
+
+// (c) mafia-aligned target - never triggers guilt
+const stateVigMafia = G.createGame(seats, {playerCount: 8, mafiaCount: 1, roles: Object.assign({}, VIG_OFF, {Vigilante:true})});
+const vigC = stateVigMafia.players.find(p => p.role === 'Vigilante');
+const mafiaTargetC = stateVigMafia.players.find(p => p.id !== vigC.id && p.align === 'mafia');
+const safeFillerC = stateVigMafia.players.find(p => p.id !== vigC.id && p.id !== mafiaTargetC.id);
+G.mafiaVoters(stateVigMafia).forEach(p => { stateVigMafia.pendingNightVotes[p.id] = {kill: safeFillerC.id}; }); // this mafia voter IS the target, but pin its OWN vote away for determinism regardless
+stateVigMafia.pendingNightVotes[vigC.id] = {vigilanteKill: mafiaTargetC.id};
+G.resolveNight(stateVigMafia);
+assert(mafiaTargetC.alive === false && vigC.alive === true, 'Task 3: killing a mafia-aligned target never triggers guilt');
+
+// (d) neutral (Bounty Hunter) target - never triggers guilt, even one mark
+// from their own win condition, since guilt is alignment-only, never a
+// judgment of how dangerous the target currently is
+const stateVigNeutral = G.createGame(seats, {playerCount: 8, mafiaCount: 0, roles: Object.assign({}, VIG_OFF, {Vigilante:true, BountyHunter:true})});
+const vigD = stateVigNeutral.players.find(p => p.role === 'Vigilante');
+const bhD = stateVigNeutral.players.find(p => p.role === 'BountyHunter');
+stateVigNeutral.bountyPoints = 2;
+stateVigNeutral.pendingNightVotes[vigD.id] = {vigilanteKill: bhD.id};
+G.resolveNight(stateVigNeutral);
+assert(bhD.alive === false && vigD.alive === true, 'Task 3: killing a neutral Bounty Hunter never triggers guilt, even two marks into their own win condition');
+
+// (e) bypasses Doctor's protect entirely
+const stateVigDoc = G.createGame(seats, {playerCount: 8, mafiaCount: 0, roles: Object.assign({}, VIG_OFF, {Vigilante:true, Doctor:true})});
+const vigE1 = stateVigDoc.players.find(p => p.role === 'Vigilante');
+const docE1 = stateVigDoc.players.find(p => p.role === 'Doctor');
+const targetE1 = stateVigDoc.players.find(p => p.id !== vigE1.id && p.id !== docE1.id);
+stateVigDoc.pendingNightVotes[docE1.id] = {protect: targetE1.id};
+stateVigDoc.pendingNightVotes[vigE1.id] = {vigilanteKill: targetE1.id};
+G.resolveNight(stateVigDoc);
+assert(targetE1.alive === false, 'Task 3: Doctor protection does not block the Vigilante\'s independent kill');
+
+// (e) bypasses Coward's hide-behind redirect entirely
+const stateVigCow = G.createGame(seats, {playerCount: 8, mafiaCount: 0, roles: Object.assign({}, VIG_OFF, {Vigilante:true, Coward:true})});
+const vigE2 = stateVigCow.players.find(p => p.role === 'Vigilante');
+const cowE2 = stateVigCow.players.find(p => p.role === 'Coward');
+const decoyE2 = stateVigCow.players.find(p => p.id !== vigE2.id && p.id !== cowE2.id);
+stateVigCow.pendingNightVotes[cowE2.id] = {hideBehind: decoyE2.id};
+stateVigCow.pendingNightVotes[vigE2.id] = {vigilanteKill: cowE2.id};
+G.resolveNight(stateVigCow);
+assert(cowE2.alive === false, 'Task 3: hide-behind redirect does not apply to the Vigilante\'s kill - the Coward dies directly');
+assert(decoyE2.alive === true, 'Task 3: the hide-behind decoy is untouched by a Vigilante kill aimed at the Coward');
+
+// (e) bypasses Navy Seal's counter-kill entirely
+const stateVigSeal = G.createGame(seats, {playerCount: 8, mafiaCount: 0, roles: Object.assign({}, VIG_OFF, {Vigilante:true, NavySeal:true})});
+const vigE3 = stateVigSeal.players.find(p => p.role === 'Vigilante');
+const sealE3 = stateVigSeal.players.find(p => p.role === 'NavySeal');
+stateVigSeal.pendingNightVotes[vigE3.id] = {vigilanteKill: sealE3.id};
+G.resolveNight(stateVigSeal);
+assert(sealE3.alive === false, 'Task 3: a Navy Seal killed by the Vigilante just dies - the counter-kill only ever applies to the mafia\'s own kill');
+assert(sealE3.usedNavySealCounter === false, 'Task 3: the Navy Seal\'s counter is never consumed by a Vigilante kill');
+
+// (f) a mafia kill and a Vigilante kill the same night correctly produce two deaths
+const stateTwoDeaths = G.createGame(seats, {playerCount: 8, mafiaCount: 1, roles: Object.assign({}, VIG_OFF, {Vigilante:true})});
+const vigF = stateTwoDeaths.players.find(p => p.role === 'Vigilante');
+const mafiaKillTargetF = stateTwoDeaths.players.find(p => p.align !== 'mafia' && p.role !== 'Vigilante' && p.alive);
+const vigTargetF = stateTwoDeaths.players.find(p => p.align === 'mafia'); // mafia-aligned, so the Vigilante's own death from guilt doesn't muddy this specific assertion
+G.mafiaVoters(stateTwoDeaths).forEach(p => { stateTwoDeaths.pendingNightVotes[p.id] = {kill: mafiaKillTargetF.id}; });
+stateTwoDeaths.pendingNightVotes[vigF.id] = {vigilanteKill: vigTargetF.id};
+const resF = G.resolveNight(stateTwoDeaths);
+assert(mafiaKillTargetF.alive === false && vigTargetF.alive === false, 'Task 3: both the mafia\'s kill and the Vigilante\'s kill land the same night');
+assert(resF.nightDeaths.length === 2, 'Task 3/5: resolveNight reports both simultaneous deaths in nightDeaths, not just one');
+
+// (g) once per game - a second shot attempt does nothing
+const stateOnce = G.createGame(seats, {playerCount: 8, mafiaCount: 0, roles: Object.assign({}, VIG_OFF, {Vigilante:true})});
+const vigG = stateOnce.players.find(p => p.role === 'Vigilante');
+const firstTargetG = stateOnce.players.find(p => p.id !== vigG.id);
+stateOnce.pendingNightVotes[vigG.id] = {vigilanteKill: firstTargetG.id};
+G.resolveNight(stateOnce);
+assert(vigG.usedVigilanteShot === true, 'Task 3: the shot is marked used the moment it\'s fired');
+stateOnce.night = 2; stateOnce.phase = 'night';
+const secondTargetG = stateOnce.players.find(p => p.align === 'town' && p.role !== 'CrazyGranny' && p.alive && p.id !== vigG.id);
+stateOnce.pendingNightVotes[vigG.id] = {vigilanteKill: secondTargetG.id};
+const resG2 = G.resolveNight(stateOnce);
+assert(secondTargetG.alive === true, 'Task 3: once-per-game - a second shot attempt on a later night does nothing, the target survives');
+assert(resG2.vigilanteKillVictim === null, 'Task 3: the resolution result confirms no second shot was fired');
+
 console.log('\nAll game.js checks completed.');

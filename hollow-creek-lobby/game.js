@@ -21,16 +21,16 @@ const ROLE_LABEL = {
   Detective:'the detective', Godfather:'the godfather', Mafia:'a mafia enforcer',
   DoubleAgent:'the double agent', Doctor:'the doctor', Miller:'the miller',
   BountyHunter:'the bounty hunter', CrazyGranny:'the crazy granny', Coward:'the coward',
-  Farmer:'the farmer', NavySeal:'the war veteran', Civilian:'a civilian'
+  Farmer:'the farmer', NavySeal:'the war veteran', Vigilante:'the vigilante', Civilian:'a civilian'
 };
 
-const SPECIAL_ROLES = ['Godfather','Mafia','DoubleAgent','Detective','Doctor','Miller','BountyHunter','CrazyGranny','Coward','Farmer','NavySeal'];
+const SPECIAL_ROLES = ['Godfather','Mafia','DoubleAgent','Detective','Doctor','Miller','BountyHunter','CrazyGranny','Coward','Farmer','NavySeal','Vigilante'];
 
 const MIN_PLAYERS = 6;
 const MAX_PLAYERS = CHARACTERS.length + 1; // +1 for at least one real seat beyond the character pool isn't needed; kept for parity with single-player (12)
 const MAX_MAFIA_COUNT = 4;
 
-const DEFAULT_ROLES_CONFIG = {Godfather:true, DoubleAgent:true, Detective:true, Doctor:true, Miller:true, BountyHunter:true, CrazyGranny:true, Coward:false, Farmer:false, NavySeal:false};
+const DEFAULT_ROLES_CONFIG = {Godfather:true, DoubleAgent:true, Detective:true, Doctor:true, Miller:true, BountyHunter:true, CrazyGranny:true, Coward:false, Farmer:false, NavySeal:false, Vigilante:false};
 
 function shuffle(arr){
   const a = arr.slice();
@@ -86,7 +86,7 @@ function createGame(seats, config){
     players.push({
       id: seat.id, name: seat.name, isHuman: true, isPlaceholder: false,
       alive: true, silencedToday: false, role: roles[idx], align: alignOf(roles[idx]),
-      flipped: false, investigateCount: 0, usedNavySealCounter: false
+      flipped: false, investigateCount: 0, usedNavySealCounter: false, usedVigilanteShot: false
     });
   });
   const remaining = config.playerCount - seats.length;
@@ -97,7 +97,7 @@ function createGame(seats, config){
     players.push({
       id: c.id, name: c.name, occ: c.occ, color: c.color, isHuman: false, isPlaceholder: true,
       alive: true, silencedToday: false, role: roles[roleIdx], align: alignOf(roles[roleIdx]),
-      flipped: false, investigateCount: 0, usedNavySealCounter: false
+      flipped: false, investigateCount: 0, usedNavySealCounter: false, usedVigilanteShot: false
     });
   });
 
@@ -198,6 +198,11 @@ function placeholderNightAction(state, player){
   if(player.role==='Doctor') action.protect = pick(options);
   if(player.role==='Coward') action.hideBehind = pick(options);
   if(player.role==='BountyHunter') action.bounty = pick(options);
+  // Deliberately no Vigilante case here (assumption, not spec'd): unlike
+  // Doctor/Coward/BountyHunter, a shot is permanent, once-per-game, and can
+  // kill the Vigilante themselves on a wrong guess - a placeholder has no
+  // real judgment to decide whether that risk is worth taking, so a
+  // placeholder Vigilante simply never fires rather than firing at random.
   return action;
 }
 
@@ -316,6 +321,56 @@ function resolveNight(state){
     }
   }
 
+  // --- Vigilante: a clean, independent kill - deliberately isolated from
+  // the mafia's kill chain above. Doctor's protect, Coward's hide-behind
+  // redirect, and Navy Seal's counter-kill only ever apply to the mafia's
+  // own kill resolution; the Vigilante's shot lands or doesn't land on its
+  // own, with no cross-interaction whatsoever. ---
+  const vigilante = state.players.find(p => p.alive && p.role==='Vigilante' && !p.usedVigilanteShot);
+  const vigilanteTargetId = vigilante ? (state.pendingNightVotes[vigilante.id]||{}).vigilanteKill : null;
+  let vigilanteKillVictim = null;
+  let vigilanteDied = false;
+  if(vigilante && vigilanteTargetId){
+    // Once per game, period - spent the moment they commit to firing,
+    // whether or not the target turns out to already be dead by the time
+    // resolution reaches here (e.g. also the mafia's kill target this
+    // same night).
+    vigilante.usedVigilanteShot = true;
+    const vigTarget = byId(state, vigilanteTargetId);
+    if(vigTarget && vigTarget.alive){
+      vigTarget.alive = false;
+      checkBountyHit(state, vigTarget);
+      vigilanteKillVictim = vigTarget;
+      log(state, vigilante.name+' (Vigilante) killed '+vigTarget.name+' ('+vigTarget.role+') in the night.');
+      reportLines.push(vigTarget.name+' was found dead this morning — not the family\'s doing this time.');
+      // Guilt is purely the target's alignment category, never a judgment
+      // of how dangerous they currently are: mafia-aligned or neutral
+      // (Bounty Hunter) targets never trigger guilt, regardless of how
+      // close a neutral target is to their own win condition. Crazy Granny
+      // is a named, role-specific exception - never triggers guilt no
+      // matter her alignment at the moment she's killed. This carve-out is
+      // specific to her flip mechanic and intentionally not generalized to
+      // any other "could become a future threat" role.
+      const guilty = vigTarget.role !== 'CrazyGranny' && vigTarget.align === 'town';
+      if(guilty){
+        vigilante.alive = false;
+        checkBountyHit(state, vigilante);
+        vigilanteDied = true;
+        log(state, vigilante.name+' (Vigilante) killed a town-aligned player and could not live with the guilt.');
+        reportLines.push(vigilante.name+' was found dead as well, by their own hand.');
+      }
+    }
+  }
+
+  // Every player who died this specific night, from any source - the
+  // mafia/Navy-Seal-counter kill and the Vigilante's kill (and the
+  // Vigilante's own guilt-death) can now all land the same night. Mortician
+  // (a later role) needs the full set to choose between when there are two.
+  const nightDeaths = [];
+  if(revealVictim) nightDeaths.push({id: revealVictim.id, name: revealVictim.name, role: revealVictim.role});
+  if(vigilanteKillVictim) nightDeaths.push({id: vigilanteKillVictim.id, name: vigilanteKillVictim.name, role: vigilanteKillVictim.role});
+  if(vigilanteDied) nightDeaths.push({id: vigilante.id, name: vigilante.name, role: vigilante.role});
+
   let investigationResult = null;
   if(detective && investigateTargetId){
     const target = byId(state, investigateTargetId);
@@ -334,7 +389,7 @@ function resolveNight(state){
   state.pendingNightVotes = {};
   state.phase = 'day-discuss';
 
-  return {reportLines, deathSummary, nightDeathOccurred, revealVictim, silencedPlayerId, investigationResult, gameOver, killTargetId, doctorSaved: !!doctorSaved, cowardRedirected};
+  return {reportLines, deathSummary, nightDeathOccurred, revealVictim, silencedPlayerId, investigationResult, gameOver, killTargetId, doctorSaved: !!doctorSaved, cowardRedirected, vigilanteKillVictim, vigilanteDied, nightDeaths};
 }
 
 function resolveDayVote(state, timedOutFallbackId){
@@ -482,6 +537,7 @@ function getPlayerView(state, playerId){
     if(p.id === playerId || seeAllRoles || !p.alive || seeAsTeammate){
       base.role = p.role; base.align = p.align;
       if(p.role === 'NavySeal') base.usedNavySealCounter = p.usedNavySealCounter;
+      if(p.role === 'Vigilante') base.usedVigilanteShot = p.usedVigilanteShot;
     }
     return base;
   });
