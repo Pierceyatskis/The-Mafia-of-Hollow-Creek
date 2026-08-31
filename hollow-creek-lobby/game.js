@@ -22,16 +22,16 @@ const ROLE_LABEL = {
   DoubleAgent:'the double agent', Doctor:'the doctor', Miller:'the miller',
   BountyHunter:'the bounty hunter', CrazyGranny:'the crazy granny', Coward:'the coward',
   Farmer:'the farmer', NavySeal:'the war veteran', Vigilante:'the vigilante',
-  Consigliere:'the consigliere', Mayor:'the mayor', Mortician:'the mortician', Civilian:'a civilian'
+  Consigliere:'the consigliere', Mayor:'the mayor', Mortician:'the mortician', Framer:'the framer', Civilian:'a civilian'
 };
 
-const SPECIAL_ROLES = ['Godfather','Mafia','DoubleAgent','Detective','Doctor','Miller','BountyHunter','CrazyGranny','Coward','Farmer','NavySeal','Vigilante','Consigliere','Mayor','Mortician'];
+const SPECIAL_ROLES = ['Godfather','Mafia','DoubleAgent','Detective','Doctor','Miller','BountyHunter','CrazyGranny','Coward','Farmer','NavySeal','Vigilante','Consigliere','Mayor','Mortician','Framer'];
 
 const MIN_PLAYERS = 6;
 const MAX_PLAYERS = CHARACTERS.length + 1; // +1 for at least one real seat beyond the character pool isn't needed; kept for parity with single-player (12)
 const MAX_MAFIA_COUNT = 4;
 
-const DEFAULT_ROLES_CONFIG = {Godfather:true, DoubleAgent:true, Detective:true, Doctor:true, Miller:true, BountyHunter:true, CrazyGranny:true, Coward:false, Farmer:false, NavySeal:false, Vigilante:false, Consigliere:false, Mayor:false, Mortician:false};
+const DEFAULT_ROLES_CONFIG = {Godfather:true, DoubleAgent:true, Detective:true, Doctor:true, Miller:true, BountyHunter:true, CrazyGranny:true, Coward:false, Farmer:false, NavySeal:false, Vigilante:false, Consigliere:false, Mayor:false, Mortician:false, Framer:false};
 
 function shuffle(arr){
   const a = arr.slice();
@@ -43,7 +43,7 @@ function shuffle(arr){
 }
 
 function alignOf(role){
-  if(role==='Godfather'||role==='DoubleAgent'||role==='Mafia'||role==='Consigliere') return 'mafia';
+  if(role==='Godfather'||role==='DoubleAgent'||role==='Mafia'||role==='Consigliere'||role==='Framer') return 'mafia';
   if(role==='BountyHunter') return 'neutral';
   return 'town';
 }
@@ -164,7 +164,7 @@ function recordLivingCountSnapshot(state, playerId, role, actionType){
 
 function byId(state, id){ return state.players.find(p => p.id === id); }
 function living(state){ return state.players.filter(p => p.alive); }
-function mafiaAlive(state){ return state.players.filter(p => p.alive && (p.role==='Godfather' || p.role==='DoubleAgent' || p.role==='Mafia' || p.role==='Consigliere' || (p.role==='CrazyGranny' && p.flipped))); }
+function mafiaAlive(state){ return state.players.filter(p => p.alive && (p.role==='Godfather' || p.role==='DoubleAgent' || p.role==='Mafia' || p.role==='Consigliere' || p.role==='Framer' || (p.role==='CrazyGranny' && p.flipped))); }
 function mafiaVoters(state){
   const flippedGranny = state.players.find(p => p.alive && p.role==='CrazyGranny' && p.flipped);
   if(flippedGranny) return [flippedGranny];
@@ -275,6 +275,11 @@ function placeholderNightAction(state, player){
     const deadPick = state.lastNightDeaths[Math.floor(Math.random()*state.lastNightDeaths.length)];
     action.morticianInvestigate = deadPick.id;
   }
+  // PREBETA Phase 2 Task 3 - unlike Consigliere, targeting a teammate is
+  // real, useful functionality here (shields them with an innocent read),
+  // not a wasted action - so a placeholder is free to pick from every
+  // living player, teammates included, with no exclusion.
+  if(player.role==='Framer') action.frameTarget = pick(options);
   // Deliberately no Vigilante case here (assumption, not spec'd): unlike
   // Doctor/Coward/BountyHunter, a shot is permanent, once-per-game, and can
   // kill the Vigilante themselves on a wrong guess - a placeholder has no
@@ -321,6 +326,7 @@ function resolveNight(state){
   const coward = state.players.find(p => p.alive && p.role==='Coward');
   const bountyHunter = state.players.find(p => p.alive && p.role==='BountyHunter');
   const godfather = state.players.find(p => p.alive && p.role==='Godfather');
+  const framer = state.players.find(p => p.alive && p.role==='Framer');
 
   const investigateTargetId = detective ? (state.pendingNightVotes[detective.id]||{}).investigate : null;
   const protectTargetId = doctor ? (state.pendingNightVotes[doctor.id]||{}).protect : null;
@@ -329,6 +335,11 @@ function resolveNight(state){
   // description promises "place a bounty on someone each night."
   const bountyId = bountyHunter ? (state.pendingNightVotes[bountyHunter.id]||{}).bounty : null;
   const silenceId = godfather ? (state.pendingNightVotes[godfather.id]||{}).silence : null;
+  // PREBETA Phase 2 Task 3 - purely local to this resolveNight call ("this
+  // round" only, per the role's own description) - fed straight into
+  // investigateAndRead below, never persisted on state since nothing else
+  // needs to read it after this round resolves.
+  const framerTargetId = framer ? (state.pendingNightVotes[framer.id]||{}).frameTarget : null;
 
   if(bountyId) state.bountyTarget = bountyId;
 
@@ -452,7 +463,7 @@ function resolveNight(state){
   if(detective && investigateTargetId){
     const target = byId(state, investigateTargetId);
     if(target){
-      const read = investigateAndRead(target);
+      const read = investigateAndRead(target, framerTargetId);
       log(state, detective.name+' investigated '+target.name+' and it read '+read+'.');
       state.detectiveLog.push({name: target.name, read: read});
       investigationResult = {detectiveId: detective.id, targetId: target.id, targetName: target.name, read: read};

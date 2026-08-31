@@ -607,4 +607,60 @@ assert(G.detectiveRead({role:'Miller', align:'town'}) === 'guilty', 'Phase2 Task
 assert(G.detectiveRead({role:'DoubleAgent', align:'mafia', investigateCount:0}) === 'innocent', 'Phase2 Task1: a first-time Double Agent investigation still reads innocent (unchanged)');
 assert(G.detectiveRead({role:'DoubleAgent', align:'mafia', investigateCount:1}) === 'guilty', 'Phase2 Task1: a second Double Agent investigation still reads guilty (unchanged)');
 
+// --- PREBETA Phase 2 Task 3: Framer - the effect depends entirely on the
+// target's CURRENT alignment (mafia -> shields with an innocent read this
+// round, town -> frames with a guilty read this round). Confirmed via user
+// input: CAN target a mafia-aligned teammate - that's real, useful
+// functionality here, not a wasted action the way it is for Consigliere. ---
+const FRAMER_BASE = Object.assign({}, VIG_OFF, {Framer:true, Detective:true});
+
+// (a) framing a mafia-aligned target (here, a teammate) shields them with
+// an innocent read this round - also doubles as proof the Framer CAN
+// target a teammate at all, since a mafia-aligned target's un-framed read
+// would otherwise be guilty (no role-based exception of its own).
+const stateFramerA = G.createGame(seats, {playerCount: 8, mafiaCount: 1, roles: Object.assign({}, FRAMER_BASE)});
+const framerA = stateFramerA.players.find(p => p.role === 'Framer');
+const detectiveA = stateFramerA.players.find(p => p.role === 'Detective');
+const mafiaTargetA = stateFramerA.players.find(p => p.role === 'Mafia');
+const fillerA = stateFramerA.players.find(p => p.align !== 'mafia' && p.role !== 'Detective' && p.alive);
+G.mafiaVoters(stateFramerA).forEach(p => { stateFramerA.pendingNightVotes[p.id] = {kill: fillerA.id}; });
+stateFramerA.pendingNightVotes[framerA.id] = {frameTarget: mafiaTargetA.id};
+stateFramerA.pendingNightVotes[detectiveA.id] = {investigate: mafiaTargetA.id};
+const resFramerA = G.resolveNight(stateFramerA);
+assert(resFramerA.investigationResult && resFramerA.investigationResult.read === 'innocent', 'Phase2 Task3: framing a mafia-aligned target (a teammate) shields them with an innocent read this round');
+
+// (b) framing a town-aligned target frames them with a guilty read this round
+const stateFramerB = G.createGame(seats, {playerCount: 8, mafiaCount: 1, roles: Object.assign({}, FRAMER_BASE)});
+const framerB = stateFramerB.players.find(p => p.role === 'Framer');
+const detectiveB = stateFramerB.players.find(p => p.role === 'Detective');
+const townTargetB = stateFramerB.players.find(p => p.align === 'town' && p.role !== 'Detective' && p.role !== 'Framer');
+const fillerB = stateFramerB.players.find(p => p.align !== 'mafia' && p.role !== 'Detective' && p.id !== townTargetB.id);
+G.mafiaVoters(stateFramerB).forEach(p => { stateFramerB.pendingNightVotes[p.id] = {kill: fillerB.id}; });
+stateFramerB.pendingNightVotes[framerB.id] = {frameTarget: townTargetB.id};
+stateFramerB.pendingNightVotes[detectiveB.id] = {investigate: townTargetB.id};
+const resFramerB = G.resolveNight(stateFramerB);
+assert(resFramerB.investigationResult && resFramerB.investigationResult.read === 'guilty', 'Phase2 Task3: framing a town-aligned target frames them with a guilty read this round');
+
+// (c) zero effect on Consigliere's exact-role read - the same target, framed
+// this same round, still reads their literal role name to the Consigliere.
+const stateFramerC = G.createGame(seats, {playerCount: 8, mafiaCount: 0, roles: Object.assign({}, VIG_OFF, {Framer:true, Consigliere:true})});
+const framerC = stateFramerC.players.find(p => p.role === 'Framer');
+const consigliereC = stateFramerC.players.find(p => p.role === 'Consigliere');
+const frameTargetC = stateFramerC.players.find(p => p.id !== framerC.id && p.id !== consigliereC.id && p.align !== 'mafia');
+stateFramerC.pendingNightVotes[framerC.id] = {frameTarget: frameTargetC.id};
+stateFramerC.pendingNightVotes[consigliereC.id] = {consigliereInvestigate: frameTargetC.id};
+const resFramerC = G.resolveNight(stateFramerC);
+assert(resFramerC.consigliereResult && resFramerC.consigliereResult.role === frameTargetC.role, 'Phase2 Task3: Framer has zero effect on Consigliere\'s exact-role read');
+
+// (d) zero effect on a neutral target's suspicious read - always suspicious
+// regardless of being framed.
+const stateFramerD = G.createGame(seats, {playerCount: 8, mafiaCount: 0, roles: Object.assign({}, VIG_OFF, {Framer:true, Detective:true, BountyHunter:true})});
+const framerD = stateFramerD.players.find(p => p.role === 'Framer');
+const detectiveD = stateFramerD.players.find(p => p.role === 'Detective');
+const bhFramerD = stateFramerD.players.find(p => p.role === 'BountyHunter');
+stateFramerD.pendingNightVotes[framerD.id] = {frameTarget: bhFramerD.id};
+stateFramerD.pendingNightVotes[detectiveD.id] = {investigate: bhFramerD.id};
+const resFramerD = G.resolveNight(stateFramerD);
+assert(resFramerD.investigationResult && resFramerD.investigationResult.read === 'suspicious', 'Phase2 Task3: Framer has zero effect on a neutral target - always reads suspicious regardless of being framed');
+
 console.log('\nAll game.js checks completed.');
