@@ -711,4 +711,112 @@ assert(resDayHitD.farmerRevengePending === hitmanD.id, 'Phase2 Task4: a day-vote
 const revengeResultD = G.resolveFarmerRevenge(stateHitD, hitmanD.id, mafiaTeammateD.id);
 assert(revengeResultD.revengeKillOccurred === true && mafiaTeammateD.alive === false, 'Phase2 Task4: the Hitman\'s revenge can target anyone, including a mafia-aligned teammate, with no restriction enforced');
 
+// --- PREBETA Phase 2 Task 5: Cult Leader - a genuinely new third alignment
+// faction. Conversion interacts with Doctor protection exactly like the
+// mafia's kill (reuses the same protectTargetId check), can target anyone
+// including a mafia-aligned player, and a converted player is FULLY removed
+// from their prior faction's headcount (never a silent gap in either
+// original faction's win-condition math). Cult wins at majority-or-equal
+// share of all living players; the Cult Leader's own death doesn't strip
+// existing converts of their cult alignment or collapse the cult. ---
+const CULT_BASE = Object.assign({}, VIG_OFF, {CultLeader:true});
+
+// (a) conversion correctly fails when the target is Doctor-protected
+const stateCultA = G.createGame(seats, {playerCount: 8, mafiaCount: 0, roles: Object.assign({}, CULT_BASE, {Doctor:true})});
+const cultLeaderA = stateCultA.players.find(p => p.role === 'CultLeader');
+const doctorA = stateCultA.players.find(p => p.role === 'Doctor');
+const targetA = stateCultA.players.find(p => p.align !== 'cult' && p.role !== 'Doctor');
+stateCultA.pendingNightVotes[cultLeaderA.id] = {cultConvert: targetA.id};
+stateCultA.pendingNightVotes[doctorA.id] = {protect: targetA.id};
+const resCultA = G.resolveNight(stateCultA);
+assert(resCultA.cultConversionBlocked === true, 'Phase2 Task5: conversion correctly fails when the target is Doctor-protected that night');
+assert(targetA.align !== 'cult', 'Phase2 Task5: a Doctor-protected target is not actually converted');
+
+// (b) a converted player joins cult chat and sees other cult members - and
+// the Cult Leader correctly sees the new convert too (mutual visibility)
+const stateCultB = G.createGame(seats, {playerCount: 8, mafiaCount: 0, roles: Object.assign({}, CULT_BASE)});
+const cultLeaderB = stateCultB.players.find(p => p.role === 'CultLeader');
+const targetB = stateCultB.players.find(p => p.align !== 'cult');
+stateCultB.pendingNightVotes[cultLeaderB.id] = {cultConvert: targetB.id};
+const resCultB = G.resolveNight(stateCultB);
+assert(resCultB.cultConvertedPlayer && resCultB.cultConvertedPlayer.id === targetB.id, 'Phase2 Task5 setup: the target was actually converted');
+assert(targetB.align === 'cult', 'Phase2 Task5: a successful conversion updates the target\'s align to cult');
+stateCultB.cultChatLog.push({playerId: cultLeaderB.id, name: cultLeaderB.name, text: 'welcome to the family', ts: Date.now()});
+const viewTargetB = G.getPlayerView(stateCultB, targetB.id);
+assert(Array.isArray(viewTargetB.cultChatLog) && viewTargetB.cultChatLog.length === 1, 'Phase2 Task5: a newly converted player correctly receives cultChatLog');
+const cultLeaderSeenByTargetB = viewTargetB.players.find(p => p.id === cultLeaderB.id);
+assert(cultLeaderSeenByTargetB.role === 'CultLeader', 'Phase2 Task5: a converted player immediately sees the Cult Leader\'s identity');
+const viewLeaderB = G.getPlayerView(stateCultB, cultLeaderB.id);
+const targetSeenByLeaderB = viewLeaderB.players.find(p => p.id === targetB.id);
+assert(targetSeenByLeaderB.role === targetB.role, 'Phase2 Task5: the Cult Leader correctly sees their new convert\'s role too (mutual teammate visibility)');
+
+// (c) a converted mafia-aligned player retains individual abilities (here,
+// the Godfather's silence) but loses the mafia's shared kill-vote access
+const stateCultC = G.createGame(seats, {playerCount: 8, mafiaCount: 1, roles: Object.assign({}, CULT_BASE, {Godfather:true})});
+const cultLeaderC = stateCultC.players.find(p => p.role === 'CultLeader');
+const godfatherC = stateCultC.players.find(p => p.role === 'Godfather');
+// Pin the ambient mafia voter's kill vote to a safe filler, distinct from
+// both the Cult Leader and the conversion target - otherwise an unpinned
+// placeholder mafia kill can randomly land on the Cult Leader themselves,
+// which silently skips the whole conversion block this same night (the
+// same class of flakiness this file has hit and fixed before).
+const safeFillerKillC = stateCultC.players.find(p => p.id !== cultLeaderC.id && p.id !== godfatherC.id && p.align !== 'mafia');
+G.mafiaVoters(stateCultC).forEach(p => { stateCultC.pendingNightVotes[p.id] = {kill: safeFillerKillC.id}; });
+stateCultC.pendingNightVotes[cultLeaderC.id] = {cultConvert: godfatherC.id};
+G.resolveNight(stateCultC);
+assert(godfatherC.align === 'cult', 'Phase2 Task5 setup: the Godfather was successfully converted to cult');
+assert(!G.mafiaVoters(stateCultC).some(p => p.id === godfatherC.id), 'Phase2 Task5: a converted Godfather loses the mafia\'s shared kill-vote access');
+
+G.startNextNight(stateCultC);
+const mafiaVoterC = stateCultC.players.find(p => p.role === 'Mafia');
+const silenceTargetC = stateCultC.players.find(p => p.id !== godfatherC.id && p.alive);
+// Pin the mafia's kill vote to a filler DISTINCT from silenceTargetC -
+// otherwise both queries can resolve to the same first-matching player,
+// killing the silence target before the silence check runs and masking a
+// real bug as "not silenced because dead".
+const fillerKillCultC = stateCultC.players.find(p => p.id !== godfatherC.id && p.id !== silenceTargetC.id && p.alive);
+stateCultC.pendingNightVotes[mafiaVoterC.id] = {kill: fillerKillCultC.id};
+stateCultC.pendingNightVotes[godfatherC.id] = {silence: silenceTargetC.id};
+const resCultC2 = G.resolveNight(stateCultC);
+assert(resCultC2.silencedPlayerId === silenceTargetC.id, 'Phase2 Task5: a converted Godfather can still use their individual silence ability, unaffected by losing kill-vote access');
+
+// (d) mafia/town win-condition math is unaffected by conversion - no
+// double-counting or miscounting on either original faction's side
+const stateCultD = G.createGame(seats, {playerCount: 8, mafiaCount: 1, roles: Object.assign({}, CULT_BASE, {Godfather:true})});
+const cultLeaderD = stateCultD.players.find(p => p.role === 'CultLeader');
+const godfatherD = stateCultD.players.find(p => p.role === 'Godfather');
+const mafiaAliveBeforeD = G.mafiaAlive(stateCultD).length;
+// Same unpinned-ambient-vote flakiness guard as test (c) above.
+const safeFillerKillD = stateCultD.players.find(p => p.id !== cultLeaderD.id && p.id !== godfatherD.id && p.align !== 'mafia');
+G.mafiaVoters(stateCultD).forEach(p => { stateCultD.pendingNightVotes[p.id] = {kill: safeFillerKillD.id}; });
+stateCultD.pendingNightVotes[cultLeaderD.id] = {cultConvert: godfatherD.id};
+G.resolveNight(stateCultD);
+assert(G.mafiaAlive(stateCultD).length === mafiaAliveBeforeD - 1, 'Phase2 Task5: converting a mafia-aligned player drops the mafia faction\'s own headcount by exactly one, no double-counting or miscounting');
+assert(G.cultAlive(stateCultD).length === 2, 'Phase2 Task5: the convert correctly counts toward cult\'s headcount instead (Cult Leader + new convert)');
+
+// (e) cult's own win condition triggers at majority-or-equal share of all
+// living players, not before
+const stateCultE = G.createGame(seats, {playerCount: 6, mafiaCount: 0, roles: Object.assign({}, CULT_BASE)});
+const cultLeaderE = stateCultE.players.find(p => p.role === 'CultLeader');
+const othersE = stateCultE.players.filter(p => p.id !== cultLeaderE.id);
+othersE[0].align = 'cult';
+assert(G.checkWin(stateCultE) === false, 'Phase2 Task5: cult with less than half (2 of 6) does not trigger a win yet');
+othersE[1].align = 'cult';
+assert(G.checkWin(stateCultE) === true && stateCultE.winner === 'cult', 'Phase2 Task5: cult wins once cult members make up a majority-or-equal share of all living players (3 of 6 here)');
+
+// (f) the Cult Leader's death does not strip an existing convert's cult
+// alignment or win eligibility, and blocks further conversions
+const stateCultF = G.createGame(seats, {playerCount: 6, mafiaCount: 0, roles: Object.assign({}, CULT_BASE)});
+const cultLeaderF = stateCultF.players.find(p => p.role === 'CultLeader');
+const convertF = stateCultF.players.find(p => p.id !== cultLeaderF.id);
+convertF.align = 'cult';
+cultLeaderF.alive = false;
+assert(convertF.align === 'cult', 'Phase2 Task5: the Cult Leader\'s death does not strip an existing convert\'s cult alignment');
+assert(G.cultAlive(stateCultF).some(p => p.id === convertF.id), 'Phase2 Task5: the convert still counts toward cult\'s win eligibility after the Cult Leader dies');
+const anotherTargetF = stateCultF.players.find(p => p.id !== cultLeaderF.id && p.id !== convertF.id);
+stateCultF.pendingNightVotes[cultLeaderF.id] = {cultConvert: anotherTargetF.id};
+const resCultF = G.resolveNight(stateCultF);
+assert(anotherTargetF.align !== 'cult', 'Phase2 Task5: no new conversions happen once the Cult Leader is dead, even with a stray pending vote');
+assert(resCultF.cultConvertedPlayer === null, 'Phase2 Task5: resolveNight confirms no conversion occurred with a dead Cult Leader');
+
 console.log('\nAll game.js checks completed.');

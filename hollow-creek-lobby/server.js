@@ -307,7 +307,7 @@ function endGame(room) {
 function sanitizeNightAction(raw) {
   const a = raw && typeof raw === 'object' ? raw : {};
   const out = {};
-  ['kill', 'investigate', 'protect', 'hideBehind', 'bounty', 'silence', 'vigilanteKill', 'consigliereInvestigate', 'morticianInvestigate', 'frameTarget'].forEach(k => {
+  ['kill', 'investigate', 'protect', 'hideBehind', 'bounty', 'silence', 'vigilanteKill', 'consigliereInvestigate', 'morticianInvestigate', 'frameTarget', 'cultConvert'].forEach(k => {
     if (typeof a[k] === 'string') out[k] = a[k];
   });
   return out;
@@ -517,6 +517,26 @@ wss.on('connection', (socket) => {
         const rsp = G.byId(room.state, rp.id);
         if (rsp && rsp.align === 'mafia' && rsp.role !== 'Hitman' && rp.socket.readyState === WebSocket.OPEN) {
           rp.socket.send(JSON.stringify(Object.assign({ type: 'mafiaChatMsg' }, entry)));
+        }
+      });
+    }
+
+    else if (msg.type === 'cultChat') {
+      // PREBETA Phase 2 Task 5 - same double-sided scoping pattern as
+      // mafiaChat above (checked here on send, re-checked per recipient on
+      // broadcast below), just a different roster: CURRENT align==='cult'.
+      const { room, player } = getRoomAndPlayer(socket);
+      if (!room || !room.started || room.state.phase !== 'night') return;
+      const sp = G.byId(room.state, player.id);
+      if (!sp || !sp.alive || sp.align !== 'cult') return;
+      const text = String(msg.text || '').trim().slice(0, 300);
+      if (!text) return;
+      const entry = { playerId: player.id, name: sp.name, text, ts: Date.now() };
+      room.state.cultChatLog.push(entry);
+      room.players.forEach(rp => {
+        const rsp = G.byId(room.state, rp.id);
+        if (rsp && rsp.align === 'cult' && rp.socket.readyState === WebSocket.OPEN) {
+          rp.socket.send(JSON.stringify(Object.assign({ type: 'cultChatMsg' }, entry)));
         }
       });
     }

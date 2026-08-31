@@ -22,16 +22,17 @@ const ROLE_LABEL = {
   DoubleAgent:'the double agent', Doctor:'the doctor', Miller:'the miller',
   BountyHunter:'the bounty hunter', CrazyGranny:'the crazy granny', Coward:'the coward',
   Farmer:'the farmer', NavySeal:'the war veteran', Vigilante:'the vigilante',
-  Consigliere:'the consigliere', Mayor:'the mayor', Mortician:'the mortician', Framer:'the framer', Hitman:'the hitman', Civilian:'a civilian'
+  Consigliere:'the consigliere', Mayor:'the mayor', Mortician:'the mortician', Framer:'the framer', Hitman:'the hitman',
+  CultLeader:'the cult leader', Civilian:'a civilian'
 };
 
-const SPECIAL_ROLES = ['Godfather','Mafia','DoubleAgent','Detective','Doctor','Miller','BountyHunter','CrazyGranny','Coward','Farmer','NavySeal','Vigilante','Consigliere','Mayor','Mortician','Framer','Hitman'];
+const SPECIAL_ROLES = ['Godfather','Mafia','DoubleAgent','Detective','Doctor','Miller','BountyHunter','CrazyGranny','Coward','Farmer','NavySeal','Vigilante','Consigliere','Mayor','Mortician','Framer','Hitman','CultLeader'];
 
 const MIN_PLAYERS = 6;
 const MAX_PLAYERS = CHARACTERS.length + 1; // +1 for at least one real seat beyond the character pool isn't needed; kept for parity with single-player (12)
 const MAX_MAFIA_COUNT = 4;
 
-const DEFAULT_ROLES_CONFIG = {Godfather:true, DoubleAgent:true, Detective:true, Doctor:true, Miller:true, BountyHunter:true, CrazyGranny:true, Coward:false, Farmer:false, NavySeal:false, Vigilante:false, Consigliere:false, Mayor:false, Mortician:false, Framer:false, Hitman:false};
+const DEFAULT_ROLES_CONFIG = {Godfather:true, DoubleAgent:true, Detective:true, Doctor:true, Miller:true, BountyHunter:true, CrazyGranny:true, Coward:false, Farmer:false, NavySeal:false, Vigilante:false, Consigliere:false, Mayor:false, Mortician:false, Framer:false, Hitman:false, CultLeader:false};
 
 function shuffle(arr){
   const a = arr.slice();
@@ -45,6 +46,7 @@ function shuffle(arr){
 function alignOf(role){
   if(role==='Godfather'||role==='DoubleAgent'||role==='Mafia'||role==='Consigliere'||role==='Framer'||role==='Hitman') return 'mafia';
   if(role==='BountyHunter') return 'neutral';
+  if(role==='CultLeader') return 'cult';
   return 'town';
 }
 
@@ -106,7 +108,7 @@ function createGame(seats, config){
 
   return {
     night: 1, phase: 'night', players, bountyTarget: null, bountyPoints: 0, history: [],
-    chatLog: [], mafiaChatLog: [], voteLog: [], winner: null, gameOver: false,
+    chatLog: [], mafiaChatLog: [], cultChatLog: [], voteLog: [], winner: null, gameOver: false,
     pendingNightVotes: {}, // playerId -> {kill, silence, protect, investigate, bounty, hideBehind}
     pendingDayVotes: {}, // playerId -> targetId
     detectiveLog: [], consigliereLog: [], morticianLog: [], farmerRevengeName: null, farmerRevengePending: null,
@@ -164,18 +166,42 @@ function recordLivingCountSnapshot(state, playerId, role, actionType){
 
 function byId(state, id){ return state.players.find(p => p.id === id); }
 function living(state){ return state.players.filter(p => p.alive); }
-function mafiaAlive(state){ return state.players.filter(p => p.alive && (p.role==='Godfather' || p.role==='DoubleAgent' || p.role==='Mafia' || p.role==='Consigliere' || p.role==='Framer' || p.role==='Hitman' || (p.role==='CrazyGranny' && p.flipped))); }
+// PREBETA Phase 2 Task 5 - alignment-based, not role-based: a cult-converted
+// player must fully stop counting toward their ORIGINAL faction's headcount
+// (mafia or town), never left as a silent gap. Since every mafia-aligned
+// role's `align` was already always 'mafia' from creation (alignOf sets it
+// once, and the only thing that ever changes it afterward is a flip/
+// conversion), this is exactly equivalent to the old role-enumeration for
+// every pre-existing role, and is now also the only thing that correctly
+// excludes a converted player.
+function mafiaAlive(state){ return state.players.filter(p => p.alive && p.align==='mafia'); }
+function cultAlive(state){ return state.players.filter(p => p.alive && p.align==='cult'); }
 function mafiaVoters(state){
-  const flippedGranny = state.players.find(p => p.alive && p.role==='CrazyGranny' && p.flipped);
+  // The mafia's shared kill-vote access is a FACTION-level privilege, not an
+  // individual role's ability - a cult-converted Godfather/Mafia/DoubleAgent
+  // keeps their role name but loses this specifically, since their `align`
+  // is no longer 'mafia' post-conversion. Hitman is deliberately absent from
+  // this role list regardless of alignment - he never had kill-vote access
+  // to begin with (see Task 4), nothing to revoke.
+  const flippedGranny = state.players.find(p => p.alive && p.role==='CrazyGranny' && p.flipped && p.align==='mafia');
   if(flippedGranny) return [flippedGranny];
-  return state.players.filter(p => p.alive && (p.role==='Godfather' || p.role==='Mafia' || p.role==='DoubleAgent'));
+  return state.players.filter(p => p.alive && p.align==='mafia' && (p.role==='Godfather' || p.role==='Mafia' || p.role==='DoubleAgent'));
 }
 function log(state, line){ state.history.push('Night '+state.night+' / '+line); }
 
 function checkWin(state){
+  const totalLiving = living(state).length;
   const m = mafiaAlive(state).length;
-  const t = living(state).length - m;
-  if(m===0){ state.winner='town'; state.gameOver=true; return true; }
+  const c = cultAlive(state).length;
+  const t = totalLiving - m; // unchanged meaning: everyone not currently mafia-aligned (town, neutral, and now cult too - mafia still has to outnumber every other living player combined)
+  // PREBETA Phase 2 Task 5 - cult wins once they're a majority OR EQUAL
+  // share of every living player, checked before the town/mafia checks
+  // below since it's the most specific condition. Town's own win condition
+  // now also requires the cult to be gone, not just the mafia - a cult
+  // still short of majority shouldn't let a "town wins" moment fire out
+  // from under it while cult members are still alive and viable.
+  if(c > 0 && c >= (totalLiving - c)){ state.winner='cult'; state.gameOver=true; return true; }
+  if(m===0 && c===0){ state.winner='town'; state.gameOver=true; return true; }
   if(m>=t){ state.winner='mafia'; state.gameOver=true; return true; }
   if(state.bountyPoints>=3){ state.winner='bounty'; state.gameOver=true; return true; }
   return false;
@@ -280,6 +306,14 @@ function placeholderNightAction(state, player){
   // not a wasted action - so a placeholder is free to pick from every
   // living player, teammates included, with no exclusion.
   if(player.role==='Framer') action.frameTarget = pick(options);
+  // PREBETA Phase 2 Task 5 - low-stakes, no-risk choice (a failed/blocked
+  // conversion just does nothing, nobody's harmed), so a placeholder picks
+  // randomly among every living non-cult player, same low-judgment approach
+  // as Consigliere/Mortician's placeholder picks.
+  if(player.role==='CultLeader'){
+    const nonCult = options.filter(p => p.align !== 'cult');
+    action.cultConvert = pick(nonCult.length ? nonCult : options);
+  }
   // Deliberately no Vigilante case here (assumption, not spec'd): unlike
   // Doctor/Coward/BountyHunter, a shot is permanent, once-per-game, and can
   // kill the Vigilante themselves on a wrong guess - a placeholder has no
@@ -516,6 +550,43 @@ function resolveNight(state){
   }
   state.lastNightDeaths = nightDeaths;
 
+  // --- Cult Leader: each night, targets one player to convert. Interacts
+  // with Doctor's protection EXACTLY the way the mafia's kill does - reuses
+  // the same protectTargetId computed above for the kill, not a second
+  // parallel check - if the Doctor protects that night's conversion target,
+  // the conversion fails. Can target anyone, including a mafia-aligned
+  // player - confirmed intentional. If the Cult Leader is dead, `cultLeader`
+  // below is simply undefined and this whole block is skipped: no new
+  // conversions can happen without a living Cult Leader, while existing
+  // converts are entirely unaffected either way (their align was already
+  // set permanently on a past night, not re-derived here). ---
+  const cultLeader = state.players.find(p => p.alive && p.role==='CultLeader');
+  const cultTargetId = cultLeader ? (state.pendingNightVotes[cultLeader.id]||{}).cultConvert : null;
+  let cultConvertedPlayer = null;
+  let cultConversionBlocked = false;
+  if(cultLeader && cultTargetId){
+    const cultTarget = byId(state, cultTargetId);
+    // Already-cult-aligned (including the Cult Leader's own align, 'cult'
+    // from creation) is a silent no-op - nothing meaningful to convert.
+    if(cultTarget && cultTarget.alive && cultTarget.align !== 'cult'){
+      if(protectTargetId && protectTargetId === cultTarget.id){
+        cultConversionBlocked = true;
+        log(state, 'Someone tried to turn '+cultTarget.name+' last night, but the doctor\'s protection held.');
+      } else {
+        // Fully removed from their prior alignment (town or mafia), not left
+        // as a silent gap in the old faction's count - mafiaAlive/cultAlive
+        // are both purely align-based (see above) specifically so this one
+        // line correctly updates every win-condition calculation at once.
+        // The mafia's shared kill-vote access is the one individual privilege
+        // this actually revokes (see mafiaVoters) - every other ability tied
+        // to their role keeps working exactly as before.
+        cultTarget.align = 'cult';
+        cultConvertedPlayer = cultTarget;
+        log(state, cultTarget.name+' has joined the cult.');
+      }
+    }
+  }
+
   checkGrannyFlip(state);
   state.cachedOvernightReport = reportLines.join(' ');
   const gameOver = checkWin(state);
@@ -523,7 +594,7 @@ function resolveNight(state){
   state.pendingNightVotes = {};
   state.phase = 'day-discuss';
 
-  return {reportLines, deathSummary, nightDeathOccurred, revealVictim, silencedPlayerId, investigationResult, consigliereResult, morticianResult, gameOver, killTargetId, doctorSaved: !!doctorSaved, cowardRedirected, vigilanteKillVictim, vigilanteDied, nightDeaths};
+  return {reportLines, deathSummary, nightDeathOccurred, revealVictim, silencedPlayerId, investigationResult, consigliereResult, morticianResult, cultConvertedPlayer, cultConversionBlocked, gameOver, killTargetId, doctorSaved: !!doctorSaved, cowardRedirected, vigilanteKillVictim, vigilanteDied, nightDeaths};
 }
 
 function resolveDayVote(state, timedOutFallbackId){
@@ -705,6 +776,10 @@ function getPlayerView(state, playerId){
   // A living mafia-aligned player sees their living teammates too - the family
   // has to be able to coordinate a kill and avoid targeting its own.
   const iAmMafia = me && me.alive && me.align === 'mafia';
+  // PREBETA Phase 2 Task 5 - a converted player immediately sees the Cult
+  // Leader's identity and any other existing cult members, the same
+  // teammate-visibility principle as mafia, just a different faction/roster.
+  const iAmCult = me && me.alive && me.align === 'cult';
   const players = state.players.map(p => {
     const base = {id:p.id, name:p.name, alive:p.alive, silencedToday:p.silencedToday, isPlaceholder:p.isPlaceholder, occ:p.occ, color:p.color};
     // PREBETA Phase 2 Task 4 - Hitman's teammate awareness is deliberately
@@ -713,7 +788,8 @@ function getPlayerView(state, playerId){
     // and his own teammates never get it of HIM either (excluded as the
     // TARGET, `p`) - they're only ever meant to work him out indirectly, by
     // noticing who's missing from mafia chat, never via this field.
-    const seeAsTeammate = iAmMafia && p.alive && p.align === 'mafia' && me.role !== 'Hitman' && p.role !== 'Hitman';
+    const seeAsTeammate = (iAmMafia && p.alive && p.align === 'mafia' && me.role !== 'Hitman' && p.role !== 'Hitman')
+      || (iAmCult && p.alive && p.align === 'cult');
     if(p.id === playerId || seeAllRoles || !p.alive || seeAsTeammate){
       base.role = p.role; base.align = p.align;
       if(p.role === 'NavySeal') base.usedNavySealCounter = p.usedNavySealCounter;
@@ -740,6 +816,9 @@ function getPlayerView(state, playerId){
     // exception: mafia-aligned but deliberately excluded from this channel
     // entirely - never receives it, never participates in it.
     mafiaChatLog: (me && me.align==='mafia' && me.role !== 'Hitman') ? state.mafiaChatLog : undefined,
+    // Cult chat is scoped strictly by CURRENT align==='cult' - same
+    // double-sided pattern as mafiaChatLog above, just a different roster.
+    cultChatLog: (me && me.align==='cult') ? state.cultChatLog : undefined,
     // Regular chat lines pass through untouched; a whisper announcement's
     // `text` is stripped for anyone who isn't the sender or the target -
     // same scoping principle as whisperLog and mafiaChatLog above, just
@@ -774,7 +853,7 @@ function getPlayerView(state, playerId){
 
 module.exports = {
   CHARACTERS, ROLE_LABEL, SPECIAL_ROLES, MIN_PLAYERS, MAX_PLAYERS, MAX_MAFIA_COUNT, DEFAULT_ROLES_CONFIG,
-  shuffle, alignOf, createGame, byId, living, mafiaAlive, mafiaVoters, checkWin, checkBountyHit, checkGrannyFlip,
+  shuffle, alignOf, createGame, byId, living, mafiaAlive, cultAlive, mafiaVoters, checkWin, checkBountyHit, checkGrannyFlip,
   detectiveRead, investigateAndRead, resolveNight, resolveDayVote, resolveFarmerRevenge, startNextNight,
   getPlayerView, log, specialRoleCount, validateSeatCapacity,
   recordDayVoteSubmission, recordMayorReveal, recordLivingCountSnapshot, recordAccusation, firstAccuserOf
