@@ -22,16 +22,16 @@ const ROLE_LABEL = {
   DoubleAgent:'the double agent', Doctor:'the doctor', Miller:'the miller',
   BountyHunter:'the bounty hunter', CrazyGranny:'the crazy granny', Coward:'the coward',
   Farmer:'the farmer', NavySeal:'the war veteran', Vigilante:'the vigilante',
-  Consigliere:'the consigliere', Mayor:'the mayor', Mortician:'the mortician', Framer:'the framer', Civilian:'a civilian'
+  Consigliere:'the consigliere', Mayor:'the mayor', Mortician:'the mortician', Framer:'the framer', Hitman:'the hitman', Civilian:'a civilian'
 };
 
-const SPECIAL_ROLES = ['Godfather','Mafia','DoubleAgent','Detective','Doctor','Miller','BountyHunter','CrazyGranny','Coward','Farmer','NavySeal','Vigilante','Consigliere','Mayor','Mortician','Framer'];
+const SPECIAL_ROLES = ['Godfather','Mafia','DoubleAgent','Detective','Doctor','Miller','BountyHunter','CrazyGranny','Coward','Farmer','NavySeal','Vigilante','Consigliere','Mayor','Mortician','Framer','Hitman'];
 
 const MIN_PLAYERS = 6;
 const MAX_PLAYERS = CHARACTERS.length + 1; // +1 for at least one real seat beyond the character pool isn't needed; kept for parity with single-player (12)
 const MAX_MAFIA_COUNT = 4;
 
-const DEFAULT_ROLES_CONFIG = {Godfather:true, DoubleAgent:true, Detective:true, Doctor:true, Miller:true, BountyHunter:true, CrazyGranny:true, Coward:false, Farmer:false, NavySeal:false, Vigilante:false, Consigliere:false, Mayor:false, Mortician:false, Framer:false};
+const DEFAULT_ROLES_CONFIG = {Godfather:true, DoubleAgent:true, Detective:true, Doctor:true, Miller:true, BountyHunter:true, CrazyGranny:true, Coward:false, Farmer:false, NavySeal:false, Vigilante:false, Consigliere:false, Mayor:false, Mortician:false, Framer:false, Hitman:false};
 
 function shuffle(arr){
   const a = arr.slice();
@@ -43,7 +43,7 @@ function shuffle(arr){
 }
 
 function alignOf(role){
-  if(role==='Godfather'||role==='DoubleAgent'||role==='Mafia'||role==='Consigliere'||role==='Framer') return 'mafia';
+  if(role==='Godfather'||role==='DoubleAgent'||role==='Mafia'||role==='Consigliere'||role==='Framer'||role==='Hitman') return 'mafia';
   if(role==='BountyHunter') return 'neutral';
   return 'town';
 }
@@ -164,7 +164,7 @@ function recordLivingCountSnapshot(state, playerId, role, actionType){
 
 function byId(state, id){ return state.players.find(p => p.id === id); }
 function living(state){ return state.players.filter(p => p.alive); }
-function mafiaAlive(state){ return state.players.filter(p => p.alive && (p.role==='Godfather' || p.role==='DoubleAgent' || p.role==='Mafia' || p.role==='Consigliere' || p.role==='Framer' || (p.role==='CrazyGranny' && p.flipped))); }
+function mafiaAlive(state){ return state.players.filter(p => p.alive && (p.role==='Godfather' || p.role==='DoubleAgent' || p.role==='Mafia' || p.role==='Consigliere' || p.role==='Framer' || p.role==='Hitman' || (p.role==='CrazyGranny' && p.flipped))); }
 function mafiaVoters(state){
   const flippedGranny = state.players.find(p => p.alive && p.role==='CrazyGranny' && p.flipped);
   if(flippedGranny) return [flippedGranny];
@@ -610,7 +610,14 @@ function resolveDayVote(state, timedOutFallbackId){
   state.lastDayVoteMayorTiebreak = mayorTiebreakResolved;
 
   let farmerRevengePending = null;
-  if(lead.role==='Farmer'){
+  // PREBETA Phase 2 Task 4 - Hitman's revenge ability matches Farmer's shape
+  // EXACTLY (reuses this same mechanism/state fields rather than a parallel
+  // one): triggers only on a day-vote lynch, never any other cause of death,
+  // and can target anyone including a mafia-aligned teammate - the lack of
+  // restriction here is the actual cost of being cut out of the mafia's
+  // coordination. resolveFarmerRevenge below already only excludes self, so
+  // reusing it as-is already satisfies "no restriction enforced."
+  if(lead.role==='Farmer' || lead.role==='Hitman'){
     // A disconnected human has no socket left to ever answer, so treat them
     // like a placeholder here too - same fallback pattern as resolveNight's
     // and resolveDayVote's own tally fill-in for a disconnected player.
@@ -619,8 +626,13 @@ function resolveDayVote(state, timedOutFallbackId){
       state.farmerRevengePending = lead.id;
     } else {
       const options = living(state).filter(p => p.id !== lead.id);
-      if(options.length){
-        const target = options[Math.floor(Math.random()*options.length)];
+      // Hitman's placeholder fallback prefers a Doctor/Detective target when
+      // one's alive - a preference, not a hard restriction (the real
+      // resolution above accepts any target either way, human or fallback).
+      const preferred = lead.role==='Hitman' ? options.filter(p => p.role==='Doctor' || p.role==='Detective') : [];
+      const pool = preferred.length ? preferred : options;
+      if(pool.length){
+        const target = pool[Math.floor(Math.random()*pool.length)];
         target.alive = false;
         checkBountyHit(state, target);
         log(state, lead.name+' took '+target.name+' down with them on the way out.');
@@ -695,7 +707,13 @@ function getPlayerView(state, playerId){
   const iAmMafia = me && me.alive && me.align === 'mafia';
   const players = state.players.map(p => {
     const base = {id:p.id, name:p.name, alive:p.alive, silencedToday:p.silencedToday, isPlaceholder:p.isPlaceholder, occ:p.occ, color:p.color};
-    const seeAsTeammate = iAmMafia && p.alive && p.align === 'mafia';
+    // PREBETA Phase 2 Task 4 - Hitman's teammate awareness is deliberately
+    // asymmetric BY OMISSION here, not by an extra signal: he never gets the
+    // system's passive teammate-visibility (excluded as the VIEWER, `me`),
+    // and his own teammates never get it of HIM either (excluded as the
+    // TARGET, `p`) - they're only ever meant to work him out indirectly, by
+    // noticing who's missing from mafia chat, never via this field.
+    const seeAsTeammate = iAmMafia && p.alive && p.align === 'mafia' && me.role !== 'Hitman' && p.role !== 'Hitman';
     if(p.id === playerId || seeAllRoles || !p.alive || seeAsTeammate){
       base.role = p.role; base.align = p.align;
       if(p.role === 'NavySeal') base.usedNavySealCounter = p.usedNavySealCounter;
@@ -718,8 +736,10 @@ function getPlayerView(state, playerId){
     // learns WHO died via the night-kill reveal, just never their role.
     morticianCandidates: (me && me.role==='Mortician') ? state.lastNightDeaths.map(d => ({id: d.id, name: d.name})) : undefined,
     // Mafia chat is scoped strictly by align==='mafia' - never sent to a
-    // town-aligned player, living or dead.
-    mafiaChatLog: (me && me.align==='mafia') ? state.mafiaChatLog : undefined,
+    // town-aligned player, living or dead. Hitman is the one explicit
+    // exception: mafia-aligned but deliberately excluded from this channel
+    // entirely - never receives it, never participates in it.
+    mafiaChatLog: (me && me.align==='mafia' && me.role !== 'Hitman') ? state.mafiaChatLog : undefined,
     // Regular chat lines pass through untouched; a whisper announcement's
     // `text` is stripped for anyone who isn't the sender or the target -
     // same scoping principle as whisperLog and mafiaChatLog above, just

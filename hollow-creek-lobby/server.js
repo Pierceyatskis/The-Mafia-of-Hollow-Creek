@@ -502,7 +502,9 @@ wss.on('connection', (socket) => {
       const { room, player } = getRoomAndPlayer(socket);
       if (!room || !room.started || room.state.phase !== 'night') return;
       const sp = G.byId(room.state, player.id);
-      if (!sp || !sp.alive || sp.align !== 'mafia') return;
+      // PREBETA Phase 2 Task 4 - Hitman is mafia-aligned but explicitly cut
+      // out of this channel entirely: never receives it, never participates.
+      if (!sp || !sp.alive || sp.align !== 'mafia' || sp.role === 'Hitman') return;
       const text = String(msg.text || '').trim().slice(0, 300);
       if (!text) return;
       const entry = { playerId: player.id, name: sp.name, text, ts: Date.now() };
@@ -510,9 +512,10 @@ wss.on('connection', (socket) => {
       // Scoped strictly to players whose CURRENT align is 'mafia' - never to
       // town-aligned players, and never broadcast wider than the room's own
       // connected sockets (placeholders have no socket to reach anyway).
+      // Hitman excluded here too, on the receiving end.
       room.players.forEach(rp => {
         const rsp = G.byId(room.state, rp.id);
-        if (rsp && rsp.align === 'mafia' && rp.socket.readyState === WebSocket.OPEN) {
+        if (rsp && rsp.align === 'mafia' && rsp.role !== 'Hitman' && rp.socket.readyState === WebSocket.OPEN) {
           rp.socket.send(JSON.stringify(Object.assign({ type: 'mafiaChatMsg' }, entry)));
         }
       });
@@ -613,7 +616,14 @@ wss.on('connection', (socket) => {
       if (room.state.farmerRevengePending !== player.id) return;
       clearPhaseTimer(room);
       const targetId = msg.targetId ? String(msg.targetId) : null;
-      G.recordLivingCountSnapshot(room.state, player.id, 'Farmer', 'farmerRevenge');
+      // PREBETA Phase 2 Task 4 - this mechanism is now shared between Farmer
+      // and Hitman (see resolveDayVote), so the role recorded here has to be
+      // whoever's ACTUALLY triggering it, not a hardcoded 'Farmer' - it only
+      // ever feeds a scoring breakdown line's display text
+      // ("<role> blind guess paid off"), never a branching decision, but a
+      // Hitman's revenge showing up labeled "Farmer" there would be wrong.
+      const revengeRole = G.byId(room.state, player.id).role;
+      G.recordLivingCountSnapshot(room.state, player.id, revengeRole, 'farmerRevenge');
       const result = G.resolveFarmerRevenge(room.state, player.id, targetId);
       finishRoundScoring(room, room.lastDayResult, result);
       if (result.gameOver) { endGame(room); } else { beginDayRevealPhase(room); }

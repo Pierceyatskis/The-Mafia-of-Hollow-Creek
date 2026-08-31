@@ -663,4 +663,52 @@ stateFramerD.pendingNightVotes[detectiveD.id] = {investigate: bhFramerD.id};
 const resFramerD = G.resolveNight(stateFramerD);
 assert(resFramerD.investigationResult && resFramerD.investigationResult.read === 'suspicious', 'Phase2 Task3: Framer has zero effect on a neutral target - always reads suspicious regardless of being framed');
 
+// --- PREBETA Phase 2 Task 4: Hitman - mafia-aligned, counts toward the
+// mafia win condition, but excluded from mafia chat and the shared kill
+// vote entirely, with no passive teammate-visibility in either direction.
+// Revenge ability matches Farmer's shape exactly: triggers only on a
+// day-vote lynch, can target anyone including a mafia-aligned teammate. ---
+const HITMAN_BASE = Object.assign({}, VIG_OFF, {Hitman:true});
+
+// (a) never receives mafia chat or kill-vote access
+const stateHitA = G.createGame(seats, {playerCount: 8, mafiaCount: 1, roles: Object.assign({}, HITMAN_BASE)});
+const hitmanA = stateHitA.players.find(p => p.role === 'Hitman');
+assert(!G.mafiaVoters(stateHitA).some(p => p.id === hitmanA.id), 'Phase2 Task4: Hitman never appears among mafiaVoters - no kill-vote access');
+const viewHitA = G.getPlayerView(stateHitA, hitmanA.id);
+assert(viewHitA.mafiaChatLog === undefined, 'Phase2 Task4: Hitman never receives mafiaChatLog, despite being mafia-aligned');
+assert(G.mafiaAlive(stateHitA).some(p => p.id === hitmanA.id), 'Phase2 Task4: a living Hitman still counts toward the mafia faction\'s win condition');
+
+// (b) teammate awareness is asymmetric BY OMISSION in both directions
+const mafiaTeammateA = stateHitA.players.find(p => p.role === 'Mafia');
+const hitmanSeesTeammate = viewHitA.players.find(p => p.id === mafiaTeammateA.id);
+assert(!hitmanSeesTeammate.role, 'Phase2 Task4: Hitman gets no passive visibility of his own teammates\' roles');
+const viewMateA = G.getPlayerView(stateHitA, mafiaTeammateA.id);
+const mateSeesHitman = viewMateA.players.find(p => p.id === hitmanA.id);
+assert(!mateSeesHitman.role, 'Phase2 Task4: Hitman\'s teammates get no passive visibility of HIM either - the awareness is asymmetric by omission, not a direct signal');
+
+// (c) revenge triggers on a day-vote lynch, never a night kill
+const stateHitC = G.createGame(seats, {playerCount: 8, mafiaCount: 1, roles: Object.assign({}, HITMAN_BASE)});
+const hitmanC = stateHitC.players.find(p => p.role === 'Hitman');
+G.mafiaVoters(stateHitC).forEach(p => { stateHitC.pendingNightVotes[p.id] = {kill: hitmanC.id}; });
+G.resolveNight(stateHitC);
+assert(hitmanC.alive === false, 'Phase2 Task4 setup: the Hitman was actually killed this night');
+assert(stateHitC.farmerRevengePending === null, 'Phase2 Task4: a night kill never triggers the Hitman\'s revenge ability - only a day-vote lynch does');
+
+const stateHitD = G.createGame(seats, {playerCount: 8, mafiaCount: 1, roles: Object.assign({}, HITMAN_BASE)});
+const hitmanD = stateHitD.players.find(p => p.role === 'Hitman');
+const mafiaTeammateD = stateHitD.players.find(p => p.role === 'Mafia');
+// Force the Hitman to be a connected human regardless of which seat they
+// landed in - otherwise resolveDayVote treats them like a placeholder and
+// auto-resolves the revenge with a random target immediately, never
+// leaving farmerRevengePending set for this test to observe.
+hitmanD.isHuman = true; hitmanD.isPlaceholder = false; hitmanD.connected = true;
+G.living(stateHitD).forEach(p => G.recordDayVoteSubmission(stateHitD, p.id, hitmanD.id));
+const resDayHitD = G.resolveDayVote(stateHitD);
+assert(resDayHitD.lead.id === hitmanD.id, 'Phase2 Task4 setup: the Hitman is lynched by day-vote');
+assert(resDayHitD.farmerRevengePending === hitmanD.id, 'Phase2 Task4: a day-vote lynch DOES trigger the Hitman\'s revenge ability');
+
+// (d) revenge target can be anyone, including a mafia-aligned teammate
+const revengeResultD = G.resolveFarmerRevenge(stateHitD, hitmanD.id, mafiaTeammateD.id);
+assert(revengeResultD.revengeKillOccurred === true && mafiaTeammateD.alive === false, 'Phase2 Task4: the Hitman\'s revenge can target anyone, including a mafia-aligned teammate, with no restriction enforced');
+
 console.log('\nAll game.js checks completed.');
