@@ -591,4 +591,20 @@ assert(stateMortD.lastNightDeaths.length === 0, 'Task 7: a day-vote elimination 
 const viewD3 = G.getPlayerView(stateMortD, morticianD.id);
 assert(viewD3.morticianCandidates.length === 0, 'Task 7: a day-vote elimination never appears in the Mortician\'s candidate pool - only night deaths qualify');
 
+// --- PREBETA Phase 2 Task 1: three-tier investigation read (innocent,
+// guilty, suspicious), based on the target's CURRENT alignment as the
+// general rule, with role-based exceptions (Miller, Double Agent, an
+// unflipped Crazy Granny) layered on top. Tested directly against
+// detectiveRead with minimal mock targets - it's a pure function, no need
+// to spin up a full game state for each of these. ---
+assert(G.detectiveRead({role:'Civilian', align:'town'}) === 'innocent', 'Phase2 Task1: a town-aligned target reads innocent (unchanged)');
+assert(G.detectiveRead({role:'Mafia', align:'mafia'}) === 'guilty', 'Phase2 Task1: a mafia-aligned target reads guilty (unchanged)');
+assert(G.detectiveRead({role:'BountyHunter', align:'neutral'}) === 'suspicious', 'Phase2 Task1: a neutral-aligned target (Bounty Hunter) always reads suspicious');
+assert(G.detectiveRead({role:'CrazyGranny', align:'town', flipped:false}) === 'suspicious', 'Phase2 Task1: an unflipped Crazy Granny reads suspicious (changed from innocent)');
+assert(G.detectiveRead({role:'CrazyGranny', align:'mafia', flipped:true}) === 'guilty', 'Phase2 Task1: a flipped Crazy Granny still reads guilty (unchanged)');
+// Miller and Double Agent's existing role-based quirks are preserved exactly.
+assert(G.detectiveRead({role:'Miller', align:'town'}) === 'guilty', 'Phase2 Task1: Miller still always reads guilty despite being town-aligned (unchanged)');
+assert(G.detectiveRead({role:'DoubleAgent', align:'mafia', investigateCount:0}) === 'innocent', 'Phase2 Task1: a first-time Double Agent investigation still reads innocent (unchanged)');
+assert(G.detectiveRead({role:'DoubleAgent', align:'mafia', investigateCount:1}) === 'guilty', 'Phase2 Task1: a second Double Agent investigation still reads guilty (unchanged)');
+
 console.log('\nAll game.js checks completed.');

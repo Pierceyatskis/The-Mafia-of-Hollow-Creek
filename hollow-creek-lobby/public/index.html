@@ -12,6 +12,7 @@
   --parchment:#E8DFC7; --parchment-dim:#B0A588;
   --rust:#B8502A; --rust-dark:#7A331A; --lantern:#D9A441;
   --town:#5C9680; --danger:#C1544B;
+  --align-town:#4C86C6; --align-neutral:#9A6FD1; --align-cult:#D9C93E;
   --gold:#E3B155; --gold-dim:#A9843E; --gold-bright:#F2C97A;
   --maroon:#6B2420; --maroon-dark:#3E1412; --maroon-darker:#2A0D0B;
   --line: rgba(232,223,199,0.14);
@@ -173,7 +174,9 @@ body.bg-night #night-fog{display:block;}
 @keyframes roleCardGlint{to{transform:translateX(140%);}}
 .role-reveal-name{font-family:var(--font-display); font-weight:700; font-size:44px; letter-spacing:2px; margin:0 0 10px; color:var(--gold-bright); text-shadow:0 0 10px rgba(227,177,85,0.5), 0 0 40px rgba(227,177,85,0.35), 0 4px 16px rgba(0,0,0,0.9); opacity:0; animation:deathTextIn 1.3s ease-out 2.9s forwards;}
 .role-reveal-name.align-mafia{color:var(--danger); text-shadow:0 0 10px rgba(193,84,75,0.55), 0 0 40px rgba(193,84,75,0.35), 0 4px 16px rgba(0,0,0,0.9);}
-.role-reveal-name.align-neutral{color:var(--lantern); text-shadow:0 0 10px rgba(217,164,65,0.55), 0 0 40px rgba(217,164,65,0.35), 0 4px 16px rgba(0,0,0,0.9);}
+.role-reveal-name.align-neutral{color:var(--align-neutral); text-shadow:0 0 10px rgba(154,111,209,0.55), 0 0 40px rgba(154,111,209,0.35), 0 4px 16px rgba(0,0,0,0.9);}
+.role-reveal-name.align-town{color:var(--align-town); text-shadow:0 0 10px rgba(76,134,198,0.55), 0 0 40px rgba(76,134,198,0.35), 0 4px 16px rgba(0,0,0,0.9);}
+.role-reveal-name.align-cult{color:var(--align-cult); text-shadow:0 0 10px rgba(217,201,62,0.55), 0 0 40px rgba(217,201,62,0.35), 0 4px 16px rgba(0,0,0,0.9);}
 .role-reveal-flavor{font-family:var(--font-type); font-size:14px; color:var(--parchment-dim); max-width:440px; line-height:1.7; margin:0 0 18px; opacity:0; animation:deathTextIn 1.3s ease-out 3.3s forwards;}
 .role-reveal-extra{max-width:440px; opacity:0; animation:deathTextIn 1.3s ease-out 3.6s forwards;}
 .role-reveal-extra:empty{margin:0;}
@@ -356,6 +359,10 @@ h2.sec{font-family:var(--font-type); font-size:12px; letter-spacing:2px; text-tr
 .feature .role{font-family:var(--font-type); font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--lantern); margin:0 0 4px;}
 .feature p{margin:0;}
 .ally{font-family:var(--font-type); font-size:11px; color:var(--danger); margin-top:8px;}
+.ally-teammates{display:flex; flex-wrap:wrap; gap:10px; margin-top:8px;}
+.ally-teammate-thumb{display:flex; flex-direction:column; align-items:center; gap:3px; width:44px; text-align:center;}
+.ally-teammate-thumb .portrait-frame{width:36px; height:36px; border-radius:4px; overflow:hidden;}
+.ally-teammate-thumb span{font-family:var(--font-type); font-size:8px; letter-spacing:0.3px; color:var(--parchment-dim); line-height:1.2; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; width:100%;}
 .roster-row{display:flex; align-items:center; gap:10px; padding:8px 10px; border-bottom:1px solid var(--line); font-size:14px; cursor:pointer; transition:background .15s ease, padding-left .15s ease; border-radius:4px; opacity:0; animation:rowFadeIn .4s ease forwards;}
 .roster-row:last-child{border-bottom:none;}
 .roster-row:hover{background:rgba(227,177,85,0.06); padding-left:14px;}
@@ -435,11 +442,20 @@ h2.sec{font-family:var(--font-type); font-size:12px; letter-spacing:2px; text-tr
 .detective-log-read{font-family:var(--font-type); font-size:9px; letter-spacing:1px; text-transform:uppercase; padding:2px 7px; border-radius:3px;}
 .detective-log-guilty{color:var(--danger); border:1px solid var(--danger);}
 .detective-log-innocent{color:var(--town); border:1px solid var(--town);}
+.detective-log-suspicious{color:var(--lantern); border:1px solid var(--lantern);}
 .detective-last-read{font-size:13px; color:var(--parchment-dim); background:var(--panel-2); border:1px solid var(--gold-dim); border-radius:6px; padding:10px 12px; margin:0 0 14px;}
 .detective-last-read b{color:var(--parchment);}
 .noimg{border-radius:3px; background:var(--panel); border:1px dashed var(--line); display:flex; align-items:center; justify-content:center; font-family:var(--font-type); font-size:10px; color:var(--parchment-dim); text-align:center;}
 .portrait-frame{position:relative; display:inline-block;}
 .portrait-frame .photo-img{width:100%; height:100%; object-fit:cover; display:block; border-radius:2px; filter:grayscale(35%) sepia(12%);}
+/* PREBETA Phase 2 Task 2 - alignment-outline system: role/portrait display
+   stays exactly as-is, this only layers a colored ring on top representing
+   CURRENT alignment, shown only wherever that information was already
+   legitimately visible to the viewer (see alignClass() in the JS below). */
+.photo-img.align-town{box-shadow:inset 0 0 0 3px var(--align-town);}
+.photo-img.align-mafia{box-shadow:inset 0 0 0 3px var(--danger);}
+.photo-img.align-neutral{box-shadow:inset 0 0 0 3px var(--align-neutral);}
+.photo-img.align-cult{box-shadow:inset 0 0 0 3px var(--align-cult);}
 .portrait-frame .frame-overlay{position:absolute; inset:0; width:100%; height:100%; pointer-events:none;}
 .deceased-stamp{font-family:var(--font-type); font-size:11px; letter-spacing:1px; padding:2px 8px; border-radius:3px; background:rgba(193,84,75,0.15); color:var(--danger); border:1px solid var(--danger);}
 .deceased-stamp.stamp-in{animation:stampPopIn .5s cubic-bezier(.34,1.56,.64,1);}
@@ -1131,7 +1147,7 @@ function portraitFor(p){
   return ROLE_IMG[p.role];
 }
 var ROLE_BIO = {
-  Detective:"Something in this town needed looking into long before you got here. Each night, you may investigate one resident and learn if they read guilty or innocent.",
+  Detective:"Something in this town needed looking into long before you got here. Each night, you may investigate one resident and learn if they read guilty, innocent, or suspicious — that last one covers more than one kind of person, and there's no way to tell which from the read alone.",
   Godfather:"You've been running things quietly for longer than anyone in Hollow Creek suspects. Each night you get a vote on who the family eliminates, same as anyone else in it, and you alone may silence one tongue for the day to come.",
   Mafia:"You're family, even if your name never shows up on anyone's ledger. Each night you get an equal vote on who the family eliminates.",
   DoubleAgent:"You do the mafia's work without anyone ever suspecting you're capable of it. Each night you get an equal vote on who the family eliminates, same as anyone else in it. The first time the detective investigates you, their instincts fail and you read innocent. But your cover only holds once \u2014 a second look reads guilty.",
@@ -1149,7 +1165,7 @@ var ROLE_BIO = {
   Civilian:"You don't have a badge, a secret, or a special gift. Just a vote, a memory for who said what, and whatever instinct got you this far."
 };
 var ROLE_POINTS = {
-  Detective:["Investigate one player every night", "Learn whether they read guilty or innocent"],
+  Detective:["Investigate one player every night", "Learn whether they read guilty, innocent, or suspicious", "A suspicious read can mean more than one thing - no way to tell which"],
   Godfather:["Equal vote each night on who the family eliminates", "May silence one player per day — they can't speak or vote"],
   Mafia:["Equal vote each night on who the family eliminates"],
   DoubleAgent:["Equal vote each night on who the family eliminates", "Reads innocent the first time you're investigated", "Reads guilty on every investigation after that"],
@@ -2087,11 +2103,19 @@ function buildAllyExtraHTML(p){
     lines.push(deadMates.map(function(q){return q.name;}).join(', ')+(deadMates.length===1?' has':' have')+' already been eliminated.');
   }
   if(!lines.length) return '';
-  return '<p class="ally">'+lines.join(' ')+'</p>';
+  // PREBETA Phase 2 Task 2 - alignment info a mafia-aligned viewer already
+  // legitimately has (their living teammates' identities, via the same
+  // teammate-visibility feature the text above already draws on) gets a
+  // small portrait with its alignment outline here too, not just a name.
+  var thumbs = aliveMates.map(function(q){
+    var qImg = portraitFor(q);
+    return '<div class="ally-teammate-thumb"><div class="portrait-frame">'+(qImg ? '<img class="photo-img '+alignClass(q)+'" src="'+qImg+'" alt="">' : '')+'</div><span>'+escapeHtmlMp(q.name)+'</span></div>';
+  }).join('');
+  return '<p class="ally">'+lines.join(' ')+'</p>'+(thumbs ? '<div class="ally-teammates">'+thumbs+'</div>' : '');
 }
 function buildDossierCardHTML(h, showExtras){
   var img = portraitFor(h);
-  var pic = img ? '<div class="portrait-frame dossier-photo"><img class="photo-img" src="'+img+'" alt="'+h.role+'"><img class="frame-overlay" src="'+FRAME_IMG+'" alt=""></div>' : '<div class="noimg dossier-photo">no photo<br>on file</div>';
+  var pic = img ? '<div class="portrait-frame dossier-photo"><img class="photo-img '+alignClass(h)+'" src="'+img+'" alt="'+h.role+'"><img class="frame-overlay" src="'+FRAME_IMG+'" alt=""></div>' : '<div class="noimg dossier-photo">no photo<br>on file</div>';
   var points = (ROLE_POINTS[h.role]||[]).map(function(pt, idx){
     return '<li class="dossier-point" style="animation-delay:'+(0.95 + idx*0.15).toFixed(2)+'s;"><span class="dossier-point-mark">◆</span><span>'+pt+'</span></li>';
   }).join('');
@@ -4911,11 +4935,28 @@ function portraitFor(p){
   return ROLE_IMG[p.role];
 }
 
+// PREBETA Phase 2 Task 2 - a colored outline representing CURRENT alignment
+// (blue/red/purple/yellow for town/mafia/neutral/cult), layered on top of
+// role display wherever it's already shown. `p.align` is only ever present
+// on a player object when the SERVER already decided this viewer may see
+// it (self, a living mafia-aligned teammate's shared view, or a dead/
+// spectator view - see game.js's getPlayerView) - this never re-derives or
+// widens that access, it just visualizes whatever's already there, so an
+// absent align naturally (and correctly) yields no outline at all.
+function alignClass(p){
+  if(!p || !p.align) return '';
+  if(p.align==='mafia') return 'align-mafia';
+  if(p.align==='neutral') return 'align-neutral';
+  if(p.align==='cult') return 'align-cult';
+  if(p.align==='town') return 'align-town';
+  return '';
+}
+
 function renderRoleBadge(){
   var h = you();
   if(!h) return;
   var img = portraitFor(h);
-  document.getElementById('role-badge-img').innerHTML = img ? '<img class="photo-img" src="'+img+'" alt=""><img class="frame-overlay" src="'+FRAME_IMG+'" alt="">' : '';
+  document.getElementById('role-badge-img').innerHTML = img ? '<img class="photo-img '+alignClass(h)+'" src="'+img+'" alt=""><img class="frame-overlay" src="'+FRAME_IMG+'" alt="">' : '';
   document.getElementById('role-badge-name').textContent = ROLE_LABEL[h.role];
 }
 
@@ -5049,11 +5090,11 @@ function showRoleRevealScreen(onContinue){
 
   var img = portraitFor(h);
   document.getElementById('role-reveal-card').innerHTML = img
-    ? ('<div class="portrait-frame"><img class="photo-img" src="'+img+'" alt="'+h.role+'"><img class="frame-overlay" src="'+FRAME_IMG+'" alt=""></div>')
+    ? ('<div class="portrait-frame"><img class="photo-img '+alignClass(h)+'" src="'+img+'" alt="'+h.role+'"><img class="frame-overlay" src="'+FRAME_IMG+'" alt=""></div>')
     : '';
   var nameEl = document.getElementById('role-reveal-name');
   nameEl.textContent = ROLE_SHORT[h.role] || h.role;
-  nameEl.className = 'role-reveal-name' + (h.align==='mafia' ? ' align-mafia' : h.align==='neutral' ? ' align-neutral' : '');
+  nameEl.className = 'role-reveal-name ' + alignClass(h);
   document.getElementById('role-reveal-flavor').textContent = ROLE_BIO[h.role] || '';
   document.getElementById('role-reveal-extra').innerHTML = (h.align==='mafia') ? buildAllyExtraHTML(h) : '';
 

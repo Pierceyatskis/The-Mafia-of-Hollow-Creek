@@ -198,16 +198,47 @@ function checkGrannyFlip(state){
   return false;
 }
 
-function detectiveRead(target){
-  if(target.role==='Godfather') return 'guilty';
-  if(target.role==='Mafia') return 'guilty';
+// PREBETA Phase 2 Task 1 - three-tier investigation read: innocent, guilty,
+// suspicious. Based on the TARGET's current alignment, never on their
+// underlying role, as the general rule - "suspicious" deliberately covers
+// several genuinely different things (a harmless neutral, an unflipped
+// Granny, a cult convert) with no way for the investigator to tell which
+// apart, and that ambiguity is intentional, not a gap.
+//
+// framerTargetId (Phase 2 Task 3): if given and it matches this target,
+// Framer's effect overrides the read this round based on the target's
+// CURRENT alignment (mafia -> innocent, everyone else -> guilty) - checked
+// before any role-based exception below, since Framer replaces "this
+// round's" read outcome entirely, the same way it would for a plain
+// town/mafia target with no special role gimmick of their own. Never
+// reaches this override for a neutral/cult target - those are unconditional
+// per the two checks above it.
+function detectiveRead(target, framerTargetId){
+  // Neutral and cult are always suspicious, unconditionally, checked first -
+  // Framer's own ability explicitly never touches this ("never affects
+  // neutral or cult members, who always read suspicious"), and this is also
+  // the check that makes a cult-converted Miller/DoubleAgent correctly stop
+  // getting their old role's guilty/innocent quirk once converted: "the read
+  // is based on current alignment only, never on role - not a per-role
+  // exception."
+  if(target.align === 'neutral' || target.align === 'cult') return 'suspicious';
+  if(framerTargetId && target.id === framerTargetId){
+    return target.align === 'mafia' ? 'innocent' : 'guilty';
+  }
+  // Role-based exceptions that don't follow pure alignment - only reachable
+  // while the player is still in their original (town/mafia) alignment,
+  // since neutral/cult already returned above.
   if(target.role==='Miller') return 'guilty';
-  if(target.role==='CrazyGranny' && target.flipped) return 'guilty';
   if(target.role==='DoubleAgent') return (target.investigateCount||0) >= 1 ? 'guilty' : 'innocent';
+  if(target.role==='CrazyGranny' && !target.flipped) return 'suspicious';
+  // General alignment-based rule for everyone else - a flipped Crazy Granny
+  // falls through to here too (align is already 'mafia' by then), so no
+  // separate flipped-Granny case is needed above.
+  if(target.align === 'mafia') return 'guilty';
   return 'innocent';
 }
-function investigateAndRead(target){
-  const read = detectiveRead(target);
+function investigateAndRead(target, framerTargetId){
+  const read = detectiveRead(target, framerTargetId);
   target.investigateCount = (target.investigateCount||0) + 1;
   return read;
 }
