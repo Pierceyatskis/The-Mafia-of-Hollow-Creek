@@ -1001,6 +1001,7 @@ h2.sec{font-family:var(--font-type); font-size:12px; letter-spacing:2px; text-tr
 
       <h2 class="sec" style="margin-top:20px;">Roles in play</h2>
       <div class="chipgrid" id="setup-role-grid"></div>
+      <p class="msg" id="setup-cult-note" style="display:none; margin-top:10px; color:var(--align-cult); font-size:12px;">Cult Leader introduces a genuine third faction with its own separate win condition — this isn't just town vs. mafia anymore.</p>
       <p class="msg" id="setup-slots-msg" style="margin-top:10px; color:var(--parchment-dim);"></p>
       <p class="msg err" id="setup-error" style="display:none;"></p>
 
@@ -3811,6 +3812,10 @@ function renderSetupScreen(){
       '<span class="chip-name">'+ROLE_SHORT[r]+'</span>'+
       '</div>';
   }).join('');
+  // Accessibility & Settings Task 2 - a host enabling Cult Leader should
+  // know, right here at config time, that they're introducing a genuinely
+  // different win-condition shape, not just another role.
+  document.getElementById('setup-cult-note').style.display = GAME_CONFIG.roles.CultLeader ? 'block' : 'none';
   updateSetupSlotsMsg();
 }
 document.getElementById('mode-quick-btn').addEventListener('click', function(){
@@ -4105,7 +4110,13 @@ function tourStep0(){
       '<div class="howto-tour-faction"><div class="portrait-frame"><img class="photo-img" src="'+IMG.godfather+'" alt=""><img class="frame-overlay" src="'+FRAME_IMG+'" alt=""></div>'+
         '<p class="howto-tour-faction-name">The Mafia</p>'+
         '<p class="howto-tour-faction-goal">Wins the moment their numbers equal the town\'s remaining numbers.</p></div>'+
-    '</div>';
+    '</div>'+
+    // Accessibility & Settings Task 2 - explicit "this isn't just two
+    // sides" framing before a first-time player can be surprised by it
+    // mid-play. Deliberately brief and secondary to the core two-faction
+    // explanation above, since Cult is an optional role many games won't
+    // have enabled at all.
+    '<p class="howto-tour-text" style="margin-top:14px; font-size:12px; color:var(--parchment-dim);">Some games add a genuine third side - a cult, with its own win condition entirely separate from town and mafia. If the host has enabled it, your own role reveal will tell you plainly which side you\'ve actually landed on.</p>';
 }
 function tourStep1(){
   var sample = CHARACTERS.slice(0,4).map(function(c){return {id:c.id, name:c.name};});
