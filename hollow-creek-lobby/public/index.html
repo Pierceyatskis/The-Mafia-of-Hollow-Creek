@@ -733,6 +733,10 @@ h2.sec{font-family:var(--font-type); font-size:12px; letter-spacing:2px; text-tr
         <input type="checkbox" id="settings-colorblind-check" style="width:auto; margin-top:2px; flex-shrink:0;">
         <span>Colorblind-friendly mode — add a text label to every alignment color (portrait outlines, reveal names), not just color alone.</span>
       </label>
+      <label class="checkbox-row" style="display:flex; align-items:flex-start; gap:8px; font-size:13px; color:var(--parchment-dim); margin-bottom:14px;">
+        <input type="checkbox" id="settings-haptics-check" style="width:auto; margin-top:2px; flex-shrink:0;">
+        <span>Vibration — independent of sound. Muting sound won't turn this off, and turning this off won't mute sound.</span>
+      </label>
     </div>
   </div>
 </div>
@@ -1808,7 +1812,12 @@ var SoundFX = (function(){
     }
   };
 })();
+// Accessibility & Settings Task 4 - independent of sound mute/volume, so a
+// player who dislikes vibration but is fine with audio (or vice versa) can
+// control each separately. Every call site in the app routes through this
+// one function, so a single check here covers all of them.
 function vibrate(pattern){
+  if(!CURRENT_SETTINGS.haptics) return;
   try{ if(navigator.vibrate) navigator.vibrate(pattern); }catch(e){}
 }
 function screenShake(target){
@@ -4061,6 +4070,7 @@ document.getElementById('settings-btn').addEventListener('click', function(){
 });
 function openSettingsModal(){
   document.getElementById('settings-colorblind-check').checked = !!CURRENT_SETTINGS.colorblind;
+  document.getElementById('settings-haptics-check').checked = !!CURRENT_SETTINGS.haptics;
   document.getElementById('settings-modal').style.display = 'flex';
 }
 function closeSettingsModal(){
@@ -4075,6 +4085,11 @@ document.getElementById('settings-colorblind-check').addEventListener('change', 
   // unrelated re-render.
   if(document.getElementById('role-badge').style.display !== 'none') renderRoleBadge();
   if(document.getElementById('role-card-modal').style.display === 'flex') openRoleCardModal();
+});
+document.getElementById('settings-haptics-check').addEventListener('change', function(e){
+  CURRENT_SETTINGS.haptics = e.target.checked;
+  saveSettings(CURRENT_SETTINGS);
+  if(CURRENT_SETTINGS.haptics) vibrate(15);
 });
 
 function renderHowTo(){
