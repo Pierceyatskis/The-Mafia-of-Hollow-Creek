@@ -737,6 +737,16 @@ h2.sec{font-family:var(--font-type); font-size:12px; letter-spacing:2px; text-tr
         <input type="checkbox" id="settings-haptics-check" style="width:auto; margin-top:2px; flex-shrink:0;">
         <span>Vibration — independent of sound. Muting sound won't turn this off, and turning this off won't mute sound.</span>
       </label>
+      <div style="margin-top:8px; padding-top:14px; border-top:1px solid var(--line);">
+        <p style="font-size:13px; color:var(--parchment-dim); margin-bottom:8px;">Your profile, streak, and score history are stored only in this browser.</p>
+        <button class="btn ghost" id="settings-reset-btn" style="border-color:var(--danger); color:var(--danger);">Reset My Data</button>
+        <div id="settings-reset-confirm" style="display:none; margin-top:10px;">
+          <p class="msg err" style="margin-bottom:8px;">This clears your profile, streak, and score history for good. It cannot be undone.</p>
+          <button class="btn" id="settings-reset-confirm-btn" style="background:var(--danger); border-color:var(--danger);">Yes, reset everything</button>
+          <button class="btn ghost" id="settings-reset-cancel-btn">Cancel</button>
+        </div>
+        <p class="msg ok" id="settings-reset-done" style="display:none; margin-top:8px;">Done — your local data has been cleared.</p>
+      </div>
     </div>
   </div>
 </div>
@@ -4090,6 +4100,37 @@ document.getElementById('settings-haptics-check').addEventListener('change', fun
   CURRENT_SETTINGS.haptics = e.target.checked;
   saveSettings(CURRENT_SETTINGS);
   if(CURRENT_SETTINGS.haptics) vibrate(15);
+});
+
+// Accessibility & Settings Task 5 - clears exactly the local-only player
+// history this Settings panel already surfaces (profile, streak, score
+// history), deliberately not touching accessibility preferences
+// (CURRENT_SETTINGS) or an in-progress single-player save, since those
+// aren't "player history" in the sense this feature is about.
+async function clearAllLocalData(){
+  var keys = [PROFILE_KEY, STREAK_KEY, SCORE_STATS_KEY];
+  for(var i=0;i<keys.length;i++){
+    try{
+      if(hasClaudeStorage()){ await window.storage.delete(keys[i], false); }
+      else { localStorage.removeItem(keys[i]); }
+    }catch(e){ /* nothing to clear */ }
+  }
+  CURRENT_PROFILE = Object.assign({}, DEFAULT_PROFILE);
+}
+document.getElementById('settings-reset-btn').addEventListener('click', function(){
+  document.getElementById('settings-reset-btn').style.display = 'none';
+  document.getElementById('settings-reset-done').style.display = 'none';
+  document.getElementById('settings-reset-confirm').style.display = 'block';
+});
+document.getElementById('settings-reset-cancel-btn').addEventListener('click', function(){
+  document.getElementById('settings-reset-confirm').style.display = 'none';
+  document.getElementById('settings-reset-btn').style.display = 'inline-block';
+});
+document.getElementById('settings-reset-confirm-btn').addEventListener('click', async function(){
+  await clearAllLocalData();
+  document.getElementById('settings-reset-confirm').style.display = 'none';
+  document.getElementById('settings-reset-btn').style.display = 'inline-block';
+  document.getElementById('settings-reset-done').style.display = 'block';
 });
 
 function renderHowTo(){
