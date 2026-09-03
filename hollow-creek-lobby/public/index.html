@@ -422,6 +422,14 @@ h2.sec{font-family:var(--font-type); font-size:12px; letter-spacing:2px; text-tr
   .dossier-card, .dossier-photo, .dossier-role-name, .dossier-flavor, .dossier-point, .bounty-mark{animation:none !important; opacity:1 !important; transform:none !important; filter:none !important;}
   .dossier-card::after{animation:none !important; display:none;}
 }
+/* Accessibility & Settings Task 3 - forces the exact same behavior above
+   regardless of the OS-level setting, when the in-app toggle is on (helps
+   a player on a shared/borrowed device who hasn't configured it at the OS
+   level). Same selector list and rules as the media query on purpose -
+   one behavior, two triggers, not a second parallel system. Body gets
+   .force-reduced-motion added/removed by JS (see applyReducedMotion()). */
+body.force-reduced-motion .dossier-card, body.force-reduced-motion .dossier-photo, body.force-reduced-motion .dossier-role-name, body.force-reduced-motion .dossier-flavor, body.force-reduced-motion .dossier-point, body.force-reduced-motion .bounty-mark{animation:none !important; opacity:1 !important; transform:none !important; filter:none !important;}
+body.force-reduced-motion .dossier-card::after{animation:none !important; display:none;}
 .bounty-tracker{margin-top:16px; padding-top:14px; border-top:1px solid var(--line); opacity:0; animation:flavorIn .5s ease 1.5s forwards;}
 .bounty-tracker-label{font-family:var(--font-type); font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--gold); margin:0 0 10px;}
 .bounty-marks{display:flex; gap:12px;}
@@ -736,6 +744,10 @@ h2.sec{font-family:var(--font-type); font-size:12px; letter-spacing:2px; text-tr
       <label class="checkbox-row" style="display:flex; align-items:flex-start; gap:8px; font-size:13px; color:var(--parchment-dim); margin-bottom:14px;">
         <input type="checkbox" id="settings-haptics-check" style="width:auto; margin-top:2px; flex-shrink:0;">
         <span>Vibration — independent of sound. Muting sound won't turn this off, and turning this off won't mute sound.</span>
+      </label>
+      <label class="checkbox-row" style="display:flex; align-items:flex-start; gap:8px; font-size:13px; color:var(--parchment-dim); margin-bottom:14px;">
+        <input type="checkbox" id="settings-reduced-motion-check" style="width:auto; margin-top:2px; flex-shrink:0;">
+        <span>Reduce motion — same effect as your device's reduce-motion setting, forced on here even if that's off (useful on a shared or borrowed device).</span>
       </label>
       <div style="margin-top:8px; padding-top:14px; border-top:1px solid var(--line);">
         <p style="font-size:13px; color:var(--parchment-dim); margin-bottom:8px;">Your profile, streak, and score history are stored only in this browser.</p>
@@ -4081,7 +4093,14 @@ document.getElementById('settings-btn').addEventListener('click', function(){
 function openSettingsModal(){
   document.getElementById('settings-colorblind-check').checked = !!CURRENT_SETTINGS.colorblind;
   document.getElementById('settings-haptics-check').checked = !!CURRENT_SETTINGS.haptics;
+  document.getElementById('settings-reduced-motion-check').checked = !!CURRENT_SETTINGS.reducedMotion;
   document.getElementById('settings-modal').style.display = 'flex';
+}
+// Accessibility & Settings Task 3 - applies (or removes) the forced
+// reduce-motion class; called on toggle AND once at boot so a persisted
+// "on" setting actually takes effect on load, not just when re-toggled.
+function applyReducedMotion(){
+  document.body.classList.toggle('force-reduced-motion', !!CURRENT_SETTINGS.reducedMotion);
 }
 function closeSettingsModal(){
   document.getElementById('settings-modal').style.display = 'none';
@@ -4100,6 +4119,11 @@ document.getElementById('settings-haptics-check').addEventListener('change', fun
   CURRENT_SETTINGS.haptics = e.target.checked;
   saveSettings(CURRENT_SETTINGS);
   if(CURRENT_SETTINGS.haptics) vibrate(15);
+});
+document.getElementById('settings-reduced-motion-check').addEventListener('change', function(e){
+  CURRENT_SETTINGS.reducedMotion = e.target.checked;
+  saveSettings(CURRENT_SETTINGS);
+  applyReducedMotion();
 });
 
 // Accessibility & Settings Task 5 - clears exactly the local-only player
@@ -5281,6 +5305,7 @@ async function initGame(){
   try{
     CURRENT_SETTINGS = await loadSettings();
   }catch(e){ /* use defaults */ }
+  applyReducedMotion();
   switchPanel('home');
   var bootEl = document.getElementById('boot-loading');
   if(bootEl){
