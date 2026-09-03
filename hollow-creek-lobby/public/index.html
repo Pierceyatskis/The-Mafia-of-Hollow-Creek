@@ -749,7 +749,14 @@ body.force-reduced-motion .dossier-card::after{animation:none !important; displa
         <input type="checkbox" id="settings-reduced-motion-check" style="width:auto; margin-top:2px; flex-shrink:0;">
         <span>Reduce motion — same effect as your device's reduce-motion setting, forced on here even if that's off (useful on a shared or borrowed device).</span>
       </label>
-      <div style="margin-top:8px; padding-top:14px; border-top:1px solid var(--line);">
+      <div style="margin-top:6px; padding-top:14px; border-top:1px solid var(--line);">
+        <p style="font-size:13px; color:var(--parchment-dim); margin-bottom:8px;">Ambience volume — rain, crickets, the night clock tick. Independent of the sound effects slider up top.</p>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <input type="range" id="settings-ambience-slider" class="volume-slider" min="0" max="100" value="80" aria-label="Ambience volume" style="width:140px;">
+          <span id="settings-ambience-value" style="font-family:var(--font-type); font-size:12px; color:var(--parchment-dim); min-width:32px;">80%</span>
+        </div>
+      </div>
+      <div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
         <p style="font-size:13px; color:var(--parchment-dim); margin-bottom:8px;">Your profile, streak, and score history are stored only in this browser.</p>
         <button class="btn ghost" id="settings-reset-btn" style="border-color:var(--danger); color:var(--danger);">Reset My Data</button>
         <div id="settings-reset-confirm" style="display:none; margin-top:10px;">
@@ -898,7 +905,7 @@ body.force-reduced-motion .dossier-card::after{animation:none !important; displa
   <h1>The Mafia of Hollow Creek</h1>
   <p>a game of deduction and deception</p>
 </header>
-<div class="statusbar" id="statusbar" style="display:none;"><span><span id="phase-label">lobby</span><span id="night-label"></span></span><span class="sound-controls"><input type="range" id="volume-slider" class="volume-slider" min="0" max="100" value="80" aria-label="Sound volume"><button class="sound-toggle" id="sound-toggle-btn" type="button">Sound: On</button></span></div>
+<div class="statusbar" id="statusbar" style="display:none;"><span><span id="phase-label">lobby</span><span id="night-label"></span></span><span class="sound-controls"><input type="range" id="volume-slider" class="volume-slider" min="0" max="100" value="80" aria-label="Sound effects volume" title="Sound effects volume"><button class="sound-toggle" id="sound-toggle-btn" type="button">Sound: On</button></span></div>
 
 <div class="folder" id="home-folder" style="background:transparent; border:none; padding:0;">
   <div id="panel-home">
@@ -1617,11 +1624,18 @@ async function clearSavedGame(){
 
 var SOUND_MUTE_KEY = 'hc-sound-muted-v1';
 var SOUND_VOLUME_KEY = 'hc-sound-volume-v1';
+// Accessibility & Settings Task 6 - a second, independent volume bucket for
+// ambience/atmosphere (rain, crickets, the night clock tick) separate from
+// discrete sound effects (SOUND_VOLUME_KEY above, now SFX-only). Same
+// default as SFX for continuity with whatever a player already had.
+var SOUND_AMBIENCE_VOLUME_KEY = 'hc-sound-ambience-volume-v1';
 var SoundFX = (function(){
   var ctx = null;
   var muted = localStorage.getItem(SOUND_MUTE_KEY) === '1';
-  var masterVolume = localStorage.getItem(SOUND_VOLUME_KEY) !== null ? parseFloat(localStorage.getItem(SOUND_VOLUME_KEY)) : 0.8;
-  if(isNaN(masterVolume)) masterVolume = 0.8;
+  var sfxVolume = localStorage.getItem(SOUND_VOLUME_KEY) !== null ? parseFloat(localStorage.getItem(SOUND_VOLUME_KEY)) : 0.8;
+  if(isNaN(sfxVolume)) sfxVolume = 0.8;
+  var ambienceVolume = localStorage.getItem(SOUND_AMBIENCE_VOLUME_KEY) !== null ? parseFloat(localStorage.getItem(SOUND_AMBIENCE_VOLUME_KEY)) : 0.8;
+  if(isNaN(ambienceVolume)) ambienceVolume = 0.8;
   function getCtx(){
     if(!ctx){
       var AC = window.AudioContext || window.webkitAudioContext;
@@ -1637,7 +1651,7 @@ var SoundFX = (function(){
     osc.frequency.setValueAtTime(freq, start);
     if(freqEnd) osc.frequency.exponentialRampToValueAtTime(freqEnd, start + dur);
     gain.gain.setValueAtTime(0.0001, start);
-    gain.gain.exponentialRampToValueAtTime(Math.max(peak * masterVolume, 0.0001), start + 0.008);
+    gain.gain.exponentialRampToValueAtTime(Math.max(peak * sfxVolume, 0.0001), start + 0.008);
     gain.gain.exponentialRampToValueAtTime(0.0001, start + dur);
     osc.connect(gain); gain.connect(c.destination);
     osc.start(start); osc.stop(start + dur + 0.03);
@@ -1677,7 +1691,7 @@ var SoundFX = (function(){
     try{
       var a = new Audio(FILES[key]);
       warnIfMissing(a, key);
-      a.volume = (volume==null ? 0.6 : volume) * masterVolume;
+      a.volume = (volume==null ? 0.6 : volume) * sfxVolume;
       if(pitchVariance) a.playbackRate = 1 + (Math.random()*2-1)*pitchVariance;
       a.play().catch(function(){});
       return a;
@@ -1772,7 +1786,7 @@ var SoundFX = (function(){
             r.volume = 0;
             r.play().catch(function(){});
             rainEl = r;
-            fadeTo(r, RAIN_BASE_VOL * masterVolume, 1500);
+            fadeTo(r, RAIN_BASE_VOL * ambienceVolume, 1500);
           }catch(e){ rainEl = null; }
         }
       } else if(rainEl){
@@ -1790,7 +1804,7 @@ var SoundFX = (function(){
             ck.volume = 0;
             ck.play().catch(function(){});
             cricketEl = ck;
-            fadeTo(ck, CRICKET_BASE_VOL * masterVolume, 1500);
+            fadeTo(ck, CRICKET_BASE_VOL * ambienceVolume, 1500);
           }catch(e){ cricketEl = null; }
         }
       } else if(cricketEl){
@@ -1808,7 +1822,7 @@ var SoundFX = (function(){
         tickEl = new Audio(FILES.clockTick);
         warnIfMissing(tickEl, 'clockTick');
         tickEl.loop = true;
-        tickEl.volume = TICK_BASE_VOL * masterVolume;
+        tickEl.volume = TICK_BASE_VOL * ambienceVolume;
         tickEl.playbackRate = 1;
         tickEl.play().catch(function(){});
       }catch(e){ tickEl = null; }
@@ -1821,16 +1835,26 @@ var SoundFX = (function(){
       tickUrgency = Math.max(0, Math.min(1, fraction));
       if(tickEl){
         tickEl.playbackRate = 1 + tickUrgency * 0.7;
-        tickEl.volume = Math.min(1, TICK_BASE_VOL * masterVolume * (1 + tickUrgency * 0.8));
+        tickEl.volume = Math.min(1, TICK_BASE_VOL * ambienceVolume * (1 + tickUrgency * 0.8));
       }
     },
-    getVolume: function(){ return masterVolume; },
+    // SFX volume - discrete sound effects only (playFile/tone). Ambience
+    // (rain, crickets, the night clock tick) has its own independent
+    // volume below, so a player can set one low while keeping the other
+    // at normal volume.
+    getVolume: function(){ return sfxVolume; },
     setVolume: function(v){
-      masterVolume = Math.max(0, Math.min(1, v));
-      localStorage.setItem(SOUND_VOLUME_KEY, String(masterVolume));
-      if(rainEl && !rainEl._fadeTimer) rainEl.volume = RAIN_BASE_VOL * masterVolume;
-      if(cricketEl && !cricketEl._fadeTimer) cricketEl.volume = CRICKET_BASE_VOL * masterVolume;
-      if(tickEl) tickEl.volume = Math.min(1, TICK_BASE_VOL * masterVolume * (1 + tickUrgency * 0.8));
+      sfxVolume = Math.max(0, Math.min(1, v));
+      localStorage.setItem(SOUND_VOLUME_KEY, String(sfxVolume));
+    },
+    // Accessibility & Settings Task 6 - ambience volume, independent of SFX.
+    getAmbienceVolume: function(){ return ambienceVolume; },
+    setAmbienceVolume: function(v){
+      ambienceVolume = Math.max(0, Math.min(1, v));
+      localStorage.setItem(SOUND_AMBIENCE_VOLUME_KEY, String(ambienceVolume));
+      if(rainEl && !rainEl._fadeTimer) rainEl.volume = RAIN_BASE_VOL * ambienceVolume;
+      if(cricketEl && !cricketEl._fadeTimer) cricketEl.volume = CRICKET_BASE_VOL * ambienceVolume;
+      if(tickEl) tickEl.volume = Math.min(1, TICK_BASE_VOL * ambienceVolume * (1 + tickUrgency * 0.8));
     }
   };
 })();
@@ -4094,6 +4118,9 @@ function openSettingsModal(){
   document.getElementById('settings-colorblind-check').checked = !!CURRENT_SETTINGS.colorblind;
   document.getElementById('settings-haptics-check').checked = !!CURRENT_SETTINGS.haptics;
   document.getElementById('settings-reduced-motion-check').checked = !!CURRENT_SETTINGS.reducedMotion;
+  var ambiencePct = Math.round(SoundFX.getAmbienceVolume() * 100);
+  document.getElementById('settings-ambience-slider').value = ambiencePct;
+  document.getElementById('settings-ambience-value').textContent = ambiencePct + '%';
   document.getElementById('settings-modal').style.display = 'flex';
 }
 // Accessibility & Settings Task 3 - applies (or removes) the forced
@@ -4124,6 +4151,11 @@ document.getElementById('settings-reduced-motion-check').addEventListener('chang
   CURRENT_SETTINGS.reducedMotion = e.target.checked;
   saveSettings(CURRENT_SETTINGS);
   applyReducedMotion();
+});
+document.getElementById('settings-ambience-slider').addEventListener('input', function(e){
+  var pct = parseInt(e.target.value, 10);
+  document.getElementById('settings-ambience-value').textContent = pct + '%';
+  SoundFX.setAmbienceVolume(pct / 100);
 });
 
 // Accessibility & Settings Task 5 - clears exactly the local-only player
