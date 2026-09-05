@@ -623,8 +623,11 @@ const framerA = stateFramerA.players.find(p => p.role === 'Framer');
 const detectiveA = stateFramerA.players.find(p => p.role === 'Detective');
 const mafiaTargetA = stateFramerA.players.find(p => p.role === 'Mafia');
 const fillerA = stateFramerA.players.find(p => p.align !== 'mafia' && p.role !== 'Detective' && p.alive);
+// Framer now also gets an equal kill vote (same as Godfather/Mafia/
+// DoubleAgent) - submitted together with frameTarget on the SAME entry,
+// since the two abilities are independent but both his to use this night.
 G.mafiaVoters(stateFramerA).forEach(p => { stateFramerA.pendingNightVotes[p.id] = {kill: fillerA.id}; });
-stateFramerA.pendingNightVotes[framerA.id] = {frameTarget: mafiaTargetA.id};
+stateFramerA.pendingNightVotes[framerA.id] = {kill: fillerA.id, frameTarget: mafiaTargetA.id};
 stateFramerA.pendingNightVotes[detectiveA.id] = {investigate: mafiaTargetA.id};
 const resFramerA = G.resolveNight(stateFramerA);
 assert(resFramerA.investigationResult && resFramerA.investigationResult.read === 'innocent', 'Phase2 Task3: framing a mafia-aligned target (a teammate) shields them with an innocent read this round');
@@ -636,10 +639,23 @@ const detectiveB = stateFramerB.players.find(p => p.role === 'Detective');
 const townTargetB = stateFramerB.players.find(p => p.align === 'town' && p.role !== 'Detective' && p.role !== 'Framer');
 const fillerB = stateFramerB.players.find(p => p.align !== 'mafia' && p.role !== 'Detective' && p.id !== townTargetB.id);
 G.mafiaVoters(stateFramerB).forEach(p => { stateFramerB.pendingNightVotes[p.id] = {kill: fillerB.id}; });
-stateFramerB.pendingNightVotes[framerB.id] = {frameTarget: townTargetB.id};
+stateFramerB.pendingNightVotes[framerB.id] = {kill: fillerB.id, frameTarget: townTargetB.id};
 stateFramerB.pendingNightVotes[detectiveB.id] = {investigate: townTargetB.id};
 const resFramerB = G.resolveNight(stateFramerB);
 assert(resFramerB.investigationResult && resFramerB.investigationResult.read === 'guilty', 'Phase2 Task3: framing a town-aligned target frames them with a guilty read this round');
+
+// (kill vote) Framer also gets an equal vote on who the family eliminates,
+// same as Godfather/Mafia/DoubleAgent, fully independent of his own
+// frameTarget ability - since he's the only mafia-aligned player in this
+// scenario, his kill vote alone decides the outcome.
+const stateFramerKill = G.createGame(seats, {playerCount: 6, mafiaCount: 0, roles: Object.assign({}, VIG_OFF, {Framer:true})});
+const framerKill = stateFramerKill.players.find(p => p.role === 'Framer');
+const killTargetKill = stateFramerKill.players.find(p => p.id !== framerKill.id && p.alive);
+const frameTargetKill = stateFramerKill.players.find(p => p.id !== framerKill.id && p.id !== killTargetKill.id);
+stateFramerKill.pendingNightVotes[framerKill.id] = {kill: killTargetKill.id, frameTarget: frameTargetKill.id};
+const resFramerKill = G.resolveNight(stateFramerKill);
+assert(killTargetKill.alive === false, 'Phase2 Task3 (kill vote): Framer\'s own kill vote decides the outcome when he\'s the only mafia-aligned voter');
+assert(resFramerKill.revealVictim && resFramerKill.revealVictim.id === killTargetKill.id, 'Phase2 Task3 (kill vote): the resolution result confirms Framer\'s kill vote target specifically was the one killed, not his frame target');
 
 // (c) zero effect on Consigliere's exact-role read - the same target, framed
 // this same round, still reads their literal role name to the Consigliere.

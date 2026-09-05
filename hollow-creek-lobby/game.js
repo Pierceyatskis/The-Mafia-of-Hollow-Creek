@@ -178,14 +178,16 @@ function mafiaAlive(state){ return state.players.filter(p => p.alive && p.align=
 function cultAlive(state){ return state.players.filter(p => p.alive && p.align==='cult'); }
 function mafiaVoters(state){
   // The mafia's shared kill-vote access is a FACTION-level privilege, not an
-  // individual role's ability - a cult-converted Godfather/Mafia/DoubleAgent
-  // keeps their role name but loses this specifically, since their `align`
-  // is no longer 'mafia' post-conversion. Hitman is deliberately absent from
-  // this role list regardless of alignment - he never had kill-vote access
-  // to begin with (see Task 4), nothing to revoke.
+  // individual role's ability - a cult-converted Godfather/Mafia/DoubleAgent/
+  // Framer keeps their role name but loses this specifically, since their
+  // `align` is no longer 'mafia' post-conversion. Hitman is deliberately
+  // absent from this role list regardless of alignment - he never had
+  // kill-vote access to begin with (see Task 4), nothing to revoke. Framer
+  // gets an equal vote same as Godfather/Mafia/DoubleAgent, on top of (and
+  // fully independent from) his own separate frame-target ability below.
   const flippedGranny = state.players.find(p => p.alive && p.role==='CrazyGranny' && p.flipped && p.align==='mafia');
   if(flippedGranny) return [flippedGranny];
-  return state.players.filter(p => p.alive && p.align==='mafia' && (p.role==='Godfather' || p.role==='Mafia' || p.role==='DoubleAgent'));
+  return state.players.filter(p => p.alive && p.align==='mafia' && (p.role==='Godfather' || p.role==='Mafia' || p.role==='DoubleAgent' || p.role==='Framer'));
 }
 function log(state, line){ state.history.push('Night '+state.night+' / '+line); }
 

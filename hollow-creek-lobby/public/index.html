@@ -1260,7 +1260,7 @@ var ROLE_BIO = {
   Consigliere:"You're the family's quiet research department — no gun, no vote on who gets eliminated, just a ledger and an ear to the ground. Each night you may look into one resident outside the family and learn exactly what they are, no guessing, no guilty-or-innocent hedge.",
   Mayor:"Hollow Creek elected you, though most days it's easy to forget that's worth anything. You're holding two cards close: once, and only once, you may reveal yourself to the whole town and have your vote count double that day. And quietly, every single day whether you ever reveal or not, if the town's vote ever ends in a dead tie, it's your pick that decides who goes — nobody ever finds out that's what happened.",
   Mortician:"The bodies pass through your care one way or another, and you've learned to read what a person leaves behind. Starting the second night, you may examine whoever died in the dark the night before and learn exactly who they really were — nothing to work with on the very first night, nothing at all after a night no one died, and if two go down together, you'll only have hands enough to examine one.",
-  Framer:"You've got a talent for planting exactly the right idea in exactly the right head. Each night you may point the finger at one resident — if they're one of the family, whatever the detective sees of them tonight comes back clean; if they're not, it comes back looking exactly like guilt. No reason you can't use it to cover your own people, either.",
+  Framer:"You've got a talent for planting exactly the right idea in exactly the right head. Each night you get a vote on who the family eliminates, same as anyone else in it, and you alone may also point the finger at one resident — if they're one of the family, whatever the detective sees of them tonight comes back clean; if they're not, it comes back looking exactly like guilt. No reason you can't use it to cover your own people, either.",
   Hitman:"You work for the family, but not with it. No seat at their table, no vote on who dies tonight, no whispered plan you're ever let in on — your own people don't even know your face, not for certain, though the sharper ones among them will eventually notice who's never in the room. If the town ever catches on and votes you out, you get one last move: take somebody down with you on the way out, and nobody's off-limits, not even your own family.",
   CultLeader:"You've built something quiet in this town, and it's growing. Each night you may reach out to one resident — anyone, even one of the family — and pull them into the fold. They'll know exactly who you are the moment it takes, and who else has already joined. You don't need to outlast the mafia or the town, not exactly. You just need to become most of what's left.",
   Civilian:"You don't have a badge, a secret, or a special gift. Just a vote, a memory for who said what, and whatever instinct got you this far."
@@ -1281,7 +1281,7 @@ var ROLE_POINTS = {
   Consigliere:["Mafia-aligned — you already see your family's teammates directly", "Investigate one non-teammate every night and learn their exact role by name", "No equal vote of your own on who the family eliminates"],
   Mayor:["Once per game, reveal yourself to double your vote that day — spent the moment you use it", "Silently, every day: if the vote ends in a tie, whoever you voted for wins the tiebreak — no reveal required, no one is ever told"],
   Mortician:["No night action on the first night — nothing has died yet", "Starting the second night, examine whoever died the night before and learn their exact role", "If two died the same night, choose which one to examine", "Never reveals a day-vote elimination — that's already public"],
-  Framer:["Each night, target one player to alter their investigation read for that round only", "Target is mafia-aligned: they read innocent, shielding them", "Target is town-aligned: they read guilty, framing them", "Can target a mafia-aligned teammate — no restriction", "Never affects Consigliere's exact-role read, or a neutral/cult target's suspicious read"],
+  Framer:["Equal vote each night on who the family eliminates", "Also targets one player to alter their investigation read for that round only", "Target is mafia-aligned: they read innocent, shielding them", "Target is town-aligned: they read guilty, framing them", "Can target a mafia-aligned teammate — no restriction", "Never affects Consigliere's exact-role read, or a neutral/cult target's suspicious read"],
   Hitman:["Mafia-aligned, but cut out of mafia chat and the shared kill vote entirely", "No passive way to know who your own teammates are", "If voted out by the town specifically, take one more player down with you — anyone, even a teammate", "Triggers only on a day-vote elimination, never a night kill or any other cause"],
   CultLeader:["Each night, convert one player to the cult — town or mafia-aligned, no restriction", "Blocked if the Doctor protects that target the same night", "A convert immediately learns who you and the rest of the cult are, and joins cult chat", "A converted mafia-aligned player keeps their own abilities but loses the shared kill vote", "Cult wins once cult members are a majority or equal share of everyone still alive", "If you die, existing converts stay cult-aligned — only new recruitment stops"],
   Civilian:["No night action, no special ability", "Just your vote and your read on the room"]
@@ -2577,7 +2577,11 @@ function renderMafiaVoteUI(h, opts){
   var allyLine = renderAllyLine(h);
   var introText = opts.introText || 'Vote for who the family eliminates tonight. If the family can\'t agree, it comes down to a coin flip.';
   var silenceBlock = opts.silence ? '<p style="font-size:13px; color:var(--parchment-dim); margin-top:12px;">Optionally, silence someone for tomorrow.</p><div class="chipgrid" id="grid-b"></div>' : '';
-  area.innerHTML = allyLine+'<p style="font-size:13px; color:var(--parchment-dim);">'+introText+'</p><div class="chipgrid" id="grid-a"></div>'+silenceBlock+
+  // Framer's frame-target ability is separate from (and required alongside)
+  // the shared kill vote above - unlike silence, this is the role's own
+  // defining ability, not an optional extra.
+  var frameBlock = opts.frame ? '<p style="font-size:13px; color:var(--parchment-dim); margin-top:12px;">Choose someone to alter tonight\'s investigation read for. Frame a townsperson guilty, or shield one of your own innocent.</p><div class="chipgrid" id="grid-c"></div>' : '';
+  area.innerHTML = allyLine+'<p style="font-size:13px; color:var(--parchment-dim);">'+introText+'</p><div class="chipgrid" id="grid-a"></div>'+silenceBlock+frameBlock+
     '<button class="btn" id="night-confirm-btn" style="margin-top:12px;">Confirm</button>';
   document.getElementById('grid-a').innerHTML = chipGridHTML(killOpts,'pick-a');
   wireSingleSelect(document.getElementById('grid-a'), 'pick-a', function(id){
@@ -2596,8 +2600,17 @@ function renderMafiaVoteUI(h, opts){
     wireSingleSelect(document.getElementById('grid-b'), 'pick-b', function(id){pendingNightAction.silence=id;});
   }
   if(opts.silence) renderSilenceGrid();
+  if(opts.frame){
+    // Independent of the kill pick - unlike Consigliere, targeting a
+    // teammate here is real, useful functionality (shields them with an
+    // innocent read this round), so only self is excluded.
+    var frameOpts = otherLivingOptions([h.id]);
+    document.getElementById('grid-c').innerHTML = chipGridHTML(frameOpts,'pick-c');
+    wireSingleSelect(document.getElementById('grid-c'), 'pick-c', function(id){pendingNightAction.frameTarget=id;});
+  }
   document.getElementById('night-confirm-btn').addEventListener('click', function(){
     if(!pendingNightAction.kill){document.getElementById('night-error').textContent='Choose someone to eliminate first.'; document.getElementById('night-error').style.display='block'; return;}
+    if(opts.frame && !pendingNightAction.frameTarget){document.getElementById('night-error').textContent='Choose someone to frame or shield first.'; document.getElementById('night-error').style.display='block'; return;}
     submitNightAction();
   });
 }
@@ -2790,17 +2803,10 @@ function renderNightAction(){
       });
     }
   } else if(h.role==='Framer'){
-    // Unlike Consigliere, targeting a teammate is real, useful functionality
-    // here (shields them with an innocent read this round) - only self is
-    // excluded from the options, teammates stay in the pool.
-    area.innerHTML = renderAllyLine(h)+'<p style="font-size:13px; color:var(--parchment-dim);">Choose someone to alter tonight\'s investigation read for. Frame a townsperson guilty, or shield one of your own innocent.</p><div class="chipgrid" id="grid-a"></div><button class="btn" id="night-confirm-btn">Confirm</button>';
-    var framerOpts = otherLivingOptions([h.id]);
-    document.getElementById('grid-a').innerHTML = chipGridHTML(framerOpts,'pick-a');
-    wireSingleSelect(document.getElementById('grid-a'), 'pick-a', function(id){pendingNightAction.frameTarget=id;});
-    document.getElementById('night-confirm-btn').addEventListener('click', function(){
-      if(!pendingNightAction.frameTarget){document.getElementById('night-error').textContent='Choose someone first.'; document.getElementById('night-error').style.display='block'; return;}
-      submitNightAction();
-    });
+    // Same dual-ability shape as Godfather: an equal vote on who the family
+    // eliminates, plus his own separate frame-target ability (parallel to
+    // Godfather's silence) - see renderMafiaVoteUI's frame option.
+    renderMafiaVoteUI(h, {frame:true});
   } else if(h.role==='CultLeader'){
     // Can target anyone including a mafia-aligned player - only self and
     // EXISTING cult members are excluded, since converting someone already
