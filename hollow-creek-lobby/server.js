@@ -186,6 +186,18 @@ function broadcastNightProgress(room) {
   });
 }
 
+// Live "who has voted" list for the day vote - unlike night, the fact that
+// someone has voted (not who they voted FOR) is meant to be public in real
+// time, so every connected player's id who has submitted is sent to everyone,
+// letting each client paint a checkmark over that player's avatar.
+function broadcastDayVoteProgress(room) {
+  const votedIds = connectedLivingHumans(room).filter(p => room.dayVoteSubmitted.has(p.id)).map(p => p.id);
+  const msg = JSON.stringify({ type: 'dayVoteProgress', votedIds });
+  room.players.forEach(rp => {
+    if (rp.socket.readyState === WebSocket.OPEN) rp.socket.send(msg);
+  });
+}
+
 // Called after any submission or disconnect that might complete the current
 // phase's set of expected actions, so the round resolves the moment everyone
 // who's still here has acted instead of always waiting out the full timer.
@@ -198,7 +210,8 @@ function maybeEarlyResolve(room) {
     // Silenced blocks speaking only, not voting - every living connected
     // human is eligible to vote, silenced or not.
     const eligible = connectedLivingHumans(room);
-    if (eligible.every(p => room.dayVoteSubmitted.has(p.id))) resolveDayVotePhase(room);
+    if (eligible.every(p => room.dayVoteSubmitted.has(p.id))) { resolveDayVotePhase(room); return; }
+    broadcastDayVoteProgress(room);
   }
 }
 
@@ -261,6 +274,7 @@ function beginDayVotePhase(room) {
   clearPhaseTimer(room);
   room.timer = setTimeout(() => resolveDayVotePhase(room), DAY_VOTE_DURATION_MS);
   sendGameState(room);
+  broadcastDayVoteProgress(room);
 }
 
 function resolveDayVotePhase(room) {

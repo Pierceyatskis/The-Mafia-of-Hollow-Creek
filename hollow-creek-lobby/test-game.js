@@ -298,6 +298,14 @@ const resA = G.resolveNight(stateVigGuilty);
 assert(townVictimA.alive === false, 'Task 3: the Vigilante\'s shot kills the chosen target');
 assert(!!resA.vigilanteKillVictim && resA.vigilanteKillVictim.id === townVictimA.id, 'Task 3: the kill victim is reported back in the resolution result');
 assert(vigA.alive === false && resA.vigilanteDied === true, 'Task 3: a wrongful kill on a town-aligned target kills the Vigilante too');
+assert(vigA.deathCause === 'vigilanteGuilt', 'the Vigilante\'s own death is tagged with a distinct cause, not left indistinguishable from an ordinary mafia kill');
+const vigAOwnView = G.getPlayerView(stateVigGuilty, vigA.id);
+const vigAInOwnView = vigAOwnView.players.find(p => p.id === vigA.id);
+assert(vigAInOwnView.deathCause === 'vigilanteGuilt', 'the Vigilante sees their own deathCause in their own view');
+const otherLivingId = stateVigGuilty.players.find(p => p.alive && p.id !== vigA.id).id;
+const otherOwnView = G.getPlayerView(stateVigGuilty, otherLivingId);
+const vigAInOthersView = otherOwnView.players.find(p => p.id === vigA.id);
+assert(vigAInOthersView.deathCause === undefined, 'deathCause is never exposed to any other living player - purely personal to the Vigilante themselves');
 
 // (b) Crazy Granny is exempt from guilt regardless of her CURRENT alignment
 const stateVigGranny1 = G.createGame(seats, {playerCount: 8, mafiaCount: 0, roles: Object.assign({}, VIG_OFF, {Vigilante:true, CrazyGranny:true})});

@@ -141,19 +141,18 @@ function recordDayVoteSubmission(state, playerId, targetId){
   state.voteSubmissionOrder.push({ night: state.night, playerId, targetId, submittedAt: Date.now() });
 }
 
-// PREBETA Task 6 - Mayor Ability 1: reveal to double this round's vote.
-// Single-use for the whole game, spent the moment it's exercised regardless
-// of how the vote itself ultimately resolves. Returns whether the reveal
-// actually took effect (false if this player isn't a not-yet-revealed Mayor).
+// Mayor Ability 1: double this round's vote. Single-use for the whole game,
+// spent the moment it's exercised regardless of how the vote itself
+// ultimately resolves. Deliberately silent, same as Ability 2 below - using
+// it must never itself out this player as the Mayor, so nothing gets
+// logged to state.history (which every player can read via the case file).
+// Returns whether the reveal actually took effect (false if this player
+// isn't a not-yet-revealed Mayor).
 function recordMayorReveal(state, playerId){
   const mayor = byId(state, playerId);
   if(!mayor || mayor.role !== 'Mayor' || mayor.usedMayorReveal) return false;
   mayor.usedMayorReveal = true;
   state.mayorRevealedId = playerId;
-  // Ability 1 explicitly "requires revealing" - unlike Ability 2 (which is
-  // completely silent by design), this is public: logged into the same
-  // unscoped state.history every player already reads from.
-  log(state, mayor.name+' revealed themselves as the Mayor - their vote counts double today.');
   return true;
 }
 
@@ -478,6 +477,11 @@ function resolveNight(state){
       const guilty = vigTarget.role !== 'CrazyGranny' && vigTarget.align === 'town';
       if(guilty){
         vigilante.alive = false;
+        // Distinct from an ordinary night death (mafia kill, Navy Seal
+        // counter-kill) - the Vigilante's own personal death screen needs
+        // to say what actually happened, not generically blame "the mafia."
+        // Private to this one player, same as the death screen itself.
+        vigilante.deathCause = 'vigilanteGuilt';
         checkBountyHit(state, vigilante);
         vigilanteDied = true;
         log(state, vigilante.name+' (Vigilante) killed a town-aligned player and could not live with the guilt.');
@@ -798,6 +802,11 @@ function getPlayerView(state, playerId){
       if(p.role === 'Vigilante') base.usedVigilanteShot = p.usedVigilanteShot;
       if(p.role === 'Mayor') base.usedMayorReveal = p.usedMayorReveal;
     }
+    // Why THIS player specifically died - purely personal (only matters for
+    // their own death screen), so it's never exposed to anyone but them,
+    // not even a dead spectator or teammate the block above already trusts
+    // with role/align.
+    if(p.id === playerId && p.deathCause) base.deathCause = p.deathCause;
     return base;
   });
   return {
