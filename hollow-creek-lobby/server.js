@@ -79,7 +79,11 @@ function sanitizeRolesConfig(raw) {
 function createRoom(socket, name, isPublic) {
   const code = makeRoomCode();
   const id = makePlayerId();
-  rooms[code] = { players: [{ id, name, socket }], hostId: id, started: false, state: null, timer: null, phaseEndsAt: null, isPublic: !!isPublic };
+  // draftConfig: the host's in-progress (not yet started) setup-screen
+  // choices - null until the host's client sends its first hostConfigUpdate.
+  // Lets a waiting (non-host) player see live seat/mafia/role choices
+  // instead of nothing at all before the game starts.
+  rooms[code] = { players: [{ id, name, socket }], hostId: id, started: false, state: null, timer: null, phaseEndsAt: null, isPublic: !!isPublic, draftConfig: null };
   socket.roomCode = code;
   socket.playerId = id;
   socket.send(JSON.stringify({ type: 'created', roomCode: code, playerId: id }));
@@ -94,6 +98,11 @@ function joinRoom(socket, code, name) {
   socket.roomCode = code;
   socket.playerId = id;
   socket.send(JSON.stringify({ type: 'joined', roomCode: code, playerId: id }));
+  // A player joining mid-setup should see the host's current choices right
+  // away, not just whatever the next edit happens to broadcast.
+  if (room.draftConfig) {
+    socket.send(JSON.stringify(Object.assign({ type: 'configUpdate' }, room.draftConfig)));
+  }
   broadcastRoster(code);
 }
 
@@ -385,6 +394,31 @@ wss.on('connection', (socket) => {
       removePlayer(target.socket);
       target.socket.close();
       console.log(`${target.name} was kicked from room ${socket.roomCode}`);
+    }
+
+    else if (msg.type === 'hostConfigUpdate') {
+      // Lets a waiting (non-host) player see the setup screen's seats/mafia
+      // count/roles live, as the host adjusts them - purely informational,
+      // never itself starts or validates a game (that's still `start`'s job).
+      const { room, player } = getRoomAndPlayer(socket);
+      if (!room || !player || room.started) return;
+      if (player.id !== room.hostId) return;
+
+      let playerCount = Number(msg.playerCount);
+      if (!Number.isFinite(playerCount)) playerCount = G.MIN_PLAYERS;
+      playerCount = Math.max(G.MIN_PLAYERS, Math.min(G.MAX_PLAYERS, Math.round(playerCount)));
+
+      let mafiaCount = Number(msg.mafiaCount);
+      if (!Number.isFinite(mafiaCount)) mafiaCount = 0;
+      mafiaCount = Math.max(0, Math.min(G.MAX_MAFIA_COUNT, Math.round(mafiaCount)));
+
+      const roles = sanitizeRolesConfig(msg.roles);
+      room.draftConfig = { playerCount, mafiaCount, roles };
+      room.players.forEach(rp => {
+        if (rp.socket.readyState === WebSocket.OPEN) {
+          rp.socket.send(JSON.stringify(Object.assign({ type: 'configUpdate' }, room.draftConfig)));
+        }
+      });
     }
 
     else if (msg.type === 'start') {

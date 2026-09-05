@@ -385,6 +385,22 @@ h2.sec{font-family:var(--font-type); font-size:12px; letter-spacing:2px; text-tr
 .chip:hover{border-color:var(--gold-dim); transform:translateY(-1px);}
 .chip.selected{border:1px solid var(--lantern); background:rgba(217,164,65,0.08); animation:chipPop .25s ease;}
 .chip.selected::after{content:'\2713 selected'; position:absolute; top:-9px; right:6px; background:var(--lantern); color:#1a1410; font-family:var(--font-type); font-size:9px; letter-spacing:0.5px; padding:1px 6px; border-radius:8px; font-weight:700; white-space:nowrap;}
+/* Lobby rules/roles preview - roles in play grouped into three colored
+   vertical faction sections (town/mafia/other), shared by the host's own
+   editable setup grid and the read-only view waiting players see. */
+.role-faction-columns{display:flex; gap:14px; margin:12px 0; flex-wrap:wrap;}
+.role-faction-col{flex:1 1 160px; min-width:150px;}
+.role-faction-label{font-family:var(--font-type); font-size:11px; letter-spacing:1.5px; text-transform:uppercase; margin:0 0 8px; padding-bottom:6px; border-bottom:2px solid currentColor;}
+.role-faction-col.role-faction-town{color:var(--align-town);}
+.role-faction-col.role-faction-mafia{color:var(--danger);}
+.role-faction-col.role-faction-other{color:var(--align-neutral);}
+.role-faction-col .chip{margin-bottom:8px; color:var(--parchment);}
+.role-faction-town .chip.selected{border-color:var(--align-town);}
+.role-faction-mafia .chip.selected{border-color:var(--danger);}
+.role-faction-other .chip.selected{border-color:var(--align-neutral);}
+.chip.chip-readonly{cursor:default;}
+.chip.chip-readonly:not(.selected){opacity:0.35;}
+.chip.chip-readonly.selected::after{content:'\2713 in play';}
 .chip.disabled{opacity:0.4; cursor:default;}
 .chip.disabled:hover{transform:none; border-color:var(--line);}
 .chip-avatar{width:24px; height:24px; flex-shrink:0; border-radius:3px; overflow:hidden; border:1px solid var(--gold-dim);}
@@ -1004,6 +1020,12 @@ body.force-reduced-motion .dossier-card::after{animation:none !important; displa
     <h2 class="sec">Room <span id="mp-room-code"></span></h2>
     <div id="mp-roster"></div>
     <p class="msg" id="mp-waiting-msg" style="display:none; margin-top:12px; color:var(--parchment-dim);">Waiting for the host to start the game...</p>
+    <div id="mp-waiting-preview" style="display:none; margin-top:14px; border-top:1px solid var(--line); padding-top:14px;">
+      <button class="btn ghost" id="mp-waiting-howto-btn" style="margin-bottom:14px;">How to Play</button>
+      <p style="font-size:13px; color:var(--parchment-dim); margin:0 0 10px;">This round: <span id="mp-waiting-seats"></span> seats, <span id="mp-waiting-mafia"></span> regular mafia.</p>
+      <p class="msg" id="mp-waiting-roles-label" style="color:var(--parchment-dim); margin-bottom:4px;">Roles in play</p>
+      <div id="mp-waiting-roles"></div>
+    </div>
 
     <div id="mp-host-config" style="display:none; margin-top:18px; border-top:1px solid var(--line); padding-top:16px;">
       <h2 class="sec">Set up the round</h2>
@@ -1033,7 +1055,7 @@ body.force-reduced-motion .dossier-card::after{animation:none !important; displa
       </div>
 
       <h2 class="sec" style="margin-top:20px;">Roles in play</h2>
-      <div class="chipgrid" id="setup-role-grid"></div>
+      <div id="setup-role-grid"></div>
       <p class="msg" id="setup-cult-note" style="display:none; margin-top:10px; color:var(--align-cult); font-size:12px;">Cult Leader introduces a genuine third faction with its own separate win condition — this isn't just town vs. mafia anymore.</p>
       <p class="msg" id="setup-slots-msg" style="margin-top:10px; color:var(--parchment-dim);"></p>
       <p class="msg err" id="setup-error" style="display:none;"></p>
@@ -1470,6 +1492,15 @@ function handleServerMessage(msg){
     switchPanel('lobby');
   } else if(msg.type==='roster'){
     renderMpRoster(msg.players);
+  } else if(msg.type==='configUpdate'){
+    // The host's own setup-screen choices, live - only meaningful for a
+    // non-host still waiting (the host already has its own local
+    // GAME_CONFIG and re-broadcasts this itself on every edit, so
+    // overwriting it here too is harmless either way).
+    GAME_CONFIG.playerCount = msg.playerCount;
+    GAME_CONFIG.mafiaCount = msg.mafiaCount;
+    GAME_CONFIG.roles = Object.assign({}, msg.roles);
+    if(!amHost) renderWaitingRolesView();
   } else if(msg.type==='returnToLobby'){
     // Same room/players/host - the game just reset back to a pre-start
     // lobby, with last game's presets carried over for the host.
@@ -1537,8 +1568,24 @@ function renderMpRoster(players){
   });
   document.getElementById('mp-host-config').style.display = amHost ? 'block' : 'none';
   document.getElementById('mp-waiting-msg').style.display = amHost ? 'none' : 'block';
+  document.getElementById('mp-waiting-preview').style.display = amHost ? 'none' : 'block';
   if(amHost) renderSetupScreen();
+  else renderWaitingRolesView();
 }
+// A waiting (non-host) player's read-only view of the host's current
+// setup-screen choices - GAME_CONFIG here is kept in sync via the
+// 'configUpdate' messages the host's own renderSetupScreen() broadcasts.
+function renderWaitingRolesView(){
+  document.getElementById('mp-waiting-seats').textContent = GAME_CONFIG.playerCount;
+  document.getElementById('mp-waiting-mafia').textContent = GAME_CONFIG.mafiaCount;
+  document.getElementById('mp-waiting-roles').innerHTML = roleColumnsHTML({readOnly:true});
+}
+document.getElementById('mp-waiting-howto-btn').addEventListener('click', function(){
+  // Overlay only - passing a no-op close callback instead of the default
+  // (which switches to the home panel) keeps the player right where they
+  // are, still waiting in this room, once they close the tour.
+  openHowToTour(function(){});
+});
 
 function renderMpEntryScreen(){
   var nameEl = document.getElementById('mpentry-name-display');
@@ -3840,6 +3887,57 @@ function updateSetupSlotsMsg(){
     document.getElementById('setup-start-btn').disabled = false;
   }
 }
+// Groups every togglable special role into three factions for display:
+// town (blue), mafia (red), and "other" (purple) - neutral (Bounty Hunter)
+// and cult (Cult Leader) collapsed into one bucket on purpose, since this
+// is a simpler 3-way visual grouping for "who's in this game," distinct
+// from the 4-color alignment-outline system used elsewhere in the app.
+function roleFactionGroups(){
+  var groups = {town:[], mafia:[], other:[]};
+  SPECIAL_ROLES.filter(function(r){return r!=='Mafia';}).forEach(function(r){
+    var a = alignOf(r);
+    if(a==='mafia') groups.mafia.push(r);
+    else if(a==='town') groups.town.push(r);
+    else groups.other.push(r); // neutral or cult
+  });
+  return groups;
+}
+// opts.readOnly: no data-role attribute (not clickable), dims an OFF role
+// instead of just showing it unselected, and relabels the "selected" badge
+// to "in play" - used by the waiting-player view below. Without it, this
+// renders the same editable chip the host's setup screen always has.
+function roleChipHTML(r, opts){
+  opts = opts || {};
+  var on = GAME_CONFIG.roles[r];
+  var roleImg = ROLE_IMG[r];
+  var cls = 'chip'+(on?' selected':'')+(opts.readOnly?' chip-readonly':'');
+  return '<div class="'+cls+'"'+(opts.readOnly?'':' data-role="'+r+'"')+'>'+
+    '<span class="chip-avatar">'+(roleImg?'<img src="'+roleImg+'" alt="">':'')+'</span>'+
+    '<span class="chip-name">'+ROLE_SHORT[r]+'</span>'+
+    '</div>';
+}
+function roleColumnsHTML(opts){
+  var groups = roleFactionGroups();
+  function section(label, faction, roles){
+    if(!roles.length) return '';
+    return '<div class="role-faction-col role-faction-'+faction+'">'+
+      '<p class="role-faction-label">'+label+'</p>'+
+      roles.map(function(r){ return roleChipHTML(r, opts); }).join('')+
+      '</div>';
+  }
+  return '<div class="role-faction-columns">'+
+    section('Town', 'town', groups.town)+
+    section('Mafia', 'mafia', groups.mafia)+
+    section('Other', 'other', groups.other)+
+    '</div>';
+}
+// Broadcasts the host's current draft setup (seats/mafia/roles) so waiting
+// players see it live, before the game has even started - purely
+// informational server-side, never itself starts or validates a game.
+function sendHostConfigUpdate(){
+  if(!amHost) return;
+  sendWS({type:'hostConfigUpdate', playerCount: GAME_CONFIG.playerCount, mafiaCount: GAME_CONFIG.mafiaCount, roles: GAME_CONFIG.roles});
+}
 function renderSetupScreen(){
   var todaysModifier = getDailyModifier();
   document.getElementById('daily-modifier-banner').innerHTML = '<span class="dmb-label">Today\'s Case</span><span>'+todaysModifier.name+' — '+todaysModifier.desc+'</span>';
@@ -3852,26 +3950,20 @@ function renderSetupScreen(){
   document.getElementById('setup-mafia-count').textContent = GAME_CONFIG.mafiaCount;
   document.getElementById('mode-full-btn').classList.toggle('active', !GAME_CONFIG.quickMode);
   document.getElementById('mode-quick-btn').classList.toggle('active', !!GAME_CONFIG.quickMode);
-  document.getElementById('setup-role-grid').innerHTML = SPECIAL_ROLES.filter(function(r){return r!=='Mafia';}).map(function(r){
-    var on = GAME_CONFIG.roles[r];
-    // PREBETA Task 2: Godfather used to be hard-locked "required" here - a
-    // game should be buildable with only generic Mafia seats (mafiaCount)
-    // and no named Godfather at all, same as any other optional special role.
-    // A role without art yet (new roles land in code before Task 8's
-    // portraits do) would otherwise render a broken-image icon here -
-    // fall back to an empty avatar slot instead, same "no art, no broken
-    // image" bar the rest of the app already holds to.
-    var roleImg = ROLE_IMG[r];
-    return '<div class="chip'+(on?' selected':'')+'" data-role="'+r+'">'+
-      '<span class="chip-avatar">'+(roleImg?'<img src="'+roleImg+'" alt="">':'')+'</span>'+
-      '<span class="chip-name">'+ROLE_SHORT[r]+'</span>'+
-      '</div>';
-  }).join('');
+  // PREBETA Task 2: Godfather used to be hard-locked "required" here - a
+  // game should be buildable with only generic Mafia seats (mafiaCount)
+  // and no named Godfather at all, same as any other optional special role.
+  // A role without art yet (new roles land in code before Task 8's
+  // portraits do) falls back to an empty avatar slot instead of a broken
+  // image, via roleChipHTML()'s own roleImg check - same "no art, no
+  // broken image" bar the rest of the app already holds to.
+  document.getElementById('setup-role-grid').innerHTML = roleColumnsHTML({});
   // Accessibility & Settings Task 2 - a host enabling Cult Leader should
   // know, right here at config time, that they're introducing a genuinely
   // different win-condition shape, not just another role.
   document.getElementById('setup-cult-note').style.display = GAME_CONFIG.roles.CultLeader ? 'block' : 'none';
   updateSetupSlotsMsg();
+  sendHostConfigUpdate();
 }
 document.getElementById('mode-quick-btn').addEventListener('click', function(){
   if(GAME_CONFIG.quickMode) return;
