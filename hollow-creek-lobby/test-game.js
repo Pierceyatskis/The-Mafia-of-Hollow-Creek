@@ -702,13 +702,17 @@ const viewHitA = G.getPlayerView(stateHitA, hitmanA.id);
 assert(viewHitA.mafiaChatLog === undefined, 'Phase2 Task4: Hitman never receives mafiaChatLog, despite being mafia-aligned');
 assert(G.mafiaAlive(stateHitA).some(p => p.id === hitmanA.id), 'Phase2 Task4: a living Hitman still counts toward the mafia faction\'s win condition');
 
-// (b) teammate awareness is asymmetric BY OMISSION in both directions
+// (b) teammate awareness is asymmetric - Hitman never learns his own
+// teammates (excluded as the VIEWER), but his teammates DO learn him
+// (never excluded as the TARGET) - a real bug fix, not the original
+// both-directions-blind design: the mafia has to actually be able to
+// recognize their own Hitman, he's just cut out of knowing them back.
 const mafiaTeammateA = stateHitA.players.find(p => p.role === 'Mafia');
 const hitmanSeesTeammate = viewHitA.players.find(p => p.id === mafiaTeammateA.id);
 assert(!hitmanSeesTeammate.role, 'Phase2 Task4: Hitman gets no passive visibility of his own teammates\' roles');
 const viewMateA = G.getPlayerView(stateHitA, mafiaTeammateA.id);
 const mateSeesHitman = viewMateA.players.find(p => p.id === hitmanA.id);
-assert(!mateSeesHitman.role, 'Phase2 Task4: Hitman\'s teammates get no passive visibility of HIM either - the awareness is asymmetric by omission, not a direct signal');
+assert(mateSeesHitman.role === 'Hitman' && mateSeesHitman.align === 'mafia', 'Phase2 Task4: Hitman\'s own teammates DO get passive visibility of him - they know exactly who he is, only he doesn\'t know them back');
 
 // (c) revenge triggers on a day-vote lynch, never a night kill
 const stateHitC = G.createGame(seats, {playerCount: 8, mafiaCount: 1, roles: Object.assign({}, HITMAN_BASE)});

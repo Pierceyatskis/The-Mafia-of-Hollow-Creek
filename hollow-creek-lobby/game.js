@@ -88,6 +88,10 @@ function createGame(seats, config){
   seats.forEach((seat, idx) => {
     players.push({
       id: seat.id, name: seat.name, isHuman: true, isPlaceholder: false,
+      // A player who never opened the avatar picker gets a distinct fallback
+      // color (cycling the same palette the placeholder cast uses) instead
+      // of undefined, which would render as an invisible/blank avatar swatch.
+      avatarKey: seat.avatarKey || null, color: seat.color || CHARACTERS[idx % CHARACTERS.length].color,
       alive: true, silencedToday: false, role: roles[idx], align: alignOf(roles[idx]),
       flipped: false, investigateCount: 0, usedNavySealCounter: false, usedVigilanteShot: false,
       usedMayorReveal: false
@@ -410,7 +414,10 @@ function resolveNight(state){
       counterVictim.alive = false;
       checkBountyHit(state, counterVictim);
       reportLines.push(counterVictim.name+' was found dead this morning — word is the family\'s hit went badly wrong.');
-      log(state, 'The mafia moved on '+killTarget.name+', but they fought back and killed '+counterVictim.name+' ('+counterVictim.role+') instead.');
+      // No role named here - a night death never reveals role publicly
+      // (only a day-vote lynch does, see resolveDayVote below), and naming
+      // the counter-kill's victim's role would out them as the Navy Seal.
+      log(state, 'The mafia moved on '+killTarget.name+', but they fought back and killed '+counterVictim.name+' instead.');
       deathSummary = counterVictim.name+' ('+counterVictim.role+') was killed in the night.';
       nightDeathOccurred = true; revealVictim = counterVictim;
     } else {
@@ -428,7 +435,8 @@ function resolveNight(state){
     killTarget.alive = false;
     checkBountyHit(state, killTarget);
     reportLines.push(killTarget.name+' was found this morning. The town gathers, uneasy.');
-    log(state, killTarget.name+' ('+killTarget.role+') was killed in the night.');
+    // No role named here - see the counter-kill case above for why.
+    log(state, killTarget.name+' was killed in the night.');
     deathSummary = killTarget.name+' ('+killTarget.role+') was killed in the night.';
     nightDeathOccurred = true; revealVictim = killTarget;
   }
@@ -464,7 +472,11 @@ function resolveNight(state){
       vigTarget.alive = false;
       checkBountyHit(state, vigTarget);
       vigilanteKillVictim = vigTarget;
-      log(state, vigilante.name+' (Vigilante) killed '+vigTarget.name+' ('+vigTarget.role+') in the night.');
+      // Never the Vigilante's identity or the target's role here - the whole
+      // town would learn who the Vigilante is (and what they killed) the
+      // instant this printed, which is exactly the kind of thing this case
+      // file must never leak.
+      log(state, vigTarget.name+' was found dead as well, in the night.');
       reportLines.push(vigTarget.name+' was found dead this morning — not the family\'s doing this time.');
       // Guilt is purely the target's alignment category, never a judgment
       // of how dangerous they currently are: mafia-aligned or neutral
@@ -484,7 +496,10 @@ function resolveNight(state){
         vigilante.deathCause = 'vigilanteGuilt';
         checkBountyHit(state, vigilante);
         vigilanteDied = true;
-        log(state, vigilante.name+' (Vigilante) killed a town-aligned player and could not live with the guilt.');
+        // Same reasoning as above - naming the Vigilante and the fact their
+        // target was town-aligned would leak both their identity and the
+        // target's alignment to the entire town.
+        log(state, vigilante.name+' was found dead as well, by their own hand.');
         reportLines.push(vigilante.name+' was found dead as well, by their own hand.');
       }
     }
@@ -504,7 +519,10 @@ function resolveNight(state){
     const target = byId(state, investigateTargetId);
     if(target){
       const read = investigateAndRead(target, framerTargetId);
-      log(state, detective.name+' investigated '+target.name+' and it read '+read+'.');
+      // Private to the Detective alone (see detectiveLog below) - never
+      // logged to state.history, which every player can read via the case
+      // file. The case file only ever holds things the whole town would
+      // actually know, like who was found dead.
       state.detectiveLog.push({name: target.name, read: read});
       investigationResult = {detectiveId: detective.id, targetId: target.id, targetName: target.name, read: read};
     }
@@ -528,7 +546,8 @@ function resolveNight(state){
     // mafia-aligned) still correctly resolves to "DoubleAgent" whenever it's
     // exercised directly, same as any other role.
     if(target){
-      log(state, consigliere.name+' (Consigliere) looked into '+target.name+' and learned: '+target.role+'.');
+      // Private to the Consigliere alone (see consigliereLog below) - same
+      // reasoning as the Detective above, never logged to the public case file.
       state.consigliereLog.push({name: target.name, role: target.role});
       consigliereResult = {consigliereId: consigliere.id, targetId: target.id, targetName: target.name, role: target.role};
     }
@@ -549,7 +568,8 @@ function resolveNight(state){
   if(mortician && morticianTargetId){
     const deadEntry = state.lastNightDeaths.find(d => d.id === morticianTargetId);
     if(deadEntry){
-      log(state, mortician.name+' (Mortician) examined '+deadEntry.name+' and confirmed: '+deadEntry.role+'.');
+      // Private to the Mortician alone (see morticianLog below) - same
+      // reasoning as the Detective/Consigliere above, never logged publicly.
       state.morticianLog.push({name: deadEntry.name, role: deadEntry.role});
       morticianResult = {morticianId: mortician.id, targetId: deadEntry.id, targetName: deadEntry.name, role: deadEntry.role};
     }
@@ -588,7 +608,10 @@ function resolveNight(state){
         // to their role keeps working exactly as before.
         cultTarget.align = 'cult';
         cultConvertedPlayer = cultTarget;
-        log(state, cultTarget.name+' has joined the cult.');
+        // Never logged publicly - this would out the target's new alignment
+        // to the whole town, the same category of leak as the investigative
+        // roles above. The convert and the cult team learn this through
+        // cultChatLog/getPlayerView instead, which is already scoped to them.
       }
     }
   }
@@ -787,14 +810,13 @@ function getPlayerView(state, playerId){
   // teammate-visibility principle as mafia, just a different faction/roster.
   const iAmCult = me && me.alive && me.align === 'cult';
   const players = state.players.map(p => {
-    const base = {id:p.id, name:p.name, alive:p.alive, silencedToday:p.silencedToday, isPlaceholder:p.isPlaceholder, occ:p.occ, color:p.color};
-    // PREBETA Phase 2 Task 4 - Hitman's teammate awareness is deliberately
-    // asymmetric BY OMISSION here, not by an extra signal: he never gets the
-    // system's passive teammate-visibility (excluded as the VIEWER, `me`),
-    // and his own teammates never get it of HIM either (excluded as the
-    // TARGET, `p`) - they're only ever meant to work him out indirectly, by
-    // noticing who's missing from mafia chat, never via this field.
-    const seeAsTeammate = (iAmMafia && p.alive && p.align === 'mafia' && me.role !== 'Hitman' && p.role !== 'Hitman')
+    const base = {id:p.id, name:p.name, alive:p.alive, silencedToday:p.silencedToday, isPlaceholder:p.isPlaceholder, occ:p.occ, color:p.color, avatarKey:p.avatarKey};
+    // PREBETA Phase 2 Task 4 - Hitman's teammate awareness is asymmetric: he
+    // never gets the system's passive teammate-visibility (excluded as the
+    // VIEWER, `me`, so he never learns who his teammates are), but his own
+    // teammates DO get it of him (he's not excluded as the TARGET, `p`) -
+    // they know exactly who he is, he's just cut out of knowing them back.
+    const seeAsTeammate = (iAmMafia && p.alive && p.align === 'mafia' && me.role !== 'Hitman')
       || (iAmCult && p.alive && p.align === 'cult');
     if(p.id === playerId || seeAllRoles || !p.alive || seeAsTeammate){
       base.role = p.role; base.align = p.align;

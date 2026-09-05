@@ -1053,6 +1053,22 @@ body.force-reduced-motion .dossier-card::after{animation:none !important; displa
         <span style="font-family:var(--font-type); font-size:11px; color:var(--parchment-dim);">rank-and-file family members, each with an equal vote on who dies</span>
       </div>
 
+      <h2 class="sec" style="margin-top:20px;">Discussion time</h2>
+      <div style="display:flex; align-items:center; gap:14px; margin-bottom:6px;">
+        <button class="btn ghost" id="setup-discuss-minus" style="padding:6px 16px;">&minus;</button>
+        <span id="setup-discuss-count" style="font-family:var(--font-ornate); font-weight:700; font-size:22px; color:var(--gold-bright); min-width:50px; text-align:center;">90s</span>
+        <button class="btn ghost" id="setup-discuss-plus" style="padding:6px 16px;">+</button>
+        <span style="font-family:var(--font-type); font-size:11px; color:var(--parchment-dim);">how long the town talks before voting opens</span>
+      </div>
+
+      <h2 class="sec" style="margin-top:20px;">Voting time</h2>
+      <div style="display:flex; align-items:center; gap:14px; margin-bottom:6px;">
+        <button class="btn ghost" id="setup-vote-minus" style="padding:6px 16px;">&minus;</button>
+        <span id="setup-vote-count" style="font-family:var(--font-ornate); font-weight:700; font-size:22px; color:var(--gold-bright); min-width:50px; text-align:center;">105s</span>
+        <button class="btn ghost" id="setup-vote-plus" style="padding:6px 16px;">+</button>
+        <span style="font-family:var(--font-type); font-size:11px; color:var(--parchment-dim);">how long the town has to actually cast votes</span>
+      </div>
+
       <h2 class="sec" style="margin-top:20px;">Roles in play</h2>
       <div id="setup-role-grid"></div>
       <p class="msg" id="setup-cult-note" style="display:none; margin-top:10px; color:var(--align-cult); font-size:12px;">Cult Leader introduces a genuine third faction with its own separate win condition — this isn't just town vs. mafia anymore.</p>
@@ -1341,10 +1357,15 @@ function alignOf(role){
 function initials(n){return n.split(' ').map(function(w){return w[0];}).slice(0,2).join('').toUpperCase();}
 function avatarHTML(p, size){
   size = size||26;
-  if(p.avatarImg){
-    return '<span class="avatar avatar-img" style="width:'+size+'px;height:'+size+'px;"><img src="'+p.avatarImg+'" alt=""></span>';
+  // Multiplayer only ever sends the chosen avatarKey over the wire (the
+  // actual base64 image data lives in this client's own IMG object, same as
+  // role portraits) - single-player's local players precompute avatarImg
+  // directly instead, so check both.
+  var img = p.avatarImg || (p.avatarKey && IMG[p.avatarKey]);
+  if(img){
+    return '<span class="avatar avatar-img" style="width:'+size+'px;height:'+size+'px;"><img src="'+img+'" alt=""></span>';
   }
-  return '<span class="avatar" style="width:'+size+'px;height:'+size+'px;font-size:'+Math.round(size*0.4)+'px;background:'+p.color+';">'+initials(p.name)+'</span>';
+  return '<span class="avatar" style="width:'+size+'px;height:'+size+'px;font-size:'+Math.round(size*0.4)+'px;background:'+(p.color||'#5C6B47')+';">'+initials(p.name||'?')+'</span>';
 }
 
 function newGame(pool, playerCount){
@@ -1370,10 +1391,14 @@ var LAST_PLAYER_COUNT = null;
 var MIN_PLAYERS = 6;
 var MAX_PLAYERS = CHARACTERS.length + 1;
 var MAX_MAFIA_COUNT = 4;
+var MIN_DISCUSS_SECONDS = 30, MAX_DISCUSS_SECONDS = 300, DISCUSS_STEP_SECONDS = 15;
+var MIN_VOTE_SECONDS = 30, MAX_VOTE_SECONDS = 300, VOTE_STEP_SECONDS = 15;
 var GAME_CONFIG = {
   playerCount: MAX_PLAYERS,
   mafiaCount: 0,
   quickMode: false,
+  discussSeconds: 90,
+  voteSeconds: 105,
   roles: {Godfather:true, DoubleAgent:true, Detective:true, Doctor:true, Miller:true, BountyHunter:true, CrazyGranny:true, Coward:false, Farmer:false, NavySeal:false, Vigilante:false, Consigliere:false, Mayor:false, Mortician:false, Framer:false, Hitman:false, CultLeader:false}
 };
 var FULL_CASE_CONFIG_SNAPSHOT = null;
@@ -1501,6 +1526,8 @@ function handleServerMessage(msg){
     GAME_CONFIG.playerCount = msg.playerCount;
     GAME_CONFIG.mafiaCount = msg.mafiaCount;
     GAME_CONFIG.roles = Object.assign({}, msg.roles);
+    if(typeof msg.discussSeconds === 'number') GAME_CONFIG.discussSeconds = msg.discussSeconds;
+    if(typeof msg.voteSeconds === 'number') GAME_CONFIG.voteSeconds = msg.voteSeconds;
     if(!amHost) renderWaitingRolesView();
   } else if(msg.type==='returnToLobby'){
     // Same room/players/host - the game just reset back to a pre-start
@@ -1565,7 +1592,7 @@ function renderMpRoster(players){
   document.getElementById('mp-roster').innerHTML = players.map(function(p){
     var tags = (p.id===myPlayerId ? ' (you)' : '') + (p.isHost ? ' <span class="host-tag">host</span>' : '');
     var kickBtn = (amHost && p.id !== myPlayerId) ? '<button class="btn ghost mp-kick-btn" data-kick-id="'+p.id+'" style="padding:3px 10px; font-size:11px; margin-left:8px;">Remove</button>' : '';
-    return '<div class="roster-row" style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--line);"><span>'+escapeHtmlMp(p.name)+tags+'</span>'+kickBtn+'</div>';
+    return '<div class="roster-row" style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--line);"><span style="display:flex; align-items:center; gap:8px;">'+avatarHTML(p,26)+escapeHtmlMp(p.name)+tags+'</span>'+kickBtn+'</div>';
   }).join('');
   document.querySelectorAll('.mp-kick-btn').forEach(function(btn){
     btn.addEventListener('click', function(){ sendWS({type:'kick', targetId: btn.getAttribute('data-kick-id')}); });
@@ -1994,16 +2021,26 @@ function renderAllyLine(p){
 }
 function roleHolder(role){return STATE.players.find(function(p){return p.role===role && p.alive;});}
 function log(line){STATE.history.push('Night '+STATE.night+' / '+line);}
-function detectiveRead(target){
-  if(target.role==='Godfather') return 'guilty';
-  if(target.role==='Mafia') return 'guilty';
+// Kept in sync with game.js's detectiveRead/investigateAndRead (the
+// server-authoritative version multiplayer actually uses) - this stale,
+// role-list-only copy predated the Phase 2 three-tier/Framer rework and
+// never got it, which is why a single-player Framer's frame had no effect
+// at all (this function didn't even take a framerTargetId parameter) and
+// Hitman - never in the old guilty-role list - always read 'innocent'
+// regardless of alignment.
+function detectiveRead(target, framerTargetId){
+  if(target.align === 'neutral' || target.align === 'cult') return 'suspicious';
+  if(framerTargetId && target.id === framerTargetId){
+    return target.align === 'mafia' ? 'innocent' : 'guilty';
+  }
   if(target.role==='Miller') return 'guilty';
-  if(target.role==='CrazyGranny' && target.flipped) return 'guilty';
   if(target.role==='DoubleAgent') return (target.investigateCount||0) >= 1 ? 'guilty' : 'innocent';
+  if(target.role==='CrazyGranny' && !target.flipped) return 'suspicious';
+  if(target.align === 'mafia') return 'guilty';
   return 'innocent';
 }
-function investigateAndRead(target){
-  var read = detectiveRead(target);
+function investigateAndRead(target, framerTargetId){
+  var read = detectiveRead(target, framerTargetId);
   target.investigateCount = (target.investigateCount||0) + 1;
   return read;
 }
@@ -3982,7 +4019,7 @@ function roleColumnsHTML(opts){
 // informational server-side, never itself starts or validates a game.
 function sendHostConfigUpdate(){
   if(!amHost) return;
-  sendWS({type:'hostConfigUpdate', playerCount: GAME_CONFIG.playerCount, mafiaCount: GAME_CONFIG.mafiaCount, roles: GAME_CONFIG.roles});
+  sendWS({type:'hostConfigUpdate', playerCount: GAME_CONFIG.playerCount, mafiaCount: GAME_CONFIG.mafiaCount, roles: GAME_CONFIG.roles, discussSeconds: GAME_CONFIG.discussSeconds, voteSeconds: GAME_CONFIG.voteSeconds});
 }
 function renderSetupScreen(){
   var todaysModifier = getDailyModifier();
@@ -3991,9 +4028,15 @@ function renderSetupScreen(){
   if(GAME_CONFIG.playerCount<MIN_PLAYERS) GAME_CONFIG.playerCount = MIN_PLAYERS;
   if(GAME_CONFIG.mafiaCount>MAX_MAFIA_COUNT) GAME_CONFIG.mafiaCount = MAX_MAFIA_COUNT;
   if(GAME_CONFIG.mafiaCount<0) GAME_CONFIG.mafiaCount = 0;
+  if(GAME_CONFIG.discussSeconds>MAX_DISCUSS_SECONDS) GAME_CONFIG.discussSeconds = MAX_DISCUSS_SECONDS;
+  if(GAME_CONFIG.discussSeconds<MIN_DISCUSS_SECONDS) GAME_CONFIG.discussSeconds = MIN_DISCUSS_SECONDS;
+  if(GAME_CONFIG.voteSeconds>MAX_VOTE_SECONDS) GAME_CONFIG.voteSeconds = MAX_VOTE_SECONDS;
+  if(GAME_CONFIG.voteSeconds<MIN_VOTE_SECONDS) GAME_CONFIG.voteSeconds = MIN_VOTE_SECONDS;
   document.getElementById('setup-players-count').textContent = GAME_CONFIG.playerCount;
   document.getElementById('setup-ai-count').textContent = GAME_CONFIG.playerCount - 1;
   document.getElementById('setup-mafia-count').textContent = GAME_CONFIG.mafiaCount;
+  document.getElementById('setup-discuss-count').textContent = GAME_CONFIG.discussSeconds+'s';
+  document.getElementById('setup-vote-count').textContent = GAME_CONFIG.voteSeconds+'s';
   document.getElementById('mode-full-btn').classList.toggle('active', !GAME_CONFIG.quickMode);
   document.getElementById('mode-quick-btn').classList.toggle('active', !!GAME_CONFIG.quickMode);
   // PREBETA Task 2: Godfather used to be hard-locked "required" here - a
@@ -4050,10 +4093,22 @@ document.getElementById('setup-mafia-minus').addEventListener('click', function(
 document.getElementById('setup-mafia-plus').addEventListener('click', function(){
   if(GAME_CONFIG.mafiaCount<MAX_MAFIA_COUNT){ GAME_CONFIG.mafiaCount++; renderSetupScreen(); }
 });
+document.getElementById('setup-discuss-minus').addEventListener('click', function(){
+  if(GAME_CONFIG.discussSeconds>MIN_DISCUSS_SECONDS){ GAME_CONFIG.discussSeconds -= DISCUSS_STEP_SECONDS; renderSetupScreen(); }
+});
+document.getElementById('setup-discuss-plus').addEventListener('click', function(){
+  if(GAME_CONFIG.discussSeconds<MAX_DISCUSS_SECONDS){ GAME_CONFIG.discussSeconds += DISCUSS_STEP_SECONDS; renderSetupScreen(); }
+});
+document.getElementById('setup-vote-minus').addEventListener('click', function(){
+  if(GAME_CONFIG.voteSeconds>MIN_VOTE_SECONDS){ GAME_CONFIG.voteSeconds -= VOTE_STEP_SECONDS; renderSetupScreen(); }
+});
+document.getElementById('setup-vote-plus').addEventListener('click', function(){
+  if(GAME_CONFIG.voteSeconds<MAX_VOTE_SECONDS){ GAME_CONFIG.voteSeconds += VOTE_STEP_SECONDS; renderSetupScreen(); }
+});
 document.getElementById('setup-start-btn').addEventListener('click', function(){
   if(selectedSpecialCount() > GAME_CONFIG.playerCount) return;
   document.getElementById('setup-error').style.display = 'none';
-  sendWS({type:'start', playerCount: GAME_CONFIG.playerCount, mafiaCount: GAME_CONFIG.mafiaCount, roles: GAME_CONFIG.roles});
+  sendWS({type:'start', playerCount: GAME_CONFIG.playerCount, mafiaCount: GAME_CONFIG.mafiaCount, roles: GAME_CONFIG.roles, discussSeconds: GAME_CONFIG.discussSeconds, voteSeconds: GAME_CONFIG.voteSeconds});
 });
 
 function restoreUI(saved){
@@ -5473,8 +5528,15 @@ function chipGridHTML(opts, groupClass){
 
 function avatarHTML(p, size){
   size = size||26;
-  if(p.avatarImg){
-    return '<span class="avatar avatar-img" style="width:'+size+'px;height:'+size+'px;"><img src="'+p.avatarImg+'" alt=""></span>';
+  // Multiplayer only ever sends the chosen avatarKey over the wire (the
+  // actual base64 image data lives in this client's own IMG object, same as
+  // role portraits) - single-player's local players precompute avatarImg
+  // directly instead, so check both. This is the LATER of two declarations
+  // in this file (see the "later wins" note near the multiplayer overrides
+  // section) - the one actually used everywhere, including single-player.
+  var img = p.avatarImg || (p.avatarKey && IMG[p.avatarKey]);
+  if(img){
+    return '<span class="avatar avatar-img" style="width:'+size+'px;height:'+size+'px;"><img src="'+img+'" alt=""></span>';
   }
   return '<span class="avatar" style="width:'+size+'px;height:'+size+'px;font-size:'+Math.round(size*0.4)+'px;background:'+(p.color||'#5C6B47')+';">'+initials(p.name||'?')+'</span>';
 }
@@ -5498,15 +5560,15 @@ async function initGame(){
 
 document.getElementById('mpentry-create-btn').addEventListener('click', function(){
   var isPublic = document.getElementById('mpentry-public-check').checked;
-  whenConnected(function(){ sendWS({type:'create', name: CURRENT_PROFILE.username||'Player', isPublic: isPublic}); });
+  whenConnected(function(){ sendWS({type:'create', name: CURRENT_PROFILE.username||'Player', isPublic: isPublic, avatarKey: CURRENT_PROFILE.avatarKey, color: CURRENT_PROFILE.color}); });
 });
 document.getElementById('mpentry-quick-match-btn').addEventListener('click', function(){
-  whenConnected(function(){ sendWS({type:'quick_match', name: CURRENT_PROFILE.username||'Player'}); });
+  whenConnected(function(){ sendWS({type:'quick_match', name: CURRENT_PROFILE.username||'Player', avatarKey: CURRENT_PROFILE.avatarKey, color: CURRENT_PROFILE.color}); });
 });
 document.getElementById('mpentry-join-btn').addEventListener('click', function(){
   var code = document.getElementById('mpentry-code-input').value.trim().toUpperCase();
   if(!code){ var e=document.getElementById('mpentry-error'); e.textContent='Enter a room code.'; e.style.display='block'; return; }
-  whenConnected(function(){ sendWS({type:'join', name: CURRENT_PROFILE.username||'Player', roomCode: code}); });
+  whenConnected(function(){ sendWS({type:'join', name: CURRENT_PROFILE.username||'Player', roomCode: code, avatarKey: CURRENT_PROFILE.avatarKey, color: CURRENT_PROFILE.color}); });
 });
 document.getElementById('mp-leave-btn').addEventListener('click', function(){
   leaveCurrentRoom();

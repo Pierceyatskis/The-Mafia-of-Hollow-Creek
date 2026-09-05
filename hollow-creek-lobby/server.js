@@ -14,12 +14,25 @@ const Scoring = require('./scoring.js');
 const PORT = process.env.PORT || 8080;
 
 // Phase durations. Server owns these - clients render a countdown from
-// phaseEndsAt, they never run their own independent clock.
+// phaseEndsAt, they never run their own independent clock. Discussion and
+// voting time are also host-configurable per room (see sanitizeDurationMs
+// below and room.discussMs/room.voteMs) - these constants are just the
+// defaults a room falls back to until the host picks something else.
 const NIGHT_DURATION_MS = Number(process.env.NIGHT_DURATION_MS) || 60000;
 const DAY_DISCUSS_DURATION_MS = Number(process.env.DAY_DISCUSS_DURATION_MS) || 90000;
 const DAY_VOTE_DURATION_MS = Number(process.env.DAY_VOTE_DURATION_MS) || 105000; // was 45s - extended by an extra minute of actual voting time
 const DAY_REVEAL_DURATION_MS = Number(process.env.DAY_REVEAL_DURATION_MS) || 12000;
 const FARMER_REVENGE_DURATION_MS = Number(process.env.FARMER_REVENGE_DURATION_MS) || 20000;
+const MIN_DISCUSS_SECONDS = 30, MAX_DISCUSS_SECONDS = 300;
+const MIN_VOTE_SECONDS = 30, MAX_VOTE_SECONDS = 300;
+
+// Clamps a host-supplied seconds value into range and converts to ms,
+// falling back to the given default for anything not a finite number.
+function sanitizeDurationMs(raw, minSeconds, maxSeconds, defaultMs) {
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return defaultMs;
+  return Math.max(minSeconds, Math.min(maxSeconds, Math.round(n))) * 1000;
+}
 
 const TOGGLEABLE_ROLES = G.SPECIAL_ROLES.filter(r => r !== 'Mafia');
 
@@ -66,6 +79,19 @@ function sanitizeName(raw) {
   return String(raw || '').trim().slice(0, 20) || 'Player';
 }
 
+// Both values ride back out to every other client and land straight in an
+// HTML attribute (avatarHTML's inline style="...background:COLOR;" and an
+// <img src> built from IMG[avatarKey]) - strict allowlists here, not just
+// truncation, so a hostile client can't break out of that attribute.
+function sanitizeColor(raw) {
+  const s = String(raw || '');
+  return /^#[0-9a-fA-F]{3,8}$/.test(s) ? s : null;
+}
+function sanitizeAvatarKey(raw) {
+  const s = String(raw || '');
+  return /^avatar[0-9]{1,3}$/.test(s) ? s : null;
+}
+
 function sanitizeRolesConfig(raw) {
   const roles = Object.assign({}, G.DEFAULT_ROLES_CONFIG);
   if (raw && typeof raw === 'object') {
@@ -76,14 +102,14 @@ function sanitizeRolesConfig(raw) {
   return roles;
 }
 
-function createRoom(socket, name, isPublic) {
+function createRoom(socket, name, isPublic, avatarKey, color) {
   const code = makeRoomCode();
   const id = makePlayerId();
   // draftConfig: the host's in-progress (not yet started) setup-screen
   // choices - null until the host's client sends its first hostConfigUpdate.
   // Lets a waiting (non-host) player see live seat/mafia/role choices
   // instead of nothing at all before the game starts.
-  rooms[code] = { players: [{ id, name, socket }], hostId: id, started: false, state: null, timer: null, phaseEndsAt: null, isPublic: !!isPublic, draftConfig: null };
+  rooms[code] = { players: [{ id, name, socket, avatarKey, color }], hostId: id, started: false, state: null, timer: null, phaseEndsAt: null, isPublic: !!isPublic, draftConfig: null };
   socket.roomCode = code;
   socket.playerId = id;
   socket.send(JSON.stringify({ type: 'created', roomCode: code, playerId: id }));
@@ -91,10 +117,10 @@ function createRoom(socket, name, isPublic) {
   return code;
 }
 
-function joinRoom(socket, code, name) {
+function joinRoom(socket, code, name, avatarKey, color) {
   const room = rooms[code];
   const id = makePlayerId();
-  room.players.push({ id, name, socket });
+  room.players.push({ id, name, socket, avatarKey, color });
   socket.roomCode = code;
   socket.playerId = id;
   socket.send(JSON.stringify({ type: 'joined', roomCode: code, playerId: id }));
@@ -109,7 +135,7 @@ function joinRoom(socket, code, name) {
 function broadcastRoster(code) {
   const room = rooms[code];
   if (!room) return;
-  const roster = room.players.map(p => ({ id: p.id, name: p.name, isHost: p.id === room.hostId }));
+  const roster = room.players.map(p => ({ id: p.id, name: p.name, isHost: p.id === room.hostId, avatarKey: p.avatarKey || null, color: p.color || null }));
   const msg = JSON.stringify({ type: 'roster', roomCode: code, players: roster, started: room.started, isPublic: !!room.isPublic });
   room.players.forEach(p => {
     if (p.socket.readyState === WebSocket.OPEN) p.socket.send(msg);
@@ -260,19 +286,21 @@ function finishRoundScoring(room, dayResult, revengeResult) {
 }
 
 function beginDayDiscussPhase(room) {
+  const discussMs = room.discussMs || DAY_DISCUSS_DURATION_MS;
   room.state.phase = 'day-discuss';
-  room.phaseEndsAt = Date.now() + DAY_DISCUSS_DURATION_MS;
+  room.phaseEndsAt = Date.now() + discussMs;
   clearPhaseTimer(room);
-  room.timer = setTimeout(() => beginDayVotePhase(room), DAY_DISCUSS_DURATION_MS);
+  room.timer = setTimeout(() => beginDayVotePhase(room), discussMs);
   sendGameState(room);
 }
 
 function beginDayVotePhase(room) {
+  const voteMs = room.voteMs || DAY_VOTE_DURATION_MS;
   room.state.phase = 'day-vote';
   room.dayVoteSubmitted = new Set();
-  room.phaseEndsAt = Date.now() + DAY_VOTE_DURATION_MS;
+  room.phaseEndsAt = Date.now() + voteMs;
   clearPhaseTimer(room);
-  room.timer = setTimeout(() => resolveDayVotePhase(room), DAY_VOTE_DURATION_MS);
+  room.timer = setTimeout(() => resolveDayVotePhase(room), voteMs);
   sendGameState(room);
   broadcastDayVoteProgress(room);
 }
@@ -351,7 +379,7 @@ wss.on('connection', (socket) => {
 
     if (msg.type === 'create') {
       const name = sanitizeName(msg.name);
-      const code = createRoom(socket, name, msg.isPublic);
+      const code = createRoom(socket, name, msg.isPublic, sanitizeAvatarKey(msg.avatarKey), sanitizeColor(msg.color));
       console.log(`Room ${code} created by ${name}${msg.isPublic ? ' (public)' : ''}`);
     }
 
@@ -371,18 +399,20 @@ wss.on('connection', (socket) => {
         return;
       }
       const name = sanitizeName(msg.name);
-      joinRoom(socket, code, name);
+      joinRoom(socket, code, name, sanitizeAvatarKey(msg.avatarKey), sanitizeColor(msg.color));
       console.log(`${name} joined room ${code}`);
     }
 
     else if (msg.type === 'quick_match') {
       const name = sanitizeName(msg.name);
+      const avatarKey = sanitizeAvatarKey(msg.avatarKey);
+      const color = sanitizeColor(msg.color);
       const openCode = Object.keys(rooms).find(c => rooms[c].isPublic && !rooms[c].started && rooms[c].players.length < G.MAX_PLAYERS);
       if (openCode) {
-        joinRoom(socket, openCode, name);
+        joinRoom(socket, openCode, name, avatarKey, color);
         console.log(`${name} quick-matched into room ${openCode}`);
       } else {
-        const code = createRoom(socket, name, true);
+        const code = createRoom(socket, name, true, avatarKey, color);
         console.log(`Room ${code} created via quick-match by ${name}`);
       }
     }
@@ -427,7 +457,9 @@ wss.on('connection', (socket) => {
       mafiaCount = Math.max(0, Math.min(G.MAX_MAFIA_COUNT, Math.round(mafiaCount)));
 
       const roles = sanitizeRolesConfig(msg.roles);
-      room.draftConfig = { playerCount, mafiaCount, roles };
+      const discussMs = sanitizeDurationMs(msg.discussSeconds, MIN_DISCUSS_SECONDS, MAX_DISCUSS_SECONDS, DAY_DISCUSS_DURATION_MS);
+      const voteMs = sanitizeDurationMs(msg.voteSeconds, MIN_VOTE_SECONDS, MAX_VOTE_SECONDS, DAY_VOTE_DURATION_MS);
+      room.draftConfig = { playerCount, mafiaCount, roles, discussSeconds: discussMs / 1000, voteSeconds: voteMs / 1000 };
       room.players.forEach(rp => {
         if (rp.socket.readyState === WebSocket.OPEN) {
           rp.socket.send(JSON.stringify(Object.assign({ type: 'configUpdate' }, room.draftConfig)));
@@ -453,8 +485,14 @@ wss.on('connection', (socket) => {
       mafiaCount = Math.max(0, Math.min(G.MAX_MAFIA_COUNT, Math.round(mafiaCount)));
 
       const roles = sanitizeRolesConfig(msg.roles);
-      const seats = room.players.map(p => ({ id: p.id, name: p.name }));
+      const seats = room.players.map(p => ({ id: p.id, name: p.name, avatarKey: p.avatarKey, color: p.color }));
       const config = { playerCount, mafiaCount, roles };
+      // Host-configurable per room (Accessibility/Settings follow-up) - kept
+      // on the room so every phase for the rest of this room's life (this
+      // game and any "play again" rematch) uses the same chosen durations
+      // instead of always falling back to the module-wide defaults.
+      room.discussMs = sanitizeDurationMs(msg.discussSeconds, MIN_DISCUSS_SECONDS, MAX_DISCUSS_SECONDS, DAY_DISCUSS_DURATION_MS);
+      room.voteMs = sanitizeDurationMs(msg.voteSeconds, MIN_VOTE_SECONDS, MAX_VOTE_SECONDS, DAY_VOTE_DURATION_MS);
 
       let state;
       try {
@@ -707,3 +745,11 @@ server.listen(PORT, () => {
   console.log(`Hollow Creek server running at http://localhost:${PORT}`);
   console.log(`Open that address in a browser to test - open it in a few tabs to simulate multiple players.`);
 });
+
+// Test-only introspection - never imported in production (this file is
+// always the process entry point, run directly via `node server.js`).
+// test-server.js requires this module in-process specifically to verify
+// server-internal state that's no longer observable over the wire, like a
+// private role's log, now that those are correctly scoped off the public
+// case file (see game.js's detectiveLog/consigliereLog/morticianLog).
+module.exports = { rooms };

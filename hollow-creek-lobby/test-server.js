@@ -207,8 +207,12 @@ async function testDisconnectFallback() {
 
     assert(elapsed < 5000, 'the room resolves promptly once the disconnected Detective was the only one left to act (took ' + elapsed + 'ms), instead of waiting out the full 60s night timer');
 
-    const investigated = (resolved.view.history || []).some(line => /investigated .+ and it read/i.test(line));
-    assert(investigated, 'the disconnected Detective still got a real fallback investigate action recorded in history, not an empty {} action');
+    // A Detective's investigate result is private (never in the public case
+    // file - see game.js's detectiveLog), so the only way anyone outside the
+    // Detective's own gone socket can confirm the fallback action actually
+    // fired is server-internal introspection (see server.js's module.exports).
+    const room = require('./server.js').rooms[host.roomCode];
+    assert(room.state.detectiveLog.length > 0, 'the disconnected Detective still got a real fallback investigate action recorded (in the private detectiveLog), not an empty {} action');
 
     others.forEach(p => { try { p.ws.close(); } catch (e) {} });
     return;
