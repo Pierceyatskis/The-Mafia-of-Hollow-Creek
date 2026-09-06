@@ -5770,6 +5770,7 @@ function requestFreshIceServers(){
 function closeVoicePeerConnection(remoteId){
   var pc = voicePeerConnections[remoteId];
   if(pc){ pc.close(); delete voicePeerConnections[remoteId]; }
+  delete voicePendingCandidates[remoteId]; // never let a stale queued candidate leak into a later connection to this same person
 }
 
 function playRemoteAudio(stream){
@@ -5794,11 +5795,26 @@ function syncLocalMicEnabled(){
   voiceLocalStream.getAudioTracks().forEach(function(t){ t.enabled = enabled; });
 }
 
+// Logs ICE/connection state transitions to the console - not shown in the
+// UI, just visibility for diagnosing connectivity issues (a connection that
+// flaps between 'connected' and 'disconnected'/'failed' repeatedly points
+// at a real network/NAT path problem between the two peers, as opposed to
+// an application bug like the dropped-candidate one this same change fixes).
+function attachConnectionDiagnostics(pc, remoteId){
+  pc.oniceconnectionstatechange = function(){
+    console.log('voice: ICE state with', remoteId, '->', pc.iceConnectionState);
+  };
+  pc.onconnectionstatechange = function(){
+    console.log('voice: connection state with', remoteId, '->', pc.connectionState);
+  };
+}
+
 function connectToListener(listenerId){
   if(voicePeerConnections[listenerId]) return; // already connecting/connected
   requestFreshIceServers().then(function(iceServers){
     var pc = new RTCPeerConnection({iceServers: iceServers});
     voicePeerConnections[listenerId] = pc;
+    attachConnectionDiagnostics(pc, listenerId);
     pc.onicecandidate = function(e){
       if(e.candidate) sendWS({type:'voiceIceCandidate', targetId: listenerId, candidate: e.candidate});
     };
@@ -5821,11 +5837,13 @@ function handleVoiceOffer(fromId, sdp){
   requestFreshIceServers().then(function(iceServers){
     var pc = new RTCPeerConnection({iceServers: iceServers});
     voicePeerConnections[fromId] = pc;
+    attachConnectionDiagnostics(pc, fromId);
     pc.onicecandidate = function(e){
       if(e.candidate) sendWS({type:'voiceIceCandidate', targetId: fromId, candidate: e.candidate});
     };
     pc.ontrack = function(e){ playRemoteAudio(e.streams[0]); };
     return pc.setRemoteDescription(new RTCSessionDescription(sdp)).then(function(){
+      flushPendingCandidates(fromId);
       return pc.createAnswer();
     }).then(function(answer){
       return pc.setLocalDescription(answer).then(function(){ return answer; });
@@ -5840,12 +5858,38 @@ function handleVoiceOffer(fromId, sdp){
 function handleVoiceAnswer(fromId, sdp){
   var pc = voicePeerConnections[fromId];
   if(!pc) return;
-  pc.setRemoteDescription(new RTCSessionDescription(sdp)).catch(function(err){ console.error('voice: failed to set remote answer', err); });
+  pc.setRemoteDescription(new RTCSessionDescription(sdp)).then(function(){
+    flushPendingCandidates(fromId);
+  }).catch(function(err){ console.error('voice: failed to set remote answer', err); });
 }
+// ICE candidates routinely arrive before the peer connection has a remote
+// description set yet (createOffer/Answer and the signaling round trip are
+// all async, but onicecandidate can fire almost immediately) - adding a
+// candidate before that point throws, so an early candidate must be queued
+// rather than dropped. A dropped candidate isn't just a missed optimization:
+// if it happened to be the one good relay/server-reflexive path, the
+// connection falls back to whatever candidate pair IS left, which can be a
+// flakier one - exactly the kind of bug that produces audio that connects
+// but cuts in and out instead of failing outright.
+var voicePendingCandidates = {}; // remoteId -> array of queued RTCIceCandidateInit
 function handleVoiceIceCandidate(fromId, candidate){
+  if(!candidate) return;
   var pc = voicePeerConnections[fromId];
-  if(!pc || !candidate) return;
-  pc.addIceCandidate(new RTCIceCandidate(candidate)).catch(function(err){ console.error('voice: failed to add ICE candidate', err); });
+  if(pc && pc.remoteDescription && pc.remoteDescription.type){
+    pc.addIceCandidate(new RTCIceCandidate(candidate)).catch(function(err){ console.error('voice: failed to add ICE candidate', err); });
+  } else {
+    if(!voicePendingCandidates[fromId]) voicePendingCandidates[fromId] = [];
+    voicePendingCandidates[fromId].push(candidate);
+  }
+}
+function flushPendingCandidates(remoteId){
+  var pc = voicePeerConnections[remoteId];
+  var queued = voicePendingCandidates[remoteId];
+  if(!pc || !queued) return;
+  delete voicePendingCandidates[remoteId];
+  queued.forEach(function(c){
+    pc.addIceCandidate(new RTCIceCandidate(c)).catch(function(err){ console.error('voice: failed to add queued ICE candidate', err); });
+  });
 }
 
 // Called from renderStagePanel exactly when latestStageState's speakerId
