@@ -181,9 +181,10 @@ function removePlayer(socket) {
   const playerId = room.players[idx].id;
   room.players.splice(idx, 1);
 
-  // A disconnected human keeps their seat in the game (no reconnect support
-  // yet - that's a separate follow-up) but must stop blocking resolution:
-  // treat them like a placeholder for early-resolution checks and fallback actions.
+  // A disconnected human keeps their seat in the game - see the 'rejoin'
+  // handler, which finds this same seat by id and marks it connected again -
+  // but must stop blocking resolution in the meantime: treat them like a
+  // placeholder for early-resolution checks and fallback actions.
   if (room.started && room.state) {
     const sp = G.byId(room.state, playerId);
     if (sp) sp.connected = false;
@@ -614,6 +615,53 @@ wss.on('connection', (socket) => {
 
     else if (msg.type === 'leave') {
       removePlayer(socket);
+    }
+
+    else if (msg.type === 'rejoin') {
+      // A refreshed/reloaded tab trying to step back into the exact seat it
+      // had a moment ago - see the client's ACTIVE_SESSION_KEY/loadActiveSession.
+      // Pre-start, a seat isn't durable game state yet, so this just falls
+      // through to a normal joinRoom (a fresh id, but the same room) rather
+      // than trying to preserve identity that doesn't mean anything yet.
+      // Once started, the real seat lives in room.state.players (game.js),
+      // marked connected:false by removePlayer on the original disconnect -
+      // reconnecting means finding that same seat again and marking it
+      // connected, not creating a new one.
+      const code = (msg.roomCode || '').toUpperCase();
+      const room = rooms[code];
+      if (!room) {
+        socket.send(JSON.stringify({ type: 'rejoinFailed', message: 'That room no longer exists.' }));
+        return;
+      }
+      const name = sanitizeName(msg.name);
+      const avatarKey = sanitizeAvatarKey(msg.avatarKey);
+      const color = sanitizeColor(msg.color);
+
+      if (!room.started) {
+        if (room.players.length >= G.MAX_PLAYERS) {
+          socket.send(JSON.stringify({ type: 'rejoinFailed', message: 'That room is full.' }));
+          return;
+        }
+        joinRoom(socket, code, name, avatarKey, color);
+        return;
+      }
+
+      const playerId = String(msg.playerId || '');
+      const sp = G.byId(room.state, playerId);
+      if (!sp || !sp.isHuman) {
+        socket.send(JSON.stringify({ type: 'rejoinFailed', message: 'Your seat in that game is gone.' }));
+        return;
+      }
+      sp.connected = true;
+      const existingEntry = room.players.find(p => p.id === playerId);
+      if (existingEntry) { existingEntry.socket = socket; }
+      else { room.players.push({ id: playerId, name: sp.name, socket, avatarKey, color }); }
+      socket.roomCode = code;
+      socket.playerId = playerId;
+      socket.send(JSON.stringify({ type: 'rejoined', roomCode: code, playerId, started: true }));
+      sendGameState(room);
+      if (room.stage) broadcastStageState(room);
+      console.log(`${sp.name} reconnected to room ${code}`);
     }
 
     else if (msg.type === 'kick') {

@@ -1538,6 +1538,44 @@ async function loadProfile(){
 }
 var CURRENT_PROFILE = Object.assign({}, DEFAULT_PROFILE);
 
+// Lets a refreshed/reloaded tab rejoin the exact room+seat it was in,
+// instead of losing the game entirely - see the 'rejoin' message handler
+// and server.js's matching handler. Cleared on an explicit leave/kick;
+// otherwise carries a savedAt timestamp so a stale session from days ago
+// (a forgotten tab) doesn't try to rejoin a long-gone room.
+var ACTIVE_SESSION_KEY = 'hc-active-session-v1';
+var ACTIVE_SESSION_MAX_AGE_MS = 6 * 60 * 60 * 1000;
+async function saveActiveSession(){
+  try{
+    if(!myRoomCode || !myPlayerId) return;
+    var data = JSON.stringify({roomCode: myRoomCode, playerId: myPlayerId, savedAt: Date.now()});
+    if(hasClaudeStorage()){ await window.storage.set(ACTIVE_SESSION_KEY, data, false); }
+    else { localStorage.setItem(ACTIVE_SESSION_KEY, data); }
+  }catch(e){ /* not critical - worst case a refresh just can't auto-rejoin */ }
+}
+async function loadActiveSession(){
+  try{
+    var raw;
+    if(hasClaudeStorage()){
+      var result = await window.storage.get(ACTIVE_SESSION_KEY, false);
+      raw = result && result.value;
+    } else {
+      raw = localStorage.getItem(ACTIVE_SESSION_KEY);
+    }
+    if(!raw) return null;
+    var session = JSON.parse(raw);
+    if(!session || !session.roomCode || !session.playerId) return null;
+    if(Date.now() - (session.savedAt||0) > ACTIVE_SESSION_MAX_AGE_MS) return null;
+    return session;
+  }catch(e){ return null; }
+}
+async function clearActiveSession(){
+  try{
+    if(hasClaudeStorage()){ await window.storage.delete(ACTIVE_SESSION_KEY, false); }
+    else { localStorage.removeItem(ACTIVE_SESSION_KEY); }
+  }catch(e){}
+}
+
 // Accessibility & Settings Task 1/3/4 - one flat settings blob, same
 // hasClaudeStorage()-gated async pattern as profile/streak/score-stats
 // above (deliberately NOT the sound keys' plain-localStorage shortcut,
@@ -1615,7 +1653,11 @@ function whenConnected(fn){
 
 function sendWS(obj){ if(ws && ws.readyState===WebSocket.OPEN) ws.send(JSON.stringify(obj)); }
 
+var pendingRejoinResolve = null; // set by initGame while it's waiting on an auto-rejoin attempt at startup
 function handleServerMessage(msg){
+  if(pendingRejoinResolve && (msg.type==='rejoined' || msg.type==='joined' || msg.type==='rejoinFailed' || msg.type==='error')){
+    var resolveRejoinWait = pendingRejoinResolve; pendingRejoinResolve = null; resolveRejoinWait();
+  }
   if(msg.type==='created' || msg.type==='joined'){
     myPlayerId = msg.playerId; myRoomCode = msg.roomCode;
     localPlayerNotes = {}; // notes are per-room scratch, never carry over from an earlier game
@@ -1624,9 +1666,25 @@ function handleServerMessage(msg){
     deadNoticeDismissed = false;
     multiplayerWhisperLog = [];
     renderLynchReveal._key = null;
+    saveActiveSession();
     var codeEl = document.getElementById('mp-room-code');
     if(codeEl) codeEl.textContent = '· '+myRoomCode;
     switchPanel('lobby');
+  } else if(msg.type==='rejoined'){
+    // The game was already in progress - myPlayerId/roomCode are restored,
+    // but no panel switch here: the gameState message the server sends
+    // right behind this one drives night/day/end exactly like any other
+    // phase update, so there's no separate "resume" logic to duplicate.
+    myPlayerId = msg.playerId; myRoomCode = msg.roomCode;
+    saveActiveSession();
+    var rejoinCodeEl = document.getElementById('mp-room-code');
+    if(rejoinCodeEl) rejoinCodeEl.textContent = '· '+myRoomCode;
+  } else if(msg.type==='rejoinFailed'){
+    clearActiveSession();
+    renderMpEntryScreen();
+    switchPanel('mpentry');
+    var mpErrEl = document.getElementById('mpentry-error');
+    if(mpErrEl){ mpErrEl.textContent = msg.message || "Couldn't rejoin that game."; mpErrEl.style.display = 'block'; }
   } else if(msg.type==='roster'){
     renderMpRoster(msg.players);
   } else if(msg.type==='configUpdate'){
@@ -1705,6 +1763,7 @@ function handleServerMessage(msg){
   } else if(msg.type==='voiceIceCandidate'){
     handleVoiceIceCandidate(msg.fromId, msg.candidate);
   } else if(msg.type==='kicked'){
+    clearActiveSession();
     alert((msg.message || 'You were removed from the room.') + (msg.reason ? '\nReason: '+msg.reason : ''));
     if(ws) ws.close();
     renderMpEntryScreen();
@@ -6203,12 +6262,32 @@ async function initGame(){
     CURRENT_SETTINGS = await loadSettings();
   }catch(e){ /* use defaults */ }
   applyReducedMotion();
-  switchPanel('home');
+
   var bootEl = document.getElementById('boot-loading');
-  if(bootEl){
-    bootEl.style.opacity = '0';
-    setTimeout(function(){ bootEl.style.display = 'none'; }, 500);
+  function hideBoot(){
+    if(bootEl){ bootEl.style.opacity = '0'; setTimeout(function(){ bootEl.style.display = 'none'; }, 500); }
   }
+
+  // A refresh wipes every in-memory JS var, but if this tab was mid-game a
+  // moment ago, try to silently step back into that exact seat before ever
+  // showing the home screen - see saveActiveSession/the 'rejoin' handler.
+  var session = null;
+  try{ session = await loadActiveSession(); }catch(e){ /* ignore, just skip rejoining */ }
+  if(session){
+    switchPanel('home'); // sits underneath the still-visible boot overlay
+    await new Promise(function(resolve){
+      pendingRejoinResolve = resolve;
+      setTimeout(resolve, 4000); // never hang the boot screen if the server never answers
+      whenConnected(function(){
+        sendWS({type:'rejoin', roomCode: session.roomCode, playerId: session.playerId, name: CURRENT_PROFILE.username||'Player', avatarKey: CURRENT_PROFILE.avatarKey, color: CURRENT_PROFILE.color});
+      });
+    });
+    hideBoot();
+    return;
+  }
+
+  switchPanel('home');
+  hideBoot();
 }
 
 document.getElementById('mpentry-create-btn').addEventListener('click', function(){
@@ -6239,6 +6318,7 @@ document.getElementById('mpentry-edit-profile-btn').addEventListener('click', fu
 // stray late gameState/roster push can't silently pull the player back in.
 function leaveCurrentRoom(){
   sendWS({type:'leave'});
+  clearActiveSession();
   if(ws) ws.close();
   ws = null;
   latestView = null; previousView = null;
