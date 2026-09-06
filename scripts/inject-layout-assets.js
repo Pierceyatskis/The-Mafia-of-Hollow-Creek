@@ -25,11 +25,34 @@ const JOBS = [
   { key: 'iconSheetA', file: '37a04bae-6a55-4c63-9a41-48bf6b1c41be.png', width: 1000, format: 'webp', quality: 85 }
 ];
 
+// The "transparent" sprite sheets aren't actually transparent - sharp
+// reports hasAlpha:false on the source PNGs, and viewing them confirms a
+// flat gray/white checkerboard is baked directly into the pixels (the
+// generation tool's own "this is transparent" placeholder convention, not
+// real alpha). Key it out here: checker tiles are near-neutral (R≈G≈B)
+// at one of two narrow lightness bands - the actual artwork (warm tans,
+// gold, red wax) is never neutral enough to be caught by this.
+async function dechecker(srcPath) {
+  const { data, info } = await sharp(srcPath).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const { width, height, channels } = info;
+  for (let i = 0; i < width * height; i++) {
+    const o = i * channels;
+    const r = data[o], g = data[o + 1], b = data[o + 2];
+    const spread = Math.max(r, g, b) - Math.min(r, g, b);
+    const isCheckerTone = spread <= 14 && ((r >= 95 && r <= 165) || (r >= 170 && r <= 225));
+    if (isCheckerTone) data[o + 3] = 0;
+  }
+  return sharp(data, { raw: { width, height, channels } });
+}
+
 async function main() {
   const entries = [];
   for (const job of JOBS) {
     const srcPath = path.join(ASSETS_DIR, job.file);
-    let pipeline = sharp(srcPath).resize({ width: job.width, withoutEnlargement: true });
+    let pipeline = job.format === 'jpeg'
+      ? sharp(srcPath)
+      : await dechecker(srcPath);
+    pipeline = pipeline.resize({ width: job.width, withoutEnlargement: true });
     let buf, mime;
     if (job.format === 'jpeg') {
       buf = await pipeline.flatten({ background: '#000' }).jpeg({ quality: job.quality }).toBuffer();
