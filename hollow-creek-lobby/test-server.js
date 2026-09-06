@@ -154,7 +154,7 @@ async function testHostKickDuringActiveGame() {
 
   const victim = players[1];
   const kickedMsg = once(victim.ws, m => m.type === 'kicked');
-  send(host.ws, { type: 'kick', targetId: victim.playerId });
+  send(host.ws, { type: 'kick', targetId: victim.playerId, reason: 'other', note: 'test' });
   const kicked = await kickedMsg;
   assert(!!kicked, 'the kicked player receives a kicked notification');
 
