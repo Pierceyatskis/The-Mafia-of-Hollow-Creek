@@ -116,6 +116,15 @@ body.force-reduced-motion .ballot-box-seal.playing{animation:none !important; op
 .bottom-nav-icon-notebook{background-image:var(--sheet-paper-notebook); background-size:400% 100%; background-position:33.333% 0%;}
 .bottom-nav-icon-history{background-image:var(--sheet-paper-notebook); background-size:400% 100%; background-position:66.667% 0%;}
 .bottom-nav-icon-settings{background-image:var(--sheet-paper-notebook); background-size:400% 100%; background-position:100% 0%;}
+/* LAYOUT_AND_ASSETS Task 2 - portrait frame variants overlaid on the
+   existing town-tile avatar rather than a separate indicator system
+   (per the spec's own instruction). 6-cell strip: default/default/
+   SELECTED(glow)/default/ELIMINATED(damaged)/HOST(red-seal) - host isn't
+   wired (no per-player host flag reaches the client's game view today),
+   default/selected/eliminated are.  */
+.town-tile-frame{position:absolute; inset:-7px; background-image:var(--sheet-portrait-frames); background-size:600% 100%; background-position:0% 0%; background-repeat:no-repeat; pointer-events:none;}
+.town-tile.selected .town-tile-frame{background-position:40% 0%;}
+.town-tile.eliminated .town-tile-frame{background-position:80% 0%;}
 .sound-toggle{font-family:var(--font-type); font-size:10px; letter-spacing:1px; text-transform:uppercase; color:var(--parchment-dim); background:transparent; border:1px solid var(--gold-dim); border-radius:20px; padding:3px 11px; cursor:pointer; transition:color .15s ease, border-color .15s ease;}
 .sound-toggle:hover{color:var(--gold-bright); border-color:var(--gold);}
 .sound-toggle.is-muted{color:var(--parchment-dim); opacity:0.6;}
@@ -5818,7 +5827,7 @@ function renderTownBoard(){
     }
     return '<div class="'+classes.join(' ')+'" data-id="'+p.id+'">'+
       '<div class="town-tile-label">'+escapeHtmlMp(label)+'</div>'+
-      '<div class="town-tile-avatar"'+spotStyle+'><img src="'+UNKNOWN_AVATAR_IMG+'" alt="">'+checkBadge+xOverlay+pencilBadge+'</div>'+
+      '<div class="town-tile-avatar"'+spotStyle+'><img src="'+UNKNOWN_AVATAR_IMG+'" alt="">'+checkBadge+xOverlay+pencilBadge+'<span class="town-tile-frame"></span></div>'+
       noteHTML+
       '</div>';
   }).join('');
