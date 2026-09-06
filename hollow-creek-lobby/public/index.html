@@ -584,7 +584,7 @@ body.force-reduced-motion .dossier-card::after{animation:none !important; displa
    queue, which is secondary. */
 .stage-speaker{flex:1.4 1 240px; min-width:210px; background:rgba(0,0,0,0.2); border:1px solid var(--line); border-radius:4px; padding:16px; display:flex; flex-direction:column; align-items:center; text-align:center; gap:8px;}
 .stage-speaker-empty{font-family:var(--font-type); font-size:12px; color:var(--parchment-dim); padding:10px 0;}
-.stage-speaker-avatar-wrap{position:relative; width:76px; height:76px;}
+.stage-speaker-avatar-wrap{position:relative; width:76px; height:76px; border-radius:50%;}
 .stage-speaker-avatar-wrap::before{content:''; position:absolute; inset:-22px; border-radius:50%; background:radial-gradient(circle, rgba(227,177,85,0.32) 0%, rgba(227,177,85,0) 72%); z-index:0; pointer-events:none;}
 .stage-speaker-avatar-wrap .avatar{position:relative; z-index:1; width:76px !important; height:76px !important; font-size:28px !important;}
 .stage-mic-icon{position:absolute; z-index:2; bottom:-4px; right:-4px; width:28px; height:28px; border-radius:50%; background:var(--panel); border:2px solid var(--gold-dim); display:flex; align-items:center; justify-content:center; font-size:14px; overflow:hidden;}
@@ -5801,9 +5801,11 @@ function closeVoicePeerConnection(remoteId){
   delete voicePendingCandidates[remoteId]; // never let a stale queued candidate leak into a later connection to this same person
 }
 
+var voiceCurrentRemoteStream = null; // whichever remote stream is attached to #voice-remote-audio right now, read by the voice-activity monitor below
 function playRemoteAudio(stream){
   var audioEl = document.getElementById('voice-remote-audio');
   audioEl.srcObject = stream;
+  voiceCurrentRemoteStream = stream;
   var p = audioEl.play();
   if(p && p.catch) p.catch(function(err){ console.error('voice: remote audio playback was blocked', err); });
 }
@@ -5811,6 +5813,66 @@ function stopRemoteAudio(){
   var audioEl = document.getElementById('voice-remote-audio');
   audioEl.pause();
   audioEl.srcObject = null;
+  voiceCurrentRemoteStream = null;
+}
+
+// Lightweight voice-activity detection - the glow only lights up while the
+// current speaker's stream is actually carrying sound above a small noise
+// floor, not just because someone technically holds the stage (muted, or
+// just quiet, both correctly show no glow). Reuses whichever MediaStream is
+// already flowing for this speaker - my own local mic if I'm speaking, or
+// the remote stream already attached to the listener's <audio> element
+// otherwise - rather than opening a second capture of it.
+var voiceLevelInterval = null;
+var voiceLevelAudioCtx = null;
+var voiceLevelSource = null;
+var voiceLevelAnalyser = null;
+var voiceLevelSourceStream = null;
+function stopVoiceLevelMonitor(){
+  if(voiceLevelInterval){ clearInterval(voiceLevelInterval); voiceLevelInterval = null; }
+  if(voiceLevelSource){ try{ voiceLevelSource.disconnect(); }catch(e){} voiceLevelSource = null; }
+  voiceLevelAnalyser = null;
+  voiceLevelSourceStream = null;
+  var avatarWrap = document.querySelector('#stage-speaker .stage-speaker-avatar-wrap');
+  if(avatarWrap) avatarWrap.classList.remove('stage-speaking-glow');
+}
+function startVoiceLevelMonitor(stream){
+  if(!stream || voiceLevelSourceStream === stream) return; // already watching this exact stream
+  stopVoiceLevelMonitor();
+  voiceLevelSourceStream = stream;
+  try{
+    if(!voiceLevelAudioCtx) voiceLevelAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    voiceLevelSource = voiceLevelAudioCtx.createMediaStreamSource(stream);
+    voiceLevelAnalyser = voiceLevelAudioCtx.createAnalyser();
+    voiceLevelAnalyser.fftSize = 512;
+    voiceLevelSource.connect(voiceLevelAnalyser);
+    var data = new Uint8Array(voiceLevelAnalyser.frequencyBinCount);
+    voiceLevelInterval = setInterval(function(){
+      if(voiceLevelSourceStream !== stream || !voiceLevelAnalyser) return;
+      voiceLevelAnalyser.getByteTimeDomainData(data);
+      var sumSquares = 0;
+      for(var i=0;i<data.length;i++){ var v=(data[i]-128)/128; sumSquares += v*v; }
+      var rms = Math.sqrt(sumSquares/data.length);
+      var avatarWrap = document.querySelector('#stage-speaker .stage-speaker-avatar-wrap');
+      if(avatarWrap) avatarWrap.classList.toggle('stage-speaking-glow', rms > 0.02);
+    }, 120);
+  }catch(err){
+    console.error('voice: could not start voice-activity monitor', err);
+  }
+}
+// Picks which stream (if any) should drive the glow for the current speaker,
+// given who I am relative to them and whether they're muted - called every
+// time the stage panel re-renders.
+function syncVoiceLevelGlow(speakerId, speakerMuted){
+  if(!speakerId || speakerMuted){ stopVoiceLevelMonitor(); return; }
+  if(speakerId === myPlayerId){
+    if(voiceLocalStream) startVoiceLevelMonitor(voiceLocalStream);
+    else stopVoiceLevelMonitor();
+  } else if(voiceCurrentRemoteStream){
+    startVoiceLevelMonitor(voiceCurrentRemoteStream);
+  } else {
+    stopVoiceLevelMonitor();
+  }
 }
 
 // The speaker's own mic track is enabled/disabled (never a whole new
@@ -6007,12 +6069,13 @@ function renderStagePanel(){
 
   if(!s.speakerId){
     stopStageTimer();
+    stopVoiceLevelMonitor();
     speakerEl.innerHTML = '<p class="stage-speaker-empty">Nobody\'s speaking yet. Join the queue to take the stage.</p>';
   } else {
     var sp = byId(s.speakerId);
     var label = sp ? (sp.id===myPlayerId ? 'You' : sp.name) : '?';
     var micIconClass = 'stage-mic-icon' + (sp && sp.muted ? ' stage-mic-icon-muted' : '');
-    var avatarWrap = '<div class="stage-speaker-avatar-wrap stage-speaking-glow">'+avatarHTML(sp||{name:label,color:'#5C6B47'},76)+'<span class="'+micIconClass+'">&#127908;</span></div>';
+    var avatarWrap = '<div class="stage-speaker-avatar-wrap">'+avatarHTML(sp||{name:label,color:'#5C6B47'},76)+'<span class="'+micIconClass+'">&#127908;</span></div>';
     var speakingTagHTML = '<div class="stage-speaking-tag"><span class="stage-speaking-bars"><span></span><span></span><span></span></span>On the stage</div>';
     var timerHTML = '';
     if(s.turnDeadline){
@@ -6030,6 +6093,7 @@ function renderStagePanel(){
     }
     controlsHTML += '</div>';
     speakerEl.innerHTML = avatarWrap+'<div class="stage-speaker-name">'+escapeHtmlMp(label)+'</div>'+speakingTagHTML+timerHTML+controlsHTML;
+    syncVoiceLevelGlow(s.speakerId, sp && sp.muted);
 
     if(iAmSpeaker){
       document.getElementById('stage-leave-stage-btn').addEventListener('click', function(){ sendWS({type:'leaveStage'}); });
