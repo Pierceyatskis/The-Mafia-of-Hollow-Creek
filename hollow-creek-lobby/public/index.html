@@ -982,7 +982,7 @@ body.force-reduced-motion .dossier-card::after{animation:none !important; displa
     </div>
     <div id="player-action-moderate-panel" class="player-action-panel" style="display:none;">
       <p style="font-size:12px; color:var(--parchment-dim); margin:0 0 10px;">Host tools.</p>
-      <div style="display:flex; flex-direction:column; gap:8px;">
+      <div style="display:flex; flex-direction:column; align-items:flex-start; gap:8px;">
         <button class="btn ghost" id="player-action-mute-btn">Mute</button>
         <button class="btn ghost" id="player-action-unmute-btn">Unmute (host)</button>
         <button class="btn danger" id="player-action-kick-btn">Remove from game</button>
@@ -998,7 +998,7 @@ body.force-reduced-motion .dossier-card::after{animation:none !important; displa
     <p style="font-size:12px; color:var(--parchment-dim); margin:0 0 12px;" id="reason-picker-subtitle"></p>
     <div class="chipgrid" id="reason-picker-grid"></div>
     <textarea id="reason-picker-note" maxlength="200" rows="2" placeholder="Say more (shown to the player)..." style="display:none; width:100%; margin-top:10px; background:var(--panel-2); border:1px solid var(--line); border-radius:5px; padding:9px 11px; font-family:var(--font-body); font-size:13px; color:var(--parchment); resize:vertical; box-sizing:border-box;"></textarea>
-    <button class="btn" id="reason-picker-confirm-btn" style="margin-top:14px;" disabled>Confirm</button>
+    <button class="btn danger" id="reason-picker-confirm-btn" style="margin-top:14px;" disabled>Confirm</button>
   </div>
 </div>
 
