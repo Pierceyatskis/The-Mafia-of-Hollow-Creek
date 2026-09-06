@@ -62,10 +62,20 @@ header p{font-family:var(--font-type); font-size:11px; letter-spacing:3px; text-
    textured plaque asset already generated for this (Untitled_design.png)
    as the bar's background via a data URI set below. */
 .round-status-bar{display:flex; align-items:center; gap:10px; background-color:var(--panel); border:1.5px solid var(--gold-dim); border-radius:20px; padding:8px 22px; font-family:var(--font-ornate); font-weight:700; font-size:16px; letter-spacing:1.5px; color:var(--gold-bright); box-shadow:0 4px 14px rgba(0,0,0,0.4);}
+/* LAYOUT_AND_ASSETS Task 5 - the pocket watch, assembled from its 5
+   separable parts (2172... no, pocketWatch is a 3x2 grid: row1 = case,
+   dial, hour-hand; row2 = minute-hand, red-hand(unused), glow-ring) -
+   background-position stepping on the same sheet, not 5 separate files.
+   The minute hand's rotation is set live from JS (updateRoundStatusBar),
+   not just a static image. */
 .round-status-watch{width:28px; height:28px; position:relative; flex-shrink:0;}
-.round-status-watch::before, .round-status-watch::after{content:''; position:absolute; inset:0; background-image:var(--sheet-watch); background-repeat:no-repeat;}
-.round-status-watch::before{background-size:300% 200%; background-position:0% 0%;}
-.round-status-watch::after{background-size:300% 200%; background-position:50% 0%;}
+.watch-layer{position:absolute; inset:0; background-image:var(--sheet-watch); background-size:300% 200%; background-repeat:no-repeat;}
+.watch-case{background-position:0% 0%;}
+.watch-dial{background-position:50% 0%;}
+.watch-hand-hour{background-position:100% 0%; transform-origin:50% 78%;}
+.watch-hand-minute{background-position:0% 100%; transform-origin:50% 78%; transition:transform .3s linear;}
+.watch-glow{background-position:100% 100%; opacity:0; transition:opacity .3s ease;}
+.watch-glow.active{opacity:0.85; animation:timerPulse 1s ease-in-out infinite;}
 .round-status-text .round-status-timer{color:var(--parchment); font-weight:400; margin-left:6px;}
 .round-status-text .round-status-timer.timer-danger{color:var(--danger); animation:timerPulse 1s ease-in-out infinite;}
 @media (max-width:640px){ .round-status-bar{font-size:12px; padding:6px 14px; gap:6px;} .round-status-watch{width:20px; height:20px;} }
@@ -1114,7 +1124,13 @@ body.force-reduced-motion .dossier-card::after{animation:none !important; displa
 </header>
 <div class="statusbar" id="statusbar" style="display:none;">
   <div class="round-status-bar" id="round-status-bar">
-    <span class="round-status-watch"></span>
+    <span class="round-status-watch" id="round-status-watch">
+      <span class="watch-layer watch-case"></span>
+      <span class="watch-layer watch-dial"></span>
+      <span class="watch-layer watch-hand-hour"></span>
+      <span class="watch-layer watch-hand-minute" id="watch-hand-minute"></span>
+      <span class="watch-layer watch-glow" id="watch-glow"></span>
+    </span>
     <span class="round-status-text" id="round-status-text">Lobby</span>
   </div>
   <span style="display:none;"><span id="phase-label">lobby</span><span id="night-label"></span></span>
@@ -1975,20 +1991,34 @@ var ROUND_STATUS_PHASE_LABELS = {
   'day-vote': 'Day {n} · Voting',
   'day-reveal': 'Day {n} · Reveal'
 };
-function updateRoundStatusBar(){
+function updateRoundStatusBar(phaseStartMs){
   var textEl = document.getElementById('round-status-text');
   if(!textEl || !latestView) return;
   var tmpl = ROUND_STATUS_PHASE_LABELS[latestView.phase];
   var phaseText = tmpl ? tmpl.replace('{n}', latestView.night) : '';
   var timerHTML = '';
+  var remaining = null, danger = false;
   if(phaseEndsAt){
-    var remaining = Math.max(0, Math.round((phaseEndsAt - Date.now())/1000));
+    remaining = Math.max(0, Math.round((phaseEndsAt - Date.now())/1000));
     var mm = Math.floor(remaining/60), ss = remaining%60;
     var mmss = mm+':'+(ss<10?'0':'')+ss;
-    var danger = remaining<=15 && remaining>0;
+    danger = remaining<=15 && remaining>0;
     timerHTML = '<span class="round-status-timer'+(danger?' timer-danger':'')+'">'+mmss+' remaining</span>';
   }
   textEl.innerHTML = escapeHtmlMp(phaseText) + timerHTML;
+
+  // LAYOUT_AND_ASSETS Task 5 - the pocket-watch minute hand actually
+  // rotates over the course of the phase (0deg at phase start, 360deg at
+  // phase end), and the glow ring activates in the same last-15s window
+  // as the text's own danger color.
+  var minuteHand = document.getElementById('watch-hand-minute');
+  var glow = document.getElementById('watch-glow');
+  if(minuteHand && phaseEndsAt && phaseStartMs){
+    var totalMs = Math.max(1000, phaseEndsAt - phaseStartMs);
+    var elapsedMs = Math.max(0, Math.min(totalMs, totalMs - (phaseEndsAt - Date.now())));
+    minuteHand.style.transform = 'rotate(' + ((elapsedMs / totalMs) * 360) + 'deg)';
+  }
+  if(glow) glow.classList.toggle('active', danger);
 }
 function renderPhaseTimer(){
   if(mpPhaseTimerInterval) clearInterval(mpPhaseTimerInterval);
@@ -2010,7 +2040,7 @@ function renderPhaseTimer(){
     } else {
       labelEl.textContent = base;
     }
-    updateRoundStatusBar();
+    updateRoundStatusBar(phaseStartMs);
 
     if(latestView && latestView.phase==='night' && phaseEndsAt){
       // Escalating tension driven by whichever is closer to running out:
