@@ -112,7 +112,7 @@ function createGame(seats, config){
 
   return {
     night: 1, phase: 'night', players, bountyTarget: null, bountyPoints: 0, history: [],
-    chatLog: [], mafiaChatLog: [], cultChatLog: [], voteLog: [], winner: null, gameOver: false,
+    chatLog: [], mafiaChatLog: [], cultChatLog: [], voteLog: [], voteHistory: [], winner: null, gameOver: false,
     pendingNightVotes: {}, // playerId -> {kill, silence, protect, investigate, bounty, hideBehind}
     pendingDayVotes: {}, // playerId -> targetId
     detectiveLog: [], consigliereLog: [], morticianLog: [], farmerRevengeName: null, farmerRevengePending: null,
@@ -726,12 +726,17 @@ function resolveDayVote(state, timedOutFallbackId){
     const t = state.pendingDayVotes[p.id];
     if(t !== undefined){
       const targetP = t ? byId(state, t) : null;
-      voteBreakdown.push({name:p.name, target: targetP ? targetP.name : 'no one', silenced: !!p.silencedToday, voterId:p.id});
+      voteBreakdown.push({name:p.name, target: targetP ? targetP.name : 'no one', targetId: targetP ? targetP.id : null, silenced: !!p.silencedToday, voterId:p.id});
     } else if(p.silencedToday){
-      voteBreakdown.push({name:p.name, target:null, silenced:true, voterId:p.id});
+      voteBreakdown.push({name:p.name, target:null, targetId:null, silenced:true, voterId:p.id});
     }
   });
   state.voteLog = voteBreakdown;
+  // Case-files Task 1 - state.voteLog is overwritten every round (current
+  // round only); accumulate a full-game, FLAT copy (matching accusationLog's
+  // shape) so a per-player case file can filter every past vote by
+  // voterId/targetId across the whole game, not just the most recent round.
+  voteBreakdown.forEach(v => state.voteHistory.push(Object.assign({night: state.night}, v)));
   state.farmerRevengeName = null;
   state.pendingDayVotes = {};
   state.mayorRevealedId = null;
@@ -896,7 +901,7 @@ function getPlayerView(state, playerId){
       }
       return entry;
     }),
-    voteLog: state.voteLog, history: state.history,
+    voteLog: state.voteLog, voteHistory: state.voteHistory, accusationLog: state.accusationLog, history: state.history,
     cachedOvernightReport: state.cachedOvernightReport, farmerRevengeName: state.farmerRevengeName,
     farmerRevengePending: state.farmerRevengePending,
     // A whisper is visible only to the two players in it, same scoping
