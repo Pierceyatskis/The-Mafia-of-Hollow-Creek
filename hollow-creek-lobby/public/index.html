@@ -81,6 +81,19 @@ header p{font-family:var(--font-type); font-size:11px; letter-spacing:3px; text-
 .role-envelope.opening .role-envelope-sprite{background-position:50% 0%;}
 .role-envelope.revealed .role-envelope-sprite{background-position:75% 0%;}
 .role-envelope.closed-badge .role-envelope-sprite{background-position:100% 0%;}
+/* LAYOUT_AND_ASSETS Task A - the physical ballot box, its own object
+   alongside (not replacing) the existing Confirm Vote button. ballotAssets
+   sheet is a 3x3 grid: row1(y:50%) = box-closed(x:0%), box-midslot(x:50%),
+   wax-seal(x:100%). */
+.ballot-box-wrap{display:flex; align-items:center; gap:14px; margin:12px 0;}
+.ballot-paper{flex:1; min-width:0; background-color:#e9dfc4; background-image:linear-gradient(rgba(233,223,196,0.55), rgba(233,223,196,0.55)), var(--tex-parchment); background-size:auto, 200px 200px; border:1px solid var(--gold-dim); border-radius:4px; padding:9px 12px; font-family:var(--font-type); font-size:13px; color:#3a2f22; box-shadow:inset 0 0 8px rgba(0,0,0,0.25);}
+.ballot-box{position:relative; width:64px; height:52px; flex-shrink:0; background-image:var(--sheet-ballot); background-size:300% 300%; background-position:0% 50%; background-repeat:no-repeat; cursor:pointer; transition:transform .15s ease;}
+.ballot-box:hover{transform:translateY(-2px);}
+.ballot-box.has-paper{background-position:50% 50%;}
+.ballot-box-seal{position:absolute; width:34px; height:34px; left:50%; top:50%; margin:-17px 0 0 -17px; background-image:var(--sheet-ballot); background-size:300% 300%; background-position:100% 50%; background-repeat:no-repeat; opacity:0; pointer-events:none;}
+.ballot-box-seal.playing{animation:ballotSealPop .8s ease forwards;}
+@keyframes ballotSealPop{0%{opacity:0; transform:scale(2.2) rotate(-18deg);} 35%{opacity:1; transform:scale(1.05) rotate(4deg);} 55%{opacity:1; transform:scale(1) rotate(0deg);} 100%{opacity:0; transform:scale(1) rotate(0deg);}}
+body.force-reduced-motion .ballot-box-seal.playing{animation:none !important; opacity:0 !important;}
 .sound-toggle{font-family:var(--font-type); font-size:10px; letter-spacing:1px; text-transform:uppercase; color:var(--parchment-dim); background:transparent; border:1px solid var(--gold-dim); border-radius:20px; padding:3px 11px; cursor:pointer; transition:color .15s ease, border-color .15s ease;}
 .sound-toggle:hover{color:var(--gold-bright); border-color:var(--gold);}
 .sound-toggle.is-muted{color:var(--parchment-dim); opacity:0.6;}
@@ -1324,6 +1337,12 @@ body.force-reduced-motion .dossier-card::after{animation:none !important; displa
               <input type="checkbox" id="mayor-reveal-checkbox" style="margin-top:3px;">
               <span>Double your vote today. One-time use — spent the moment you check this box and vote, for the rest of the game.</span>
             </label>
+          </div>
+          <div class="ballot-box-wrap">
+            <div class="ballot-paper" id="ballot-paper"><span id="ballot-paper-name">Select a player to vote for</span></div>
+            <div class="ballot-box" id="ballot-box" title="Click the box to submit your ballot">
+              <div class="ballot-box-seal" id="ballot-box-seal"></div>
+            </div>
           </div>
           <button class="btn" id="day-confirm-btn">Confirm Vote</button>
           <p class="msg err" id="day-error" style="display:none;">Cast a vote first.</p>
@@ -5741,6 +5760,7 @@ function renderTownBoard(){
       '</div>';
   }).join('');
   applySelectedTileTilt(board);
+  updateBallotPaper();
 }
 
 // Task 4 polish - a selected tile turns slightly toward the board's own
@@ -7055,6 +7075,30 @@ document.getElementById('role-card-close-btn').addEventListener('click', functio
 });
 document.getElementById('role-card-modal').addEventListener('click', function(e){
   if(e.target.id === 'role-card-modal') setRoleEnvelopeClass('closed-badge');
+});
+
+// ==================== LAYOUT_AND_ASSETS Task A - ballot box ====================
+function updateBallotPaper(){
+  var nameEl = document.getElementById('ballot-paper-name');
+  var box = document.getElementById('ballot-box');
+  if(!nameEl || !box) return;
+  var p = pendingDayVoteId ? byId(pendingDayVoteId) : null;
+  nameEl.textContent = p ? p.name : 'Select a player to vote for';
+  box.classList.toggle('has-paper', !!p);
+}
+document.getElementById('ballot-box').addEventListener('click', function(){
+  if(!pendingDayVoteId){
+    var err = document.getElementById('day-error');
+    if(err){ err.textContent = 'Cast a vote first.'; err.style.display = 'block'; }
+    return;
+  }
+  var seal = document.getElementById('ballot-box-seal');
+  if(seal){ seal.classList.remove('playing'); void seal.offsetWidth; seal.classList.add('playing'); }
+  // Reuses the exact same submission path as Confirm Vote (mayor-reveal
+  // checkbox, mpVoteSubmitted, lockTownBoard) - the seal animation is
+  // purely visual on top, per Task A: "functions identically, just
+  // without the visual flourish, when skipped."
+  document.getElementById('day-confirm-btn').click();
 });
 
 initGame();
