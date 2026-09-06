@@ -982,6 +982,24 @@ wss.on('connection', (socket) => {
       });
     }
 
+    else if (msg.type === 'typing') {
+      // Ephemeral presence relay for the "X is typing..." indicator - never
+      // persisted anywhere (not chatLog, not getPlayerView). playerId/name
+      // are always server-set from the authenticated socket, same as every
+      // other relay in this file (whisper, voice signaling) - never trust
+      // a client-asserted identity.
+      const { room, player } = getRoomAndPlayer(socket);
+      if (!room || !room.started) return;
+      if (room.state.phase !== 'day-discuss' && room.state.phase !== 'day-vote') return;
+      const sp = G.byId(room.state, player.id);
+      if (!sp || !sp.alive || sp.silencedToday) return;
+      room.players.forEach(rp => {
+        if (rp.id !== player.id && rp.socket.readyState === WebSocket.OPEN) {
+          rp.socket.send(JSON.stringify({ type: 'typingIndicator', playerId: player.id, name: sp.name }));
+        }
+      });
+    }
+
     else if (msg.type === 'mafiaChat') {
       const { room, player } = getRoomAndPlayer(socket);
       if (!room || !room.started || room.state.phase !== 'night') return;
