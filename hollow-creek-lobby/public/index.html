@@ -567,27 +567,48 @@ body.force-reduced-motion .dossier-card::after{animation:none !important; displa
 .timer-danger{color:var(--danger); animation:timerPulse 1s ease-in-out infinite;}
 @keyframes timerPulse{0%,100%{opacity:1;} 50%{opacity:0.55;}}
 .timernum{font-family:var(--font-type); font-size:13px; letter-spacing:1px; color:var(--lantern);}
-/* Voice/stage feature - one player speaks at a time, others queue for a turn. */
+/* Voice/stage feature - one player speaks at a time, others queue for a turn.
+   Same ornate gold/parchment language as the portraits and title screen,
+   rather than a flat modern box - a double gold border, a soft inner
+   vignette, and sharper corners than the rest of the UI's default rounding. */
+#stage-panel{background:linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%); border:2px double var(--gold-dim); border-radius:4px; padding:16px; box-shadow:inset 0 0 34px rgba(0,0,0,0.4), 0 4px 16px rgba(0,0,0,0.4);}
 .stage-row{display:flex; gap:18px; align-items:flex-start; flex-wrap:wrap;}
-.stage-speaker{flex:1 1 220px; min-width:200px; background:var(--panel-2); border:1px solid var(--line); border-radius:8px; padding:14px; display:flex; flex-direction:column; align-items:center; text-align:center; gap:8px;}
+/* Visual hierarchy: the speaker (who's talking + time left) outweighs the
+   queue, which is secondary. */
+.stage-speaker{flex:1.4 1 240px; min-width:210px; background:rgba(0,0,0,0.2); border:1px solid var(--line); border-radius:4px; padding:16px; display:flex; flex-direction:column; align-items:center; text-align:center; gap:8px;}
 .stage-speaker-empty{font-family:var(--font-type); font-size:12px; color:var(--parchment-dim); padding:10px 0;}
 .stage-speaker-avatar-wrap{position:relative; width:76px; height:76px;}
-.stage-speaker-avatar-wrap .avatar{width:76px !important; height:76px !important; font-size:28px !important;}
-.stage-mic-icon{position:absolute; bottom:-4px; right:-4px; width:28px; height:28px; border-radius:50%; background:var(--panel); border:2px solid var(--gold-dim); display:flex; align-items:center; justify-content:center; font-size:14px; overflow:hidden;}
-.stage-speaking-glow{box-shadow:0 0 0 3px var(--gold-bright), 0 0 18px 4px rgba(227,177,85,0.65); animation:stageSpeakGlow 1.6s ease-in-out infinite;}
-@keyframes stageSpeakGlow{0%,100%{box-shadow:0 0 0 3px var(--gold-bright), 0 0 18px 4px rgba(227,177,85,0.5);} 50%{box-shadow:0 0 0 3px var(--gold-bright), 0 0 26px 8px rgba(227,177,85,0.85);}}
+.stage-speaker-avatar-wrap::before{content:''; position:absolute; inset:-22px; border-radius:50%; background:radial-gradient(circle, rgba(227,177,85,0.32) 0%, rgba(227,177,85,0) 72%); z-index:0; pointer-events:none;}
+.stage-speaker-avatar-wrap .avatar{position:relative; z-index:1; width:76px !important; height:76px !important; font-size:28px !important;}
+.stage-mic-icon{position:absolute; z-index:2; bottom:-4px; right:-4px; width:28px; height:28px; border-radius:50%; background:var(--panel); border:2px solid var(--gold-dim); display:flex; align-items:center; justify-content:center; font-size:14px; overflow:hidden;}
+.stage-speaking-glow{box-shadow:0 0 0 4px var(--gold-bright), 0 0 24px 6px rgba(227,177,85,0.7); animation:stageSpeakGlow 1.6s ease-in-out infinite;}
+@keyframes stageSpeakGlow{0%,100%{box-shadow:0 0 0 4px var(--gold-bright), 0 0 22px 6px rgba(227,177,85,0.55);} 50%{box-shadow:0 0 0 4px var(--gold-bright), 0 0 34px 10px rgba(227,177,85,0.9);}}
 /* Muted: just a single red line through the mic icon itself, not a giant
    X over the whole speaker portrait. */
 .stage-mic-icon.stage-mic-icon-muted{border-color:var(--danger);}
 .stage-mic-icon.stage-mic-icon-muted::after{content:''; position:absolute; width:150%; height:2px; background:var(--danger); top:50%; left:50%; transform:translate(-50%,-50%) rotate(-45deg); border-radius:1px;}
 .stage-speaker-name{font-family:var(--font-ornate); font-weight:600; font-size:14px; color:var(--gold-bright);}
+.stage-speaking-tag{font-family:var(--font-type); font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--gold-bright); display:flex; align-items:center; gap:6px;}
+.stage-speaking-bars{display:flex; align-items:flex-end; gap:2px; height:12px;}
+.stage-speaking-bars span{width:3px; background:var(--gold-bright); border-radius:1px; height:4px; animation:stageBarBounce 0.9s ease-in-out infinite;}
+.stage-speaking-bars span:nth-child(2){animation-delay:0.2s;}
+.stage-speaking-bars span:nth-child(3){animation-delay:0.4s;}
+@keyframes stageBarBounce{0%,100%{height:3px;} 50%{height:12px;}}
 .stage-timer{width:100%;}
+.stage-timer .timerwrap{margin:10px 0 0;}
+.stage-timer .timernum{font-family:var(--font-ornate); font-weight:700; font-size:26px; letter-spacing:1px; color:var(--lantern); display:block; margin-bottom:6px;}
+.stage-timer .timernum.stage-timer-critical{animation:timerPulse 1s ease-in-out infinite, stageTimerShake 0.3s ease-in-out infinite;}
+@keyframes stageTimerShake{0%,100%{transform:translateX(0);} 25%{transform:translateX(-2px);} 75%{transform:translateX(2px);}}
+.stage-timer .timerbar{height:10px; border-radius:5px; box-shadow:inset 0 1px 3px rgba(0,0,0,0.4);}
+.stage-timer .timerfill{border-radius:5px; transition:width 1s linear, background .4s ease, box-shadow .4s ease;}
+.stage-timer .timerfill.timer-danger{box-shadow:0 0 10px 2px rgba(193,84,75,0.75);}
 .stage-controls{display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:4px;}
 .stage-vote-off-count{font-family:var(--font-type); font-size:11px; color:var(--parchment-dim);}
-.stage-queue{flex:1 1 200px; min-width:180px;}
-.stage-queue-label{font-family:var(--font-type); font-size:11px; letter-spacing:1.5px; text-transform:uppercase; color:var(--gold); margin:0 0 8px;}
-.stage-queue-row{display:flex; align-items:center; gap:8px; padding:5px 0; font-family:var(--font-type); font-size:12.5px; color:var(--parchment);}
-.stage-queue-row .stage-queue-pos{color:var(--parchment-dim); flex-shrink:0; width:18px;}
+.stage-queue{flex:1 1 190px; min-width:170px;}
+.stage-queue-label{font-family:var(--font-type); font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--gold-bright); margin:0 0 10px; padding-bottom:6px; border-bottom:1px solid var(--gold-dim);}
+.stage-queue-row{display:flex; align-items:center; gap:8px; padding:6px 8px; font-family:var(--font-type); font-size:12.5px; color:var(--parchment); border-radius:4px;}
+.stage-queue-row-next{background:rgba(227,177,85,0.12); border:1px solid var(--gold-dim);}
+.stage-queue-row-next .stage-queue-name{color:var(--gold-bright); font-weight:600;}
 .stage-queue-empty{font-family:var(--font-type); font-size:12px; color:var(--parchment-dim);}
 .stage-panel-fade-out{animation:revealFadeIn .4s ease reverse;}
 #self-mic-toggle-btn{margin:12px 0 0;}
@@ -5937,11 +5958,20 @@ function startStageTimer(deadline){
   clearInterval(stageTimerInterval);
   function tick(){
     var numEl = document.getElementById('stage-timer-num');
+    var numWrapEl = document.getElementById('stage-timer-num-wrap');
     var fillEl = document.getElementById('stage-timer-fill');
     if(!numEl || !fillEl){ stopStageTimer(); return; }
-    var remaining = Math.max(0, Math.round((deadline - Date.now())/1000));
+    var remainingMs = deadline - Date.now();
+    var remaining = Math.max(0, Math.round(remainingMs/1000));
+    var danger = remaining<=10 && remaining>0;
+    var critical = remaining<=5 && remaining>0;
     numEl.textContent = remaining;
-    fillEl.style.width = Math.max(Math.min((deadline-Date.now())/(STAGE_TURN_SECONDS_CLIENT*1000)*100, 100), 0)+'%';
+    if(numWrapEl){
+      numWrapEl.classList.toggle('timer-danger', danger);
+      numWrapEl.classList.toggle('stage-timer-critical', critical);
+    }
+    fillEl.style.width = Math.max(Math.min(remainingMs/(STAGE_TURN_SECONDS_CLIENT*1000)*100, 100), 0)+'%';
+    fillEl.classList.toggle('timer-danger', danger);
   }
   tick();
   stageTimerInterval = setInterval(tick, 1000);
@@ -5976,13 +6006,14 @@ function renderStagePanel(){
     var label = sp ? (sp.id===myPlayerId ? 'You' : sp.name) : '?';
     var micIconClass = 'stage-mic-icon' + (sp && sp.muted ? ' stage-mic-icon-muted' : '');
     var avatarWrap = '<div class="stage-speaker-avatar-wrap stage-speaking-glow">'+avatarHTML(sp||{name:label,color:'#5C6B47'},76)+'<span class="'+micIconClass+'">&#127908;</span></div>';
+    var speakingTagHTML = '<div class="stage-speaking-tag"><span class="stage-speaking-bars"><span></span><span></span><span></span></span>On the stage</div>';
     var timerHTML = '';
     if(s.turnDeadline){
-      timerHTML = '<div class="stage-timer"><div class="timerwrap" style="margin:8px 0 0;"><span class="timernum"><span id="stage-timer-num"></span>s left</span><div class="timerbar"><div class="timerfill" id="stage-timer-fill" style="width:100%;"></div></div></div></div>';
+      timerHTML = '<div class="stage-timer"><div class="timerwrap" style="margin:8px 0 0;"><span class="timernum" id="stage-timer-num-wrap"><span id="stage-timer-num"></span>s left</span><div class="timerbar"><div class="timerfill" id="stage-timer-fill" style="width:100%;"></div></div></div></div>';
     }
     var controlsHTML = '<div class="stage-controls">';
     if(iAmSpeaker){
-      controlsHTML += '<button class="btn ghost" id="stage-leave-stage-btn">Leave Stage</button>';
+      controlsHTML += '<button class="btn" id="stage-leave-stage-btn" style="background:var(--danger); border-color:var(--danger);">Leave Stage</button>';
     } else {
       var donateDisabled = (s.you.donated || !s.turnDeadline) ? ' disabled' : '';
       controlsHTML += '<button class="btn ghost" id="stage-donate-btn"'+donateDisabled+'>Donate Time (+5s)</button>';
@@ -5991,7 +6022,7 @@ function renderStagePanel(){
       controlsHTML += '<span class="stage-vote-off-count">'+s.voteOffStageCount+' of '+s.voteOffStageThreshold+' votes needed</span>';
     }
     controlsHTML += '</div>';
-    speakerEl.innerHTML = avatarWrap+'<div class="stage-speaker-name">'+escapeHtmlMp(label)+'</div>'+timerHTML+controlsHTML;
+    speakerEl.innerHTML = avatarWrap+'<div class="stage-speaker-name">'+escapeHtmlMp(label)+'</div>'+speakingTagHTML+timerHTML+controlsHTML;
 
     if(iAmSpeaker){
       document.getElementById('stage-leave-stage-btn').addEventListener('click', function(){ sendWS({type:'leaveStage'}); });
@@ -6009,7 +6040,9 @@ function renderStagePanel(){
   document.getElementById('stage-queue-list').innerHTML = s.queue.length ? s.queue.map(function(id, idx){
     var p = byId(id);
     var label = p ? (p.id===myPlayerId ? 'You' : p.name) : '?';
-    return '<div class="stage-queue-row"><span class="stage-queue-pos">'+(idx+1)+'.</span>'+escapeHtmlMp(label)+'</div>';
+    var isNext = idx===0;
+    var prefix = isNext ? 'Up next: ' : (idx+1)+'. ';
+    return '<div class="stage-queue-row'+(isNext ? ' stage-queue-row-next' : '')+'">'+avatarHTML(p||{name:label,color:'#5C6B47'},22)+'<span class="stage-queue-name">'+prefix+escapeHtmlMp(label)+'</span></div>';
   }).join('') : '<p class="stage-queue-empty">Nobody\'s waiting.</p>';
 
   var canJoinQueue = h && h.alive && !h.silencedToday && !iAmSpeaker && !iAmQueued;
