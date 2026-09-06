@@ -573,10 +573,13 @@ body.force-reduced-motion .dossier-card::after{animation:none !important; displa
 .stage-speaker-empty{font-family:var(--font-type); font-size:12px; color:var(--parchment-dim); padding:10px 0;}
 .stage-speaker-avatar-wrap{position:relative; width:76px; height:76px;}
 .stage-speaker-avatar-wrap .avatar{width:76px !important; height:76px !important; font-size:28px !important;}
-.stage-mic-icon{position:absolute; bottom:-4px; right:-4px; width:28px; height:28px; border-radius:50%; background:var(--panel); border:2px solid var(--gold-dim); display:flex; align-items:center; justify-content:center; font-size:14px;}
+.stage-mic-icon{position:absolute; bottom:-4px; right:-4px; width:28px; height:28px; border-radius:50%; background:var(--panel); border:2px solid var(--gold-dim); display:flex; align-items:center; justify-content:center; font-size:14px; overflow:hidden;}
 .stage-speaking-glow{box-shadow:0 0 0 3px var(--gold-bright), 0 0 18px 4px rgba(227,177,85,0.65); animation:stageSpeakGlow 1.6s ease-in-out infinite;}
 @keyframes stageSpeakGlow{0%,100%{box-shadow:0 0 0 3px var(--gold-bright), 0 0 18px 4px rgba(227,177,85,0.5);} 50%{box-shadow:0 0 0 3px var(--gold-bright), 0 0 26px 8px rgba(227,177,85,0.85);}}
-.stage-mic-muted-x{position:absolute; inset:0; width:100%; height:100%; object-fit:contain; z-index:5; pointer-events:none; filter:drop-shadow(0 1px 2px rgba(0,0,0,0.7));}
+/* Muted: just a single red line through the mic icon itself, not a giant
+   X over the whole speaker portrait. */
+.stage-mic-icon.stage-mic-icon-muted{border-color:var(--danger);}
+.stage-mic-icon.stage-mic-icon-muted::after{content:''; position:absolute; width:150%; height:2px; background:var(--danger); top:50%; left:50%; transform:translate(-50%,-50%) rotate(-45deg); border-radius:1px;}
 .stage-speaker-name{font-family:var(--font-ornate); font-weight:600; font-size:14px; color:var(--gold-bright);}
 .stage-timer{width:100%;}
 .stage-controls{display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:4px;}
@@ -587,7 +590,7 @@ body.force-reduced-motion .dossier-card::after{animation:none !important; displa
 .stage-queue-row .stage-queue-pos{color:var(--parchment-dim); flex-shrink:0; width:18px;}
 .stage-queue-empty{font-family:var(--font-type); font-size:12px; color:var(--parchment-dim);}
 .stage-panel-fade-out{animation:revealFadeIn .4s ease reverse;}
-#self-mic-toggle-btn{margin:8px 0 4px;}
+#self-mic-toggle-btn{margin:12px 0 0;}
 .poster-wrap{position:fixed; inset:0; z-index:1; margin:0; border-radius:0; overflow:hidden; box-shadow:none;}
 #panel-home{display:block; min-height:0;}
 .poster-img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block;}
@@ -1180,7 +1183,6 @@ body.force-reduced-motion .dossier-card::after{animation:none !important; displa
       <div class="day-main">
         <div class="report" id="overnight-report"></div>
         <h2 class="sec">The town</h2>
-        <button class="btn ghost" id="self-mic-toggle-btn" style="display:none;">Mute myself</button>
         <div class="town-board" id="town-board"></div>
         <div id="vote-section" style="display:none;">
           <h2 class="sec" style="margin-top:18px;">Cast your vote</h2>
@@ -1228,6 +1230,7 @@ body.force-reduced-motion .dossier-card::after{animation:none !important; displa
               <button class="btn ghost" id="stage-leave-queue-btn" style="display:none;">Leave Queue</button>
             </div>
           </div>
+          <button class="btn ghost" id="self-mic-toggle-btn" style="display:none;">Mute myself</button>
         </div>
         <div id="lynch-reveal" style="display:none; margin-top:14px;">
           <div class="report" id="lynch-report"></div>
@@ -5927,8 +5930,8 @@ function renderStagePanel(){
   } else {
     var sp = byId(s.speakerId);
     var label = sp ? (sp.id===myPlayerId ? 'You' : sp.name) : '?';
-    var micX = sp && sp.muted ? '<img class="stage-mic-muted-x" src="'+PAINTED_X_IMG+'" alt="muted">' : '';
-    var avatarWrap = '<div class="stage-speaker-avatar-wrap stage-speaking-glow">'+avatarHTML(sp||{name:label,color:'#5C6B47'},76)+'<span class="stage-mic-icon">&#127908;</span>'+micX+'</div>';
+    var micIconClass = 'stage-mic-icon' + (sp && sp.muted ? ' stage-mic-icon-muted' : '');
+    var avatarWrap = '<div class="stage-speaker-avatar-wrap stage-speaking-glow">'+avatarHTML(sp||{name:label,color:'#5C6B47'},76)+'<span class="'+micIconClass+'">&#127908;</span></div>';
     var timerHTML = '';
     if(s.turnDeadline){
       timerHTML = '<div class="stage-timer"><div class="timerwrap" style="margin:8px 0 0;"><span class="timernum"><span id="stage-timer-num"></span>s left</span><div class="timerbar"><div class="timerfill" id="stage-timer-fill" style="width:100%;"></div></div></div></div>';
