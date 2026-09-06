@@ -25,6 +25,10 @@ const DAY_REVEAL_DURATION_MS = Number(process.env.DAY_REVEAL_DURATION_MS) || 120
 const FARMER_REVENGE_DURATION_MS = Number(process.env.FARMER_REVENGE_DURATION_MS) || 20000;
 const MIN_DISCUSS_SECONDS = 30, MAX_DISCUSS_SECONDS = 300;
 const MIN_VOTE_SECONDS = 30, MAX_VOTE_SECONDS = 300;
+// Voice/stage feature - off unless a host explicitly turns it on for their room.
+const DEFAULT_VOICE_ENABLED = false;
+const STAGE_TURN_SECONDS = 30;
+const DONATE_SECONDS = 5;
 
 // Clamps a host-supplied seconds value into range and converts to ms,
 // falling back to the given default for anything not a finite number.
@@ -92,6 +96,22 @@ function sanitizeAvatarKey(raw) {
   return /^avatar[0-9]{1,3}$/.test(s) ? s : null;
 }
 
+// Fixed set, confirmed final - a kick or host-mute must pick one of these
+// (an 'other' pick also carries a free-text note, sanitizeModerationNote below).
+const MODERATION_REASON_LABELS = {
+  'toxic': 'Toxic behavior',
+  'inappropriate-name': 'Inappropriate name',
+  'inappropriate-language': 'Inappropriate language',
+  'other': 'Other'
+};
+function sanitizeModerationReason(raw) {
+  const s = String(raw || '');
+  return Object.prototype.hasOwnProperty.call(MODERATION_REASON_LABELS, s) ? s : null;
+}
+function sanitizeModerationNote(raw) {
+  return String(raw || '').trim().slice(0, 200);
+}
+
 function sanitizeRolesConfig(raw) {
   const roles = Object.assign({}, G.DEFAULT_ROLES_CONFIG);
   if (raw && typeof raw === 'object') {
@@ -102,14 +122,22 @@ function sanitizeRolesConfig(raw) {
   return roles;
 }
 
-function createRoom(socket, name, isPublic, avatarKey, color) {
+function createRoom(socket, name, isPublic, avatarKey, color, initialVoiceEnabled) {
   const code = makeRoomCode();
   const id = makePlayerId();
   // draftConfig: the host's in-progress (not yet started) setup-screen
   // choices - null until the host's client sends its first hostConfigUpdate.
   // Lets a waiting (non-host) player see live seat/mafia/role choices
-  // instead of nothing at all before the game starts.
-  rooms[code] = { players: [{ id, name, socket, avatarKey, color }], hostId: id, started: false, state: null, timer: null, phaseEndsAt: null, isPublic: !!isPublic, draftConfig: null };
+  // instead of nothing at all before the game starts. Seeded with just
+  // {voiceEnabled} when a quick-matcher's search created this room (see the
+  // 'quick_match' handler) - otherwise a second searcher with the same mic
+  // preference couldn't match into it until the host's client sent its own
+  // first real edit.
+  rooms[code] = {
+    players: [{ id, name, socket, avatarKey, color }], hostId: id, started: false, state: null, timer: null,
+    phaseEndsAt: null, isPublic: !!isPublic,
+    draftConfig: typeof initialVoiceEnabled === 'boolean' ? { voiceEnabled: initialVoiceEnabled } : null
+  };
   socket.roomCode = code;
   socket.playerId = id;
   socket.send(JSON.stringify({ type: 'created', roomCode: code, playerId: id }));
@@ -158,6 +186,7 @@ function removePlayer(socket) {
   if (room.started && room.state) {
     const sp = G.byId(room.state, playerId);
     if (sp) sp.connected = false;
+    handlePlayerLeftStage(room, playerId);
   }
 
   if (room.players.length === 0) {
@@ -189,6 +218,16 @@ function sendGameState(room) {
   room.players.forEach(rp => {
     if (rp.socket.readyState !== WebSocket.OPEN) return;
     const view = G.getPlayerView(room.state, rp.id);
+    // Merged mute state (self-muted OR host-muted) decorated on here rather
+    // than in game.js, since muting is a voice/session concern, not a mafia
+    // rule - see room.stage. Viewers only ever see this one boolean; which
+    // of the two caused it is never exposed (see the 'hostMute'/'selfMuteToggle'
+    // handlers below).
+    if (room.stage) {
+      view.players.forEach(p => {
+        p.muted = room.stage.selfMuted.has(p.id) || room.stage.hostMuted.has(p.id);
+      });
+    }
     rp.socket.send(JSON.stringify({ type: 'gameState', view, phaseEndsAt: room.phaseEndsAt }));
   });
 }
@@ -198,6 +237,16 @@ function sendGameState(room) {
 // everyone submitted yet", so the rest of the table isn't stuck waiting on them.
 function connectedLivingHumans(room) {
   return room.state.players.filter(p => p.alive && p.isHuman && p.connected !== false);
+}
+
+// Live spotlight tally - identity-free counts only (see G.spotlightCounts),
+// so it's safe to send to every player regardless of who cast what.
+function broadcastSpotlightCounts(room) {
+  const counts = G.spotlightCounts(room.state);
+  const msg = JSON.stringify({ type: 'spotlightCounts', counts });
+  room.players.forEach(rp => {
+    if (rp.socket.readyState === WebSocket.OPEN) rp.socket.send(msg);
+  });
 }
 
 // Live "N of M have decided" counter for the night phase - counts only,
@@ -222,6 +271,112 @@ function broadcastDayVoteProgress(room) {
   room.players.forEach(rp => {
     if (rp.socket.readyState === WebSocket.OPEN) rp.socket.send(msg);
   });
+}
+
+// ---- voice/stage feature (floor control) ----
+// A transport/session concern layered on top of the game (like
+// room.draftConfig/room.dayVoteSubmitted), not a mafia rule - kept out of
+// game.js entirely. See room.stage's shape in the 'start' handler.
+
+function stageLivingCount(room) {
+  return G.living(room.state).length;
+}
+function stageVoteOffThreshold(room) {
+  return Math.ceil(stageLivingCount(room) * 0.75);
+}
+
+// Clears the current turn's timer and per-turn tallies without touching who's
+// speaking or queued - shared by startSpeakerTurn and the round-boundary resets.
+function resetStageTurnTallies(room) {
+  if (!room.stage) return;
+  if (room.stage.turnTimer) { clearTimeout(room.stage.turnTimer); room.stage.turnTimer = null; }
+  room.stage.turnDeadline = null;
+  room.stage.donateUsedBy.clear();
+  room.stage.voteOffStageVotes.clear();
+}
+
+// Fully resets the stage to idle/empty - the start of every new day round
+// and the moment all votes are in (see beginDayDiscussPhase,
+// resolveDayVotePhase, beginFarmerRevengeWait). Never touches
+// selfMuted/hostMuted, which persist the whole game, not per-round.
+function resetStage(room) {
+  if (!room.stage) return;
+  resetStageTurnTallies(room);
+  room.stage.speakerId = null;
+  room.stage.queue = [];
+  room.stage.turnStartedAt = null;
+  broadcastStageState(room);
+}
+
+function startSpeakerTurn(room, playerId) {
+  resetStageTurnTallies(room);
+  room.stage.speakerId = playerId;
+  room.stage.turnStartedAt = Date.now();
+  broadcastStageState(room);
+}
+
+// If nobody's currently speaking and someone's waiting, promotes the front of
+// the queue - one code path for both "first speaker of the round" and "next
+// speaker after a turn ends", per the plan's design decision.
+function advanceStageIfIdle(room) {
+  if (!room.stage || room.stage.speakerId) return;
+  if (!room.stage.queue.length) { broadcastStageState(room); return; }
+  const nextId = room.stage.queue.shift();
+  startSpeakerTurn(room, nextId);
+}
+
+// Ends whoever's currently speaking's turn - shared by Leave Stage, reaching
+// the Vote Off Stage threshold, and timer expiry.
+function endSpeakerTurn(room) {
+  if (!room.stage) return;
+  resetStageTurnTallies(room);
+  room.stage.speakerId = null;
+  advanceStageIfIdle(room);
+}
+
+// Called after every joinQueue - the 30s timer only starts once there's
+// actual demand for the stage (a second person waiting); a solo speaker with
+// an empty queue is never put under pressure.
+function maybeStartStageTimer(room) {
+  if (!room.stage || !room.stage.speakerId) return;
+  if (room.stage.queue.length < 1 || room.stage.turnDeadline !== null) return;
+  room.stage.turnDeadline = Date.now() + STAGE_TURN_SECONDS * 1000;
+  room.stage.turnTimer = setTimeout(() => endSpeakerTurn(room), STAGE_TURN_SECONDS * 1000);
+  broadcastStageState(room);
+}
+
+// Personalized per recipient (like sendGameState) since `you` is specific to
+// each viewer - a dedicated, frequent broadcast (every queue join/leave/
+// donate/vote-off-stage click) kept separate from the heavier gameState
+// payload, same reasoning as dayVoteProgress vs the full gameState.
+function broadcastStageState(room) {
+  if (!room.stage) return;
+  const threshold = stageVoteOffThreshold(room);
+  const count = room.stage.voteOffStageVotes.size;
+  room.players.forEach(rp => {
+    if (rp.socket.readyState !== WebSocket.OPEN) return;
+    rp.socket.send(JSON.stringify({
+      type: 'stageState',
+      speakerId: room.stage.speakerId,
+      queue: room.stage.queue,
+      turnDeadline: room.stage.turnDeadline,
+      voteOffStageCount: count,
+      voteOffStageThreshold: threshold,
+      you: {
+        votedOffStage: room.stage.voteOffStageVotes.has(rp.id),
+        donated: room.stage.donateUsedBy.has(rp.id)
+      }
+    }));
+  });
+}
+
+// Called from removePlayer on disconnect - a dropped speaker or queued
+// player must not permanently freeze the stage for everyone else.
+function handlePlayerLeftStage(room, playerId) {
+  if (!room.stage) return;
+  if (room.stage.speakerId === playerId) { endSpeakerTurn(room); return; }
+  const idx = room.stage.queue.indexOf(playerId);
+  if (idx !== -1) { room.stage.queue.splice(idx, 1); broadcastStageState(room); }
 }
 
 // Called after any submission or disconnect that might complete the current
@@ -288,10 +443,13 @@ function finishRoundScoring(room, dayResult, revengeResult) {
 function beginDayDiscussPhase(room) {
   const discussMs = room.discussMs || DAY_DISCUSS_DURATION_MS;
   room.state.phase = 'day-discuss';
+  room.state.spotlights = {};
   room.phaseEndsAt = Date.now() + discussMs;
   clearPhaseTimer(room);
   room.timer = setTimeout(() => beginDayVotePhase(room), discussMs);
+  resetStage(room);
   sendGameState(room);
+  broadcastSpotlightCounts(room);
 }
 
 function beginDayVotePhase(room) {
@@ -307,6 +465,10 @@ function beginDayVotePhase(room) {
 
 function resolveDayVotePhase(room) {
   clearPhaseTimer(room);
+  // The exact moment the stage stops being live (5g) - covers both the
+  // farmer-revenge and the straight-to-reveal paths below, since both
+  // start from here.
+  resetStage(room);
   const result = G.resolveDayVote(room.state);
   // No sendGameState here - see the note in resolveNightPhase. Whichever of
   // beginFarmerRevengeWait/endGame/beginDayRevealPhase runs next sends the
@@ -407,12 +569,20 @@ wss.on('connection', (socket) => {
       const name = sanitizeName(msg.name);
       const avatarKey = sanitizeAvatarKey(msg.avatarKey);
       const color = sanitizeColor(msg.color);
-      const openCode = Object.keys(rooms).find(c => rooms[c].isPublic && !rooms[c].started && rooms[c].players.length < G.MAX_PLAYERS);
+      // A searcher who didn't state a preference is treated as "without mic"
+      // (matches DEFAULT_VOICE_ENABLED=false) rather than matching anything.
+      const wantsVoice = msg.micPreference === 'with';
+      const openCode = Object.keys(rooms).find(c => {
+        const r = rooms[c];
+        if (!r.isPublic || r.started || r.players.length >= G.MAX_PLAYERS) return false;
+        const roomWantsVoice = r.draftConfig ? !!r.draftConfig.voiceEnabled : DEFAULT_VOICE_ENABLED;
+        return roomWantsVoice === wantsVoice;
+      });
       if (openCode) {
         joinRoom(socket, openCode, name, avatarKey, color);
         console.log(`${name} quick-matched into room ${openCode}`);
       } else {
-        const code = createRoom(socket, name, true, avatarKey, color);
+        const code = createRoom(socket, name, true, avatarKey, color, wantsVoice);
         console.log(`Room ${code} created via quick-match by ${name}`);
       }
     }
@@ -428,16 +598,136 @@ wss.on('connection', (socket) => {
         socket.send(JSON.stringify({ type: 'error', message: 'Only the host can remove a player.' }));
         return;
       }
+      const reason = sanitizeModerationReason(msg.reason);
+      if (!reason) {
+        socket.send(JSON.stringify({ type: 'error', message: 'Choose a reason before removing a player.' }));
+        return;
+      }
+      const note = reason === 'other' ? sanitizeModerationNote(msg.note) : '';
       const targetId = String(msg.targetId || '');
       if (!targetId || targetId === room.hostId) return;
       const target = room.players.find(p => p.id === targetId);
       if (!target) return;
+      const label = MODERATION_REASON_LABELS[reason] + (note ? ': ' + note : '');
       if (target.socket.readyState === WebSocket.OPEN) {
-        target.socket.send(JSON.stringify({ type: 'kicked', message: 'The host removed you from the room.' }));
+        target.socket.send(JSON.stringify({ type: 'kicked', message: 'The host removed you from the room.', reason: label }));
       }
       removePlayer(target.socket);
       target.socket.close();
-      console.log(`${target.name} was kicked from room ${socket.roomCode}`);
+      console.log(`${target.name} was kicked from room ${socket.roomCode} - reason: ${label}`);
+    }
+
+    else if (msg.type === 'hostMute') {
+      // Stops voice transmission without removing the player - independent
+      // of selfMuteToggle below (a host-mute and a self-mute are two
+      // separate flags, merged into one 'muted' boolean only when sent to
+      // clients - see sendGameState).
+      const { room, player } = getRoomAndPlayer(socket);
+      if (!room || !player || !room.started || !room.stage) return;
+      if (player.id !== room.hostId) return;
+      const reason = sanitizeModerationReason(msg.reason);
+      if (!reason) return;
+      const note = reason === 'other' ? sanitizeModerationNote(msg.note) : '';
+      const targetId = String(msg.targetId || '');
+      if (!targetId || targetId === room.hostId) return;
+      const target = room.players.find(p => p.id === targetId);
+      if (!target) return;
+      room.stage.hostMuted.set(targetId, { reason, note });
+      console.log(`${target.name} was muted in room ${socket.roomCode} - reason: ${MODERATION_REASON_LABELS[reason]}${note ? ': ' + note : ''}`);
+      sendGameState(room);
+    }
+
+    else if (msg.type === 'hostUnmute') {
+      // A no-op if the target isn't actually host-muted - deliberately safe
+      // to call unconditionally from a client that only ever sees the merged
+      // 'muted' boolean and can't tell which flag caused it (see index.html's
+      // moderation tab).
+      const { room, player } = getRoomAndPlayer(socket);
+      if (!room || !player || !room.started || !room.stage) return;
+      if (player.id !== room.hostId) return;
+      room.stage.hostMuted.delete(String(msg.targetId || ''));
+      sendGameState(room);
+    }
+
+    else if (msg.type === 'selfMuteToggle') {
+      const { room, player } = getRoomAndPlayer(socket);
+      if (!room || !player || !room.started || !room.stage) return;
+      if (room.stage.selfMuted.has(player.id)) room.stage.selfMuted.delete(player.id);
+      else room.stage.selfMuted.add(player.id);
+      sendGameState(room);
+    }
+
+    else if (msg.type === 'joinQueue') {
+      const { room, player } = getRoomAndPlayer(socket);
+      if (!room || !player || !room.started || !room.stage || !room.voiceEnabled) return;
+      if (room.state.phase !== 'day-discuss' && room.state.phase !== 'day-vote') return;
+      const sp = G.byId(room.state, player.id);
+      // Silenced blocks requesting the floor, same rule as text chat.
+      if (!sp || !sp.alive || sp.silencedToday) return;
+      if (room.stage.speakerId === player.id || room.stage.queue.includes(player.id)) return;
+      room.stage.queue.push(player.id);
+      if (!room.stage.speakerId) {
+        advanceStageIfIdle(room); // stage was idle - this player is promoted immediately
+      } else {
+        maybeStartStageTimer(room); // starts the 30s timer if this is the first person to queue up
+        broadcastStageState(room);
+      }
+    }
+
+    else if (msg.type === 'leaveQueue') {
+      const { room, player } = getRoomAndPlayer(socket);
+      if (!room || !player || !room.started || !room.stage) return;
+      const idx = room.stage.queue.indexOf(player.id);
+      if (idx === -1) return;
+      room.stage.queue.splice(idx, 1);
+      broadcastStageState(room);
+    }
+
+    else if (msg.type === 'leaveStage') {
+      const { room, player } = getRoomAndPlayer(socket);
+      if (!room || !player || !room.started || !room.stage) return;
+      if (room.stage.speakerId !== player.id) return;
+      endSpeakerTurn(room);
+    }
+
+    else if (msg.type === 'donateTime') {
+      // Confirmed: any player in the room can donate, not just those in the
+      // queue - deliberately no alive-check, unlike voteOffStage below.
+      const { room, player } = getRoomAndPlayer(socket);
+      if (!room || !player || !room.started || !room.stage) return;
+      if (!room.stage.speakerId || room.stage.speakerId === player.id) return;
+      if (room.stage.turnDeadline === null) return; // timer hasn't started yet - nothing to donate to
+      if (room.stage.donateUsedBy.has(player.id)) return; // max 5s per person per turn, spent in one press
+      room.stage.donateUsedBy.add(player.id);
+      room.stage.turnDeadline += DONATE_SECONDS * 1000;
+      clearTimeout(room.stage.turnTimer);
+      room.stage.turnTimer = setTimeout(() => endSpeakerTurn(room), room.stage.turnDeadline - Date.now());
+      broadcastStageState(room);
+    }
+
+    else if (msg.type === 'voteOffStage') {
+      // Threshold is living players only (confirmed with the user, not
+      // all-connected) - see stageVoteOffThreshold.
+      const { room, player } = getRoomAndPlayer(socket);
+      if (!room || !player || !room.started || !room.stage) return;
+      if (!room.stage.speakerId || room.stage.speakerId === player.id) return;
+      const sp = G.byId(room.state, player.id);
+      if (!sp || !sp.alive) return;
+      room.stage.voteOffStageVotes.add(player.id);
+      if (room.stage.voteOffStageVotes.size >= stageVoteOffThreshold(room)) {
+        endSpeakerTurn(room);
+      } else {
+        broadcastStageState(room);
+      }
+    }
+
+    else if (msg.type === 'retractVoteOffStage') {
+      // Retractable/changeable before the threshold is reached, same
+      // pattern as a day-vote can be changed before that phase resolves.
+      const { room, player } = getRoomAndPlayer(socket);
+      if (!room || !player || !room.started || !room.stage) return;
+      room.stage.voteOffStageVotes.delete(player.id);
+      broadcastStageState(room);
     }
 
     else if (msg.type === 'hostConfigUpdate') {
@@ -459,7 +749,8 @@ wss.on('connection', (socket) => {
       const roles = sanitizeRolesConfig(msg.roles);
       const discussMs = sanitizeDurationMs(msg.discussSeconds, MIN_DISCUSS_SECONDS, MAX_DISCUSS_SECONDS, DAY_DISCUSS_DURATION_MS);
       const voteMs = sanitizeDurationMs(msg.voteSeconds, MIN_VOTE_SECONDS, MAX_VOTE_SECONDS, DAY_VOTE_DURATION_MS);
-      room.draftConfig = { playerCount, mafiaCount, roles, discussSeconds: discussMs / 1000, voteSeconds: voteMs / 1000 };
+      const voiceEnabled = !!msg.voiceEnabled;
+      room.draftConfig = { playerCount, mafiaCount, roles, discussSeconds: discussMs / 1000, voteSeconds: voteMs / 1000, voiceEnabled };
       room.players.forEach(rp => {
         if (rp.socket.readyState === WebSocket.OPEN) {
           rp.socket.send(JSON.stringify(Object.assign({ type: 'configUpdate' }, room.draftConfig)));
@@ -493,6 +784,18 @@ wss.on('connection', (socket) => {
       // instead of always falling back to the module-wide defaults.
       room.discussMs = sanitizeDurationMs(msg.discussSeconds, MIN_DISCUSS_SECONDS, MAX_DISCUSS_SECONDS, DAY_DISCUSS_DURATION_MS);
       room.voteMs = sanitizeDurationMs(msg.voteSeconds, MIN_VOTE_SECONDS, MAX_VOTE_SECONDS, DAY_VOTE_DURATION_MS);
+      room.voiceEnabled = !!msg.voiceEnabled;
+      // Floor-control state for the voice/stage feature - a transport/session
+      // concern layered on top of the game, not a mafia rule, so it lives
+      // here rather than in game.js's state. selfMuted/hostMuted persist the
+      // whole game (rebuilt fresh only here, on a brand new start/play-again);
+      // everything else is per-round or per-turn, reset in beginDayDiscussPhase
+      // and startSpeakerTurn respectively.
+      room.stage = {
+        speakerId: null, queue: [], turnDeadline: null, turnStartedAt: null, turnTimer: null,
+        donateUsedBy: new Set(), voteOffStageVotes: new Set(),
+        selfMuted: new Set(), hostMuted: new Map()
+      };
 
       let state;
       try {
@@ -667,6 +970,23 @@ wss.on('connection', (socket) => {
       G.recordDayVoteSubmission(room.state, player.id, targetId);
       room.dayVoteSubmitted.add(player.id);
       maybeEarlyResolve(room);
+    }
+
+    else if (msg.type === 'spotlight') {
+      // A live discussion-time signal, not a vote - never blocks/early-
+      // resolves anything, can be set and withdrawn as often as the
+      // discussion moves. Valid during both day sub-phases, same as chat.
+      const { room, player } = getRoomAndPlayer(socket);
+      if (!room || !room.started || (room.state.phase !== 'day-discuss' && room.state.phase !== 'day-vote')) return;
+      const sp = G.byId(room.state, player.id);
+      if (!sp || !sp.alive || !sp.isHuman) return;
+      const targetId = msg.targetId ? String(msg.targetId) : null;
+      if (targetId) {
+        const target = G.byId(room.state, targetId);
+        if (!target || !target.alive || target.id === player.id) return;
+      }
+      G.recordSpotlight(room.state, player.id, targetId);
+      broadcastSpotlightCounts(room);
     }
 
     else if (msg.type === 'whisper') {

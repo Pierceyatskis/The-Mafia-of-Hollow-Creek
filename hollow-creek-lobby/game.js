@@ -133,7 +133,15 @@ function createGame(seats, config){
     // PREBETA Task 9 - a private channel for eliminated players, visible only
     // to other eliminated players. Persists for the rest of the game once a
     // player is eliminated, unlike whisperLog which is scoped to day-vote only.
-    ghostChatLog: []
+    ghostChatLog: [],
+    // Live discussion-time attention marker: playerId -> targetId, one entry
+    // per player who's currently put the spotlight on someone. Reset at the
+    // start of every day-discuss phase (see beginDayDiscussPhase), same
+    // lifetime as a day's votes/whispers - it's a signal about THIS round's
+    // discussion, not a persistent record. Only ever exposed as an aggregate
+    // count per target (see getPlayerView's mySpotlightTarget note) - nobody
+    // gets told who specifically spotlighted whom, including the target.
+    spotlights: {}
   };
 }
 
@@ -143,6 +151,26 @@ function createGame(seats, config){
 function recordDayVoteSubmission(state, playerId, targetId){
   state.pendingDayVotes[playerId] = targetId;
   state.voteSubmissionOrder.push({ night: state.night, playerId, targetId, submittedAt: Date.now() });
+}
+
+// Sets or clears (targetId===null) one player's live spotlight pick. A
+// toggle, not a one-shot vote - can be changed or withdrawn as often as the
+// discussion moves, unlike a day-vote.
+function recordSpotlight(state, playerId, targetId){
+  if(targetId) state.spotlights[playerId] = targetId;
+  else delete state.spotlights[playerId];
+}
+
+// Aggregate-only tally for the town board's glow effect - counts, never
+// identities, since nobody (not even the target) is meant to learn who
+// specifically spotlighted whom.
+function spotlightCounts(state){
+  const counts = {};
+  Object.keys(state.spotlights).forEach(spotlighterId => {
+    const targetId = state.spotlights[spotlighterId];
+    counts[targetId] = (counts[targetId]||0) + 1;
+  });
+  return counts;
 }
 
 // Mayor Ability 1: double this round's vote. Single-use for the whole game,
@@ -836,6 +864,10 @@ function getPlayerView(state, playerId){
     bountyPoints: (me && me.role==='BountyHunter') ? state.bountyPoints : (state.gameOver ? state.bountyPoints : undefined),
     bountyTarget: (me && me.role==='BountyHunter') ? state.bountyTarget : undefined,
     myRole: me ? me.role : null, myAlign: me ? me.align : null,
+    // Purely personal - which player, if any, THIS viewer currently has the
+    // spotlight on. Never who anyone else picked (see spotlightCounts for
+    // the public, identity-free aggregate the town board's glow is built from).
+    mySpotlightTarget: state.spotlights[playerId] || null,
     detectiveLog: (me && me.role==='Detective') ? state.detectiveLog : undefined,
     consigliereLog: (me && me.role==='Consigliere') ? state.consigliereLog : undefined,
     morticianLog: (me && me.role==='Mortician') ? state.morticianLog : undefined,
@@ -889,5 +921,6 @@ module.exports = {
   shuffle, alignOf, createGame, byId, living, mafiaAlive, cultAlive, mafiaVoters, checkWin, checkBountyHit, checkGrannyFlip,
   detectiveRead, investigateAndRead, resolveNight, resolveDayVote, resolveFarmerRevenge, startNextNight,
   getPlayerView, log, specialRoleCount, validateSeatCapacity,
-  recordDayVoteSubmission, recordMayorReveal, recordLivingCountSnapshot, recordAccusation, firstAccuserOf
+  recordDayVoteSubmission, recordMayorReveal, recordLivingCountSnapshot, recordAccusation, firstAccuserOf,
+  recordSpotlight, spotlightCounts
 };
