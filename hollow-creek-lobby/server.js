@@ -8,6 +8,7 @@ const http = require('http');
 const WebSocket = require('ws');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const G = require('./game.js');
 const Scoring = require('./scoring.js');
 
@@ -277,6 +278,30 @@ function broadcastDayVoteProgress(room) {
 // A transport/session concern layered on top of the game (like
 // room.draftConfig/room.dayVoteSubmitted), not a mafia rule - kept out of
 // game.js entirely. See room.stage's shape in the 'start' handler.
+
+// Mints a fresh, short-lived TURN credential using coturn's REST-API-style
+// mechanism (username = an expiry timestamp, password = HMAC-SHA1 of that
+// username with the shared secret) - the secret itself never reaches a
+// client, only ever this derived, time-limited pair. Falls back to a plain
+// public STUN server (no relay, direct-P2P/same-network only) when the TURN
+// env vars aren't configured, so local dev still works without a real droplet.
+const TURN_CREDENTIAL_TTL_SECONDS = 3600;
+function buildIceServers() {
+  const host = process.env.TURN_HOST;
+  const secret = process.env.TURN_SHARED_SECRET;
+  if (!host || !secret) {
+    return [{ urls: 'stun:stun.l.google.com:19302' }];
+  }
+  const port = process.env.TURN_PORT || '3478';
+  const tlsPort = process.env.TURN_TLS_PORT || '5349';
+  const username = String(Math.floor(Date.now() / 1000) + TURN_CREDENTIAL_TTL_SECONDS);
+  const credential = crypto.createHmac('sha1', secret).update(username).digest('base64');
+  return [
+    { urls: 'stun:' + host + ':' + port },
+    { urls: 'turn:' + host + ':' + port, username, credential },
+    { urls: 'turns:' + host + ':' + tlsPort + '?transport=tcp', username, credential }
+  ];
+}
 
 function stageLivingCount(room) {
   return G.living(room.state).length;
@@ -728,6 +753,28 @@ wss.on('connection', (socket) => {
       if (!room || !player || !room.started || !room.stage) return;
       room.stage.voteOffStageVotes.delete(player.id);
       broadcastStageState(room);
+    }
+
+    else if (msg.type === 'requestIceConfig') {
+      // Mints a fresh credential per request rather than caching one
+      // server-side per room - cheap to generate, and avoids ever handing a
+      // client a credential that's already stale.
+      const { room, player } = getRoomAndPlayer(socket);
+      if (!room || !player) return;
+      socket.send(JSON.stringify({ type: 'iceConfig', iceServers: buildIceServers() }));
+    }
+
+    else if (msg.type === 'voiceOffer' || msg.type === 'voiceAnswer' || msg.type === 'voiceIceCandidate') {
+      // Pure relay between two specific players, same shape as whisper -
+      // the server never inspects the SDP/candidate payload itself, just
+      // routes it to the right socket. fromId is set here, from the
+      // authenticated sender, never trusted from the client's own payload.
+      const { room, player } = getRoomAndPlayer(socket);
+      if (!room || !player || !room.started || !room.voiceEnabled) return;
+      const targetId = String(msg.targetId || '');
+      const target = room.players.find(p => p.id === targetId);
+      if (!target || target.socket.readyState !== WebSocket.OPEN) return;
+      target.socket.send(JSON.stringify(Object.assign({}, msg, { fromId: player.id })));
     }
 
     else if (msg.type === 'hostConfigUpdate') {

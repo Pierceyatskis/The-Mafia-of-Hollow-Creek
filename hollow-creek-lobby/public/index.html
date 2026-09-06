@@ -769,6 +769,7 @@ body.force-reduced-motion .dossier-card::after{animation:none !important; displa
   <span class="case-log-badge-icon">&#128193;</span>
   <span class="case-log-badge-text">Case File So Far</span>
 </div>
+<audio id="voice-remote-audio" autoplay style="display:none;"></audio>
 <div id="case-log-modal" class="role-card-overlay" style="display:none;">
   <div class="role-card-modal-content case-log-modal-content">
     <button class="role-card-close" id="case-log-close-btn" aria-label="Close">&times;</button>
@@ -1661,6 +1662,17 @@ function handleServerMessage(msg){
   } else if(msg.type==='stageState'){
     latestStageState = msg;
     if(document.getElementById('stage-panel').style.display==='block') renderStagePanel();
+  } else if(msg.type==='iceConfig'){
+    voiceIceServersCache = {servers: msg.iceServers, fetchedAt: Date.now()};
+    iceConfigRequestInFlight = false;
+    var resolvers = pendingIceConfigResolvers; pendingIceConfigResolvers = [];
+    resolvers.forEach(function(r){ r(msg.iceServers); });
+  } else if(msg.type==='voiceOffer'){
+    handleVoiceOffer(msg.fromId, msg.sdp);
+  } else if(msg.type==='voiceAnswer'){
+    handleVoiceAnswer(msg.fromId, msg.sdp);
+  } else if(msg.type==='voiceIceCandidate'){
+    handleVoiceIceCandidate(msg.fromId, msg.candidate);
   } else if(msg.type==='kicked'){
     alert((msg.message || 'You were removed from the room.') + (msg.reason ? '\nReason: '+msg.reason : ''));
     if(ws) ws.close();
@@ -5722,14 +5734,155 @@ function avatarHTML(p, size){
   return '<span class="avatar" style="width:'+size+'px;height:'+size+'px;font-size:'+Math.round(size*0.4)+'px;background:'+(p.color||'#5C6B47')+';">'+initials(p.name||'?')+'</span>';
 }
 
-// ---- Voice/stage feature ----
-// The seam for actual WebRTC audio (getUserMedia/RTCPeerConnection/TURN
-// credential minting via TURN_HOST/TURN_PORT/TURN_TLS_PORT/TURN_REALM/
-// TURN_SHARED_SECRET) is deliberately NOT built yet - these two stubs are
-// where publish/unpublish will attach, called exactly when latestStageState's
-// speakerId transitions to/from myPlayerId (see renderStagePanel).
-function onBecomeSpeaker(){ /* not yet implemented - audio wiring is a later step */ }
-function onStopSpeaking(){ /* not yet implemented - audio wiring is a later step */ }
+// ---- Voice/stage feature: WebRTC audio ----
+// Star topology centered on the speaker - only the current speaker ever
+// publishes a track, so this is one RTCPeerConnection per OTHER player in
+// the room (dead spectators included, same room-wide framing as
+// donateTime), never a full mesh. voicePeerConnections holds either the
+// speaker's many outgoing connections, or a listener's single incoming one,
+// keyed by the remote player's id either way.
+var voicePeerConnections = {};
+var voiceLocalStream = null; // only ever set while I'm the speaker
+var voiceIceServersCache = null;
+var iceConfigRequestInFlight = false;
+var pendingIceConfigResolvers = [];
+
+function requestFreshIceServers(){
+  // Cached briefly - not for the credential's own sake (coturn mints it with
+  // a full hour of headroom) but so a speaker connecting to many listeners
+  // at once doesn't fire one requestIceConfig round trip per listener.
+  var now = Date.now();
+  if(voiceIceServersCache && (now - voiceIceServersCache.fetchedAt) < 30000){
+    return Promise.resolve(voiceIceServersCache.servers);
+  }
+  return new Promise(function(resolve){
+    pendingIceConfigResolvers.push(resolve);
+    if(!iceConfigRequestInFlight){
+      iceConfigRequestInFlight = true;
+      sendWS({type:'requestIceConfig'});
+    }
+  });
+}
+
+function closeVoicePeerConnection(remoteId){
+  var pc = voicePeerConnections[remoteId];
+  if(pc){ pc.close(); delete voicePeerConnections[remoteId]; }
+}
+
+function playRemoteAudio(stream){
+  var audioEl = document.getElementById('voice-remote-audio');
+  audioEl.srcObject = stream;
+  var p = audioEl.play();
+  if(p && p.catch) p.catch(function(err){ console.error('voice: remote audio playback was blocked', err); });
+}
+function stopRemoteAudio(){
+  var audioEl = document.getElementById('voice-remote-audio');
+  audioEl.pause();
+  audioEl.srcObject = null;
+}
+
+// The speaker's own mic track is enabled/disabled (never a whole new
+// connection) to reflect self-mute/host-mute - listeners' connections stay
+// open, they just receive silence, so there's no renegotiation on mute.
+function syncLocalMicEnabled(){
+  if(!voiceLocalStream) return;
+  var h = you();
+  var enabled = !(h && h.muted);
+  voiceLocalStream.getAudioTracks().forEach(function(t){ t.enabled = enabled; });
+}
+
+function connectToListener(listenerId){
+  if(voicePeerConnections[listenerId]) return; // already connecting/connected
+  requestFreshIceServers().then(function(iceServers){
+    var pc = new RTCPeerConnection({iceServers: iceServers});
+    voicePeerConnections[listenerId] = pc;
+    pc.onicecandidate = function(e){
+      if(e.candidate) sendWS({type:'voiceIceCandidate', targetId: listenerId, candidate: e.candidate});
+    };
+    if(voiceLocalStream){
+      voiceLocalStream.getAudioTracks().forEach(function(track){ pc.addTrack(track, voiceLocalStream); });
+    }
+    return pc.createOffer().then(function(offer){
+      return pc.setLocalDescription(offer).then(function(){ return offer; });
+    });
+  }).then(function(offer){
+    sendWS({type:'voiceOffer', targetId: listenerId, sdp: {type: offer.type, sdp: offer.sdp}});
+  }).catch(function(err){
+    console.error('voice: failed to connect to listener', listenerId, err);
+    closeVoicePeerConnection(listenerId);
+  });
+}
+
+function handleVoiceOffer(fromId, sdp){
+  closeVoicePeerConnection(fromId); // a fresh offer replaces any stale connection to this same speaker
+  requestFreshIceServers().then(function(iceServers){
+    var pc = new RTCPeerConnection({iceServers: iceServers});
+    voicePeerConnections[fromId] = pc;
+    pc.onicecandidate = function(e){
+      if(e.candidate) sendWS({type:'voiceIceCandidate', targetId: fromId, candidate: e.candidate});
+    };
+    pc.ontrack = function(e){ playRemoteAudio(e.streams[0]); };
+    return pc.setRemoteDescription(new RTCSessionDescription(sdp)).then(function(){
+      return pc.createAnswer();
+    }).then(function(answer){
+      return pc.setLocalDescription(answer).then(function(){ return answer; });
+    });
+  }).then(function(answer){
+    sendWS({type:'voiceAnswer', targetId: fromId, sdp: {type: answer.type, sdp: answer.sdp}});
+  }).catch(function(err){
+    console.error('voice: failed to answer offer from', fromId, err);
+    closeVoicePeerConnection(fromId);
+  });
+}
+function handleVoiceAnswer(fromId, sdp){
+  var pc = voicePeerConnections[fromId];
+  if(!pc) return;
+  pc.setRemoteDescription(new RTCSessionDescription(sdp)).catch(function(err){ console.error('voice: failed to set remote answer', err); });
+}
+function handleVoiceIceCandidate(fromId, candidate){
+  var pc = voicePeerConnections[fromId];
+  if(!pc || !candidate) return;
+  pc.addIceCandidate(new RTCIceCandidate(candidate)).catch(function(err){ console.error('voice: failed to add ICE candidate', err); });
+}
+
+// Called from renderStagePanel exactly when latestStageState's speakerId
+// transitions to/from myPlayerId.
+function onBecomeSpeaker(){
+  if(!latestView || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    console.error('voice: no mediaDevices support in this browser');
+    sendWS({type:'leaveStage'});
+    return;
+  }
+  navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
+    voiceLocalStream = stream;
+    syncLocalMicEnabled();
+    latestView.players.forEach(function(p){
+      // Placeholder townsfolk have no real socket to answer an offer - the
+      // server's relay already no-ops for them, but there's no point even
+      // creating a connection object that will just sit unconnected forever.
+      if(p.id !== myPlayerId && !p.isPlaceholder) connectToListener(p.id);
+    });
+  }).catch(function(err){
+    console.error('voice: mic permission denied or unavailable', err);
+    alert("Couldn't access your microphone, so you can't take the stage right now - check this site's mic permission in your browser.");
+    sendWS({type:'leaveStage'});
+  });
+}
+function onStopSpeaking(){
+  Object.keys(voicePeerConnections).forEach(closeVoicePeerConnection);
+  if(voiceLocalStream){
+    voiceLocalStream.getTracks().forEach(function(t){ t.stop(); });
+    voiceLocalStream = null;
+  }
+}
+// Called when I was listening to someone and the stage moved on without me
+// becoming the new speaker myself - my one connection to the OLD speaker is
+// no longer meaningful (they may keep talking to OTHER listeners, but this
+// listener specifically needs a fresh offer from whoever speaks next, if anyone).
+function onListenerSpeakerChanged(oldSpeakerId){
+  closeVoicePeerConnection(oldSpeakerId);
+  stopRemoteAudio();
+}
 
 var STAGE_TURN_SECONDS_CLIENT = 30;
 function stopStageTimer(){ clearInterval(stageTimerInterval); stageTimerInterval = null; }
@@ -5758,13 +5911,15 @@ function renderStagePanel(){
   var iAmSpeaker = s.speakerId === myPlayerId;
   var iAmQueued = s.queue.indexOf(myPlayerId) !== -1;
 
-  // The WebRTC seam (see onBecomeSpeaker/onStopSpeaking above) - fires
-  // exactly on the transition, not on every re-render while already speaking.
+  // The WebRTC hookup - fires exactly on the transition, not on every
+  // re-render while already speaking/listening.
   if(lastKnownSpeakerId !== s.speakerId){
     if(lastKnownSpeakerId === myPlayerId) onStopSpeaking();
+    else if(lastKnownSpeakerId) onListenerSpeakerChanged(lastKnownSpeakerId);
     if(s.speakerId === myPlayerId) onBecomeSpeaker();
     lastKnownSpeakerId = s.speakerId;
   }
+  syncLocalMicEnabled();
 
   if(!s.speakerId){
     stopStageTimer();
