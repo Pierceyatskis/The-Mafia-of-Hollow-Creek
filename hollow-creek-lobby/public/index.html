@@ -104,6 +104,18 @@ header p{font-family:var(--font-type); font-size:11px; letter-spacing:3px; text-
 .ballot-box-seal.playing{animation:ballotSealPop .8s ease forwards;}
 @keyframes ballotSealPop{0%{opacity:0; transform:scale(2.2) rotate(-18deg);} 35%{opacity:1; transform:scale(1.05) rotate(4deg);} 55%{opacity:1; transform:scale(1) rotate(0deg);} 100%{opacity:0; transform:scale(1) rotate(0deg);}}
 body.force-reduced-motion .ballot-box-seal.playing{animation:none !important; opacity:0 !important;}
+/* LAYOUT_AND_ASSETS Task 6 - bottom nav row, themed object icons + plain
+   text labels, spanning the full day panel width. Confirmed no map icon
+   (excluded twice over - INTERACTIVE_OBJECTS.md and this file both say
+   so explicitly, even though the reference mockup shows one). */
+.bottom-nav{display:flex; justify-content:center; gap:28px; margin-top:20px; padding-top:16px; border-top:1px solid var(--line);}
+.bottom-nav-item{display:flex; flex-direction:column; align-items:center; gap:5px; background:none; border:none; cursor:pointer; color:var(--parchment-dim); font-family:var(--font-type); font-size:11px; letter-spacing:0.5px; text-transform:uppercase; padding:6px 10px; transition:color .15s ease, transform .15s ease;}
+.bottom-nav-item:hover{color:var(--gold-bright); transform:translateY(-3px);}
+.bottom-nav-icon{width:32px; height:32px; background-repeat:no-repeat;}
+.bottom-nav-icon-folder{background-image:var(--sheet-paper-folder); background-size:300% 200%; background-position:0% 0%;}
+.bottom-nav-icon-notebook{background-image:var(--sheet-paper-notebook); background-size:400% 100%; background-position:33.333% 0%;}
+.bottom-nav-icon-history{background-image:var(--sheet-paper-notebook); background-size:400% 100%; background-position:66.667% 0%;}
+.bottom-nav-icon-settings{background-image:var(--sheet-paper-notebook); background-size:400% 100%; background-position:100% 0%;}
 .sound-toggle{font-family:var(--font-type); font-size:10px; letter-spacing:1px; text-transform:uppercase; color:var(--parchment-dim); background:transparent; border:1px solid var(--gold-dim); border-radius:20px; padding:3px 11px; cursor:pointer; transition:color .15s ease, border-color .15s ease;}
 .sound-toggle:hover{color:var(--gold-bright); border-color:var(--gold);}
 .sound-toggle.is-muted{color:var(--parchment-dim); opacity:0.6;}
@@ -1445,6 +1457,24 @@ body.force-reduced-motion .dossier-card::after{animation:none !important; displa
           <button class="btn" id="chat-send-btn" style="padding:9px 16px;">Send</button>
         </div>
       </div>
+    </div>
+    <div class="bottom-nav" id="bottom-nav">
+      <button type="button" class="bottom-nav-item" id="bottom-nav-casefiles" title="Case Files (C)">
+        <span class="bottom-nav-icon bottom-nav-icon-folder"></span>
+        <span class="bottom-nav-label">Case Files</span>
+      </button>
+      <button type="button" class="bottom-nav-item" id="bottom-nav-notebook" title="Characters / Notebook (N)">
+        <span class="bottom-nav-icon bottom-nav-icon-notebook"></span>
+        <span class="bottom-nav-label">Characters</span>
+      </button>
+      <button type="button" class="bottom-nav-item" id="bottom-nav-history" title="Round-by-round history">
+        <span class="bottom-nav-icon bottom-nav-icon-history"></span>
+        <span class="bottom-nav-label">History</span>
+      </button>
+      <button type="button" class="bottom-nav-item" id="bottom-nav-settings" title="Settings">
+        <span class="bottom-nav-icon bottom-nav-icon-settings"></span>
+        <span class="bottom-nav-label">Settings</span>
+      </button>
     </div>
   </div>
 
@@ -5719,8 +5749,11 @@ function switchPanel(p){
   // badge would be a visible duplicate there; still used for night/end
   // where there's no 3-column layout to anchor it in.
   document.getElementById('role-badge').style.display = (showBadge && p!=='day') ? 'flex' : 'none';
-  document.getElementById('case-log-badge').style.display = showBadge ? 'flex' : 'none';
-  document.getElementById('notebook-badge').style.display = showBadge ? 'flex' : 'none';
+  // LAYOUT_AND_ASSETS Task 6 - the day panel's new bottom nav row covers
+  // Case Files/Notebook (plus History/Settings), so the floating badges
+  // would duplicate it there; still used for night/end.
+  document.getElementById('case-log-badge').style.display = (showBadge && p!=='day') ? 'flex' : 'none';
+  document.getElementById('notebook-badge').style.display = (showBadge && p!=='day') ? 'flex' : 'none';
   if(showBadge) renderRoleBadge();
   if(typeof syncRoleBadgePlacement === 'function') syncRoleBadgePlacement(p==='day' ? null : p);
   updateGhostChatBadge();
@@ -6995,10 +7028,15 @@ document.addEventListener('keydown', function(e){
   var tag = document.activeElement && document.activeElement.tagName;
   var typing = tag === 'INPUT' || tag === 'TEXTAREA' || (document.activeElement && document.activeElement.isContentEditable);
   if(typing) return;
+  // case-log-badge/notebook-badge are hidden during the day panel now that
+  // its own bottom nav covers the same job (Task 6) - the bottom nav's
+  // own display tracks panel-day visibility, so checking either is
+  // equivalent to "is this feature reachable right now."
+  var caseFilesReachable = document.getElementById('case-log-badge').style.display !== 'none' || document.getElementById('panel-day').style.display !== 'none';
   if(e.key === 'c' || e.key === 'C'){
-    if(document.getElementById('case-log-badge').style.display !== 'none'){ SoundFX.playCaseFileOpen(); openCaseLogModal(); }
+    if(caseFilesReachable){ SoundFX.playCaseFileOpen(); caseLogActiveTab = 'players'; openCaseLogModal(); }
   } else if(e.key === 'n' || e.key === 'N'){
-    if(document.getElementById('notebook-badge').style.display !== 'none'){ SoundFX.playCaseFileOpen(); openNotebookModal(); }
+    if(caseFilesReachable){ SoundFX.playCaseFileOpen(); openNotebookModal(); }
   } else if(e.key === 'v' || e.key === 'V'){
     var voteSection = document.getElementById('vote-section');
     if(voteSection && voteSection.style.display !== 'none') voteSection.scrollIntoView({behavior:'smooth', block:'center'});
@@ -7129,6 +7167,25 @@ document.getElementById('ballot-box').addEventListener('click', function(){
   // purely visual on top, per Task A: "functions identically, just
   // without the visual flourish, when skipped."
   document.getElementById('day-confirm-btn').click();
+});
+
+// ==================== LAYOUT_AND_ASSETS Task 6 - bottom nav ====================
+document.getElementById('bottom-nav-casefiles').addEventListener('click', function(){
+  SoundFX.playCaseFileOpen();
+  caseLogActiveTab = 'players';
+  openCaseLogModal();
+});
+document.getElementById('bottom-nav-notebook').addEventListener('click', function(){
+  SoundFX.playCaseFileOpen();
+  openNotebookModal();
+});
+document.getElementById('bottom-nav-history').addEventListener('click', function(){
+  SoundFX.playCaseFileOpen();
+  caseLogActiveTab = 'rounds';
+  openCaseLogModal();
+});
+document.getElementById('bottom-nav-settings').addEventListener('click', function(){
+  openSettingsModal();
 });
 
 initGame();
