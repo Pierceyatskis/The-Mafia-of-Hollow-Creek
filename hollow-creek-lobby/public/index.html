@@ -89,13 +89,13 @@ header p{font-family:var(--font-type); font-size:11px; letter-spacing:3px; text-
    sprite sheet (sealed / hover-glow / opening / open-revealed /
    closed-with-badge) is one image, stepped via background-position -
    see envelopeStates in LAYOUT_IMG. */
+/* DAYTIME_PAGE_BUILD_ORDER Step 5 - the 5 states are individually-cropped
+   images now (DAYTIME_IMG.env*); one <img>, its src swapped in JS for
+   every transition including hover (setRoleEnvelopeState below), rather
+   than 5 stacked crossfade layers. */
 .role-envelope{display:flex; flex-direction:column; align-items:center; gap:6px; cursor:pointer; margin-bottom:14px; padding-bottom:12px; border-bottom:1px solid var(--line);}
-.role-envelope-sprite{width:130px; height:44px; background-image:var(--sheet-envelope); background-size:500% 100%; background-position:0% 0%; background-repeat:no-repeat; transition:background-position .2s ease;}
-.role-envelope:hover .role-envelope-sprite{background-position:25% 0%;}
+.role-envelope-sprite{width:130px; height:44px; object-fit:contain;}
 .role-envelope-label{font-family:var(--font-type); font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--gold-bright);}
-.role-envelope.opening .role-envelope-sprite{background-position:50% 0%;}
-.role-envelope.revealed .role-envelope-sprite{background-position:75% 0%;}
-.role-envelope.closed-badge .role-envelope-sprite{background-position:100% 0%;}
 /* LAYOUT_AND_ASSETS Task A - the physical ballot box, its own object
    alongside (not replacing) the existing Confirm Vote button. ballotAssets
    sheet is a 3x3 grid: row1(y:50%) = box-closed(x:0%), box-midslot(x:50%),
@@ -1443,7 +1443,7 @@ body.force-reduced-motion .dossier-card::after{animation:none !important; displa
       </div>
       <div class="day-chat-sidebar">
         <div class="role-envelope" id="role-envelope" title="Your Secret Role — click to reveal">
-          <div class="role-envelope-sprite" id="role-envelope-sprite"></div>
+          <img class="role-envelope-sprite" id="role-envelope-sprite" alt="">
           <span class="role-envelope-label">Your Secret Role</span>
         </div>
         <h2 class="sec">Town talk</h2>
@@ -7241,16 +7241,32 @@ var LAYOUT_IMG = {
 })();
 
 // ==================== LAYOUT_AND_ASSETS Task B - role envelope ====================
+var ROLE_ENVELOPE_STATE_IMG = {
+  sealed: 'envClosed', hover: 'envHover', opening: 'envOpening',
+  revealed: 'envOpen', 'closed-badge': 'envNotification'
+};
+var roleEnvelopeRestingState = 'sealed'; // 'sealed' until first opened, then 'closed-badge'
 function setRoleEnvelopeClass(cls){
   var el = document.getElementById('role-envelope');
-  if(!el) return;
+  var img = document.getElementById('role-envelope-sprite');
+  if(!el || !img) return;
   el.classList.remove('opening','revealed','closed-badge');
-  if(cls) el.classList.add(cls);
+  if(cls){ el.classList.add(cls); roleEnvelopeRestingState = cls; }
+  else roleEnvelopeRestingState = 'sealed';
+  img.src = DAYTIME_IMG[ROLE_ENVELOPE_STATE_IMG[roleEnvelopeRestingState]];
 }
+document.getElementById('role-envelope').addEventListener('mouseenter', function(){
+  if(roleEnvelopeRestingState === 'sealed') document.getElementById('role-envelope-sprite').src = DAYTIME_IMG.envHover;
+});
+document.getElementById('role-envelope').addEventListener('mouseleave', function(){
+  document.getElementById('role-envelope-sprite').src = DAYTIME_IMG[ROLE_ENVELOPE_STATE_IMG[roleEnvelopeRestingState]];
+});
 document.getElementById('role-envelope').addEventListener('click', function(){
-  setRoleEnvelopeClass('opening');
+  document.getElementById('role-envelope-sprite').src = DAYTIME_IMG.envOpening;
+  document.getElementById('role-envelope').classList.add('opening');
   SoundFX.playCaseFileOpen();
   setTimeout(function(){
+    document.getElementById('role-envelope').classList.remove('opening');
     setRoleEnvelopeClass('revealed');
     openRoleCardModal();
   }, 260);
@@ -7350,7 +7366,7 @@ var DAYTIME_IMG = {
   var STATIC_IMG_IDS = {
     'watch-case-img': 'watchCase', 'watch-dial-img': 'watchDial',
     'watch-hand-hour': 'watchHourHand', 'watch-hand-minute': 'watchMinuteHand',
-    'watch-glow': 'watchGlow'
+    'watch-glow': 'watchGlow', 'role-envelope-sprite': 'envClosed'
   };
   Object.keys(STATIC_IMG_IDS).forEach(function(id){
     var el = document.getElementById(id);
