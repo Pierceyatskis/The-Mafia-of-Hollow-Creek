@@ -37,9 +37,21 @@ async function cropGrid(srcPath, cols, rows, keys, opts) {
       if (idx >= keys.length) continue;
       const key = keys[idx];
       if (!key) continue;
-      const left = Math.round(c * cellW), top = Math.round(r * cellH);
-      const width = Math.min(Math.round(cellW), meta.width - left);
-      const height = Math.min(Math.round(cellH), meta.height - top);
+      let left = Math.round(c * cellW), top = Math.round(r * cellH);
+      let width = Math.min(Math.round(cellW), meta.width - left);
+      let height = Math.min(Math.round(cellH), meta.height - top);
+      // Optional inset (fraction of the cell) - lets a cell crop to just its
+      // actual drawn content instead of the full grid cell, for sheets where
+      // the cell is much taller/wider than the artwork itself (e.g. the
+      // role-envelope sheet's cells are portrait-oriented but the envelope
+      // art is a wide band in the middle).
+      if (opts.insetFrac) {
+        const f = opts.insetFrac;
+        left = left + Math.round(f.left * cellW);
+        top = top + Math.round(f.top * cellH);
+        width = Math.round(f.width * cellW);
+        height = Math.round(f.height * cellH);
+      }
       let buf = await base.clone()
         .extract({ left: left, top: top, width: width, height: height })
         .resize({ width: opts.width || 500 })
@@ -65,7 +77,14 @@ async function main() {
   entries.push(...await cropGrid(
     path.join(ASSETS_DIR, '6e21f93e-1ae5-4d94-8764-7dd4cc95d149.png'), 5, 1,
     ['envClosed', 'envHover', 'envOpening', 'envOpen', 'envNotification'],
-    { width: 400 }
+    // GAP_COMPARISON Item 6 - each cell is a tall 434x724 box but the drawn
+    // envelope (and, for the open states, the card poking out the top) only
+    // occupies a band from ~7.6% to ~71% of the cell height - measured by
+    // test-cropping cell 3 (envOpen, the tallest state) until nothing
+    // clipped, then confirming the same window doesn't clip the smaller
+    // closed states either. Without this, object-fit:contain on the full
+    // portrait-oriented cell rendered the envelope as a tiny sliver.
+    { width: 400, insetFrac: { left: 0, top: 0.076, width: 1, height: 0.635 } }
   ));
 
   // Step 4 - pocket-watch-parts.png: 3x2 grid (case, dial, hour / minute, red(unused), glow).
