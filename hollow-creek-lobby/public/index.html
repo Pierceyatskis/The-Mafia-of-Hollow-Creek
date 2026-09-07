@@ -587,6 +587,22 @@ h2.sec{font-family:var(--font-type); font-size:12px; letter-spacing:2px; text-tr
 @media (prefers-reduced-motion: reduce){
   .dossier-card, .dossier-photo, .dossier-role-name, .dossier-flavor, .dossier-point, .bounty-mark{animation:none !important; opacity:1 !important; transform:none !important; filter:none !important;}
   .dossier-card::after{animation:none !important; display:none;}
+  /* DAYTIME_PAGE_BUILD_ORDER final checkpoint - every looping decorative
+     animation in the app (not just the dossier/bounty ones above) freezes
+     to a static resting frame instead of spinning/pulsing/drifting
+     indefinitely. One-shot animations under ~1s (chipPop, chatLineIn, the
+     ballot wax-seal pop, the tour spotlight's own entrance zoom) are left
+     alone - they finish quickly and don't repeat, so they're not the kind
+     of motion this setting is for. */
+  .boot-loading-mark{animation:none !important;}
+  .watch-glow.active{animation:none !important; opacity:0.85 !important;}
+  .round-status-text .round-status-timer.timer-danger, .timerfill.timer-danger, .timer-danger, .stage-timer .timernum.stage-timer-critical{animation:none !important;}
+  .fog-layer-1, .fog-layer-2, .fog-layer-3{animation:none !important;}
+  #howto-tour-next-btn{animation:none !important;}
+  .tour-spotlight{animation:tourSpotlightZoom .01s linear forwards !important;}
+  .stage-speaking-glow{animation:none !important;}
+  .stage-speaking-bars span{animation:none !important; height:7px !important;}
+  .ember{animation:none !important; display:none !important;}
 }
 /* Accessibility & Settings Task 3 - forces the exact same behavior above
    regardless of the OS-level setting, when the in-app toggle is on (helps
@@ -596,6 +612,15 @@ h2.sec{font-family:var(--font-type); font-size:12px; letter-spacing:2px; text-tr
    .force-reduced-motion added/removed by JS (see applyReducedMotion()). */
 body.force-reduced-motion .dossier-card, body.force-reduced-motion .dossier-photo, body.force-reduced-motion .dossier-role-name, body.force-reduced-motion .dossier-flavor, body.force-reduced-motion .dossier-point, body.force-reduced-motion .bounty-mark{animation:none !important; opacity:1 !important; transform:none !important; filter:none !important;}
 body.force-reduced-motion .dossier-card::after{animation:none !important; display:none;}
+body.force-reduced-motion .boot-loading-mark{animation:none !important;}
+body.force-reduced-motion .watch-glow.active{animation:none !important; opacity:0.85 !important;}
+body.force-reduced-motion .round-status-text .round-status-timer.timer-danger, body.force-reduced-motion .timerfill.timer-danger, body.force-reduced-motion .timer-danger, body.force-reduced-motion .stage-timer .timernum.stage-timer-critical{animation:none !important;}
+body.force-reduced-motion .fog-layer-1, body.force-reduced-motion .fog-layer-2, body.force-reduced-motion .fog-layer-3{animation:none !important;}
+body.force-reduced-motion #howto-tour-next-btn{animation:none !important;}
+body.force-reduced-motion .tour-spotlight{animation:tourSpotlightZoom .01s linear forwards !important;}
+body.force-reduced-motion .stage-speaking-glow{animation:none !important;}
+body.force-reduced-motion .stage-speaking-bars span{animation:none !important; height:7px !important;}
+body.force-reduced-motion .ember{animation:none !important; display:none !important;}
 .bounty-tracker{margin-top:16px; padding-top:14px; border-top:1px solid var(--line); opacity:0; animation:flavorIn .5s ease 1.5s forwards;}
 .bounty-tracker-label{font-family:var(--font-type); font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--gold); margin:0 0 10px;}
 .bounty-marks{display:flex; gap:12px;}
@@ -1416,7 +1441,7 @@ body.force-reduced-motion .dossier-card::after{animation:none !important; displa
           </div>
           <div class="ballot-box-wrap">
             <div class="ballot-paper" id="ballot-paper"><span id="ballot-paper-name">Select a player to vote for</span></div>
-            <div class="ballot-box" id="ballot-box" title="Click the box to submit your ballot">
+            <div class="ballot-box" id="ballot-box" title="Click the box to submit your ballot" tabindex="0" role="button" aria-label="Submit your ballot">
               <img class="ballot-box-img" id="ballot-box-img" alt="">
               <img class="ballot-box-seal" id="ballot-box-seal" alt="">
             </div>
@@ -1473,7 +1498,7 @@ body.force-reduced-motion .dossier-card::after{animation:none !important; displa
         </div>
       </div>
       <div class="day-chat-sidebar">
-        <div class="role-envelope" id="role-envelope" title="Your Secret Role — click to reveal">
+        <div class="role-envelope" id="role-envelope" title="Your Secret Role — click to reveal" tabindex="0" role="button" aria-label="Your secret role — open to reveal">
           <img class="role-envelope-sprite" id="role-envelope-sprite" alt="">
           <span class="role-envelope-label">Your Secret Role</span>
         </div>
@@ -7342,6 +7367,18 @@ document.getElementById('ballot-box').addEventListener('click', function(){
   // purely visual on top, per Task A: "functions identically, just
   // without the visual flourish, when skipped."
   document.getElementById('day-confirm-btn').click();
+});
+
+// DAYTIME_PAGE_BUILD_ORDER final checkpoint - #role-envelope and #ballot-box
+// are click-only art divs, not real buttons; both now carry tabindex="0"
+// role="button" (see their HTML), and this single listener makes Enter/
+// Space activate any element marked that way, matching real <button>
+// keyboard behavior, without duplicating a handler per element.
+document.addEventListener('keydown', function(e){
+  if((e.key===' ' || e.key==='Enter') && e.target && e.target.getAttribute && e.target.getAttribute('role')==='button'){
+    e.preventDefault();
+    e.target.click();
+  }
 });
 
 // ==================== LAYOUT_AND_ASSETS Task 6 - bottom nav ====================
