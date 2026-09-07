@@ -37,8 +37,11 @@ async function cropGrid(srcPath, cols, rows, keys, opts) {
       if (idx >= keys.length) continue;
       const key = keys[idx];
       if (!key) continue;
+      const left = Math.round(c * cellW), top = Math.round(r * cellH);
+      const width = Math.min(Math.round(cellW), meta.width - left);
+      const height = Math.min(Math.round(cellH), meta.height - top);
       let buf = await base.clone()
-        .extract({ left: Math.round(c * cellW), top: Math.round(r * cellH), width: Math.round(cellW), height: Math.round(cellH) })
+        .extract({ left: left, top: top, width: width, height: height })
         .resize({ width: opts.width || 500 })
         .webp({ quality: opts.quality || 85 })
         .toBuffer();
@@ -107,8 +110,40 @@ async function main() {
   // the nav icon itself.
   entries.push(...await cropGrid(
     path.join(ASSETS_DIR, '4c54f3e5-c5c8-4f35-8ee0-734efb5865bd.png'), 3, 2,
-    ['navFolder', null, null, null, null, null],
+    ['navFolder', 'emptyNotes', 'emptyChat', 'emptyStage', null, null],
     { width: 260 }
+  ));
+
+  // Step 9 - chat-stage-controls.png (37a04bae): 5x2 grid. Only the cells
+  // with a real, existing hook in the chat/stage panel are wired up
+  // (accusation pointer on the chat tag + Accusations filter tab, player-
+  // tag card by the accusation select, phase-change bell on system-log
+  // entries, mic active/muted swapped in for the stage speaker's emoji
+  // mic badge). Row 2's settings gear/protection shield/stage chair and
+  // row 1's speaking waveform/back arrow have no clean, non-redundant
+  // hook yet (settings already uses navGear, the waveform bars are a
+  // live CSS animation, no in-scope back button lives in the chat panel)
+  // so they're left uncropped rather than added unused.
+  entries.push(...await cropGrid(
+    path.join(ASSETS_DIR, '37a04bae-6a55-4c63-9a41-48bf6b1c41be.png'), 5, 2,
+    ['micActive', 'micMuted', null, 'phaseBell', null,
+     'playerTagCard', null, 'accusationPointer', null, null],
+    { width: 300 }
+  ));
+
+  // Step 9 - game-status-markers.png (61aab725): 4x3 grid. noteMarker
+  // replaces the pencil-mark emoji badge on town tiles, redPin replaces
+  // the notebook's pin-button emoji, trustedCheck/unknownMarker/
+  // investigationMagnifier illustrate the notebook's existing Trusted/
+  // Unknown/Suspicious marks. The rest (ribbon, speaking indicator, wax
+  // seal, bell, shield, chain, eye) have no clean existing hook without
+  // inventing new UI, so left uncropped.
+  entries.push(...await cropGrid(
+    path.join(ASSETS_DIR, '61aab725-541b-414b-8854-18ec211f304a.png'), 4, 3,
+    [null, 'noteMarker', null, 'redPin',
+     'trustedCheck', 'unknownMarker', null, null,
+     null, 'investigationMagnifier', null, null],
+    { width: 200 }
   ));
 
   // button-red-wide.png (Untitled_design.png) - wide red button background,
