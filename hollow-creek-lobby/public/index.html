@@ -1214,9 +1214,15 @@ body.force-reduced-motion .dossier-card::after{animation:none !important; displa
     <p style="font-family:var(--font-type); font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--gold); margin:20px 0 8px;">Profile picture</p>
     <div class="avatar-picker" id="avatar-picker"></div>
 
-    <p style="font-family:var(--font-type); font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--gold); margin:20px 0 8px;">Game icon</p>
-    <p style="font-family:var(--font-type); font-size:11px; color:var(--parchment-dim); margin:0 0 8px; max-width:420px;">Shown on your own tile in the town grid during a game - everyone currently shows the same mystery silhouette there; pick one of these so yours stands out.</p>
-    <div class="avatar-picker" id="game-icon-picker"></div>
+    <p style="font-family:var(--font-type); font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--gold); margin:20px 0 8px;">Game icon <span style="text-transform:none; letter-spacing:0; color:var(--parchment-dim); font-weight:400;">(preview only, for now)</span></p>
+    <p style="font-family:var(--font-type); font-size:11px; color:var(--parchment-dim); margin:0 0 8px; max-width:420px;">A personal touch, previewed right here - it doesn't appear anywhere in the game itself yet.</p>
+    <div style="display:flex; align-items:center; gap:14px;">
+      <div class="avatar-picker" id="game-icon-picker" style="flex:1;"></div>
+      <div style="flex-shrink:0; text-align:center;">
+        <div class="avatar avatar-img" id="game-icon-preview" style="width:56px; height:56px; margin:0 auto;"></div>
+        <p style="font-family:var(--font-type); font-size:9px; letter-spacing:0.5px; text-transform:uppercase; color:var(--parchment-dim); margin:4px 0 0;">Preview</p>
+      </div>
+    </div>
 
     <p style="font-family:var(--font-type); font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--gold); margin:20px 0 8px;">Preview</p>
     <div class="chatline chatline-you" id="profile-preview" style="max-width:320px;"></div>
@@ -1731,13 +1737,50 @@ function hasClaudeStorage(){ return typeof window.storage !== 'undefined' && win
 var PROFILE_KEY = 'hc-profile-v1';
 var PROFILE_COLORS = ['#D9A441','#C1544B','#5C9680','#7A6AA0','#3E6E8E','#B8502A','#8C6B3E','#4C7C67','#9A7CA0','#5C6B47'];
 var AVATAR_CHOICES = ['avatar1','avatar2','avatar3','avatar4','avatar5','avatar6','avatar7','avatar8','avatar9','avatar10','avatar11','avatar12','avatar13','avatar14','avatar15'];
-// LAYOUT_AND_ASSETS Task 7 - the two 10-silhouette sets are a SEPARATE
-// choice from the profile picture above: a "game icon" shown only on
-// this player's own in-game grid tile, replacing the single shared
-// generic mystery silhouette everyone currently shows there. Distinct
-// field (gameIconKey), distinct picker, never mixed into AVATAR_CHOICES.
+// PORTRAIT_REGRESSION_FIX - per explicit user direction, the two
+// 10-silhouette sets are NOT wired into gameplay anywhere (not the grid,
+// not chat, nothing). "Game icon" is now bounded strictly to the Profile
+// screen's own preview - see updateProfilePreview(). This array/field
+// still exists only to back that preview.
 var GAME_ICON_CHOICES = ['avatar16','avatar17','avatar18','avatar19','avatar20','avatar21','avatar22','avatar23','avatar24','avatar25','avatar26','avatar27','avatar28','avatar29','avatar30','avatar31','avatar32','avatar33','avatar34','avatar35'];
 var DEFAULT_PROFILE = {username:'You', color:'#D9A441', avatarKey:null, gameIconKey:null};
+// PORTRAIT_REGRESSION_FIX - every player tile in the app now shows a
+// real, distinct portrait by default (never the shared generic mystery
+// silhouette): a real player's own chosen avatarKey wins if they set
+// one, otherwise every player (placeholder character or real human
+// without a chosen avatar) is deterministically assigned one of the 15
+// avatar1..15 portraits, hashed from their stable id - the same
+// character (e.g. Mabel Finch, id 'mabel') always resolves to the same
+// starting point, and collisions within a single game's roster are
+// resolved by probing to the next free slot so nobody in the same game
+// ever visibly duplicates another player's portrait (there are always
+// at least as many avatar slots, 15, as seats, max 12).
+function hashIdToIndex(id, mod){
+  var h = 0;
+  for(var i=0;i<id.length;i++){ h = (h*31 + id.charCodeAt(i)) >>> 0; }
+  return h % mod;
+}
+function computePortraitAssignments(players){
+  var used = {}, result = {};
+  (players||[]).forEach(function(p){
+    if(p.avatarKey && IMG[p.avatarKey]){ result[p.id] = p.avatarKey; used[p.avatarKey] = true; }
+  });
+  (players||[]).forEach(function(p){
+    if(result[p.id]) return;
+    var idx = hashIdToIndex(String(p.id), AVATAR_CHOICES.length);
+    var tries = 0;
+    while(used[AVATAR_CHOICES[idx]] && tries < AVATAR_CHOICES.length){ idx = (idx+1) % AVATAR_CHOICES.length; tries++; }
+    result[p.id] = AVATAR_CHOICES[idx];
+    used[AVATAR_CHOICES[idx]] = true;
+  });
+  return result;
+}
+function portraitImgFor(p){
+  if(!p || !p.id || !latestView) return UNKNOWN_AVATAR_IMG;
+  var assignments = computePortraitAssignments(latestView.players);
+  var key = assignments[p.id];
+  return (key && IMG[key]) || UNKNOWN_AVATAR_IMG;
+}
 async function saveProfile(profile){
   try{
     var data = JSON.stringify(profile);
@@ -4254,12 +4297,14 @@ function showNightKillRevealScreen(victims, onContinue){
   var ids = ['nightkill-eyebrow','nightkill-flavor','nightkill-continue-btn'];
   document.getElementById('nightkill-bg-img').src = IMG.nightKillScene;
   document.getElementById('nightkill-eyebrow').textContent = 'Night '+latestView.night+' — the town wakes to find...';
-  // The victims' roles are never shown here - only that they died. A
-  // generic mystery portrait stands in for each photo, same as any living
-  // player's face is anonymized elsewhere in multiplayer.
+  // PORTRAIT_REGRESSION_FIX - the victim's ROLE still never shows here
+  // (only that they died), but their name is already shown in plain text
+  // right below the card, so showing their real character portrait here
+  // too reveals nothing new - matches "every player tile shows a real,
+  // distinct portrait by default, no exceptions."
   document.getElementById('nightkill-victims').innerHTML = victims.map(function(v){
     return '<div class="nightkill-victim">'+
-      '<div class="nightkill-card"><div class="portrait-frame mystery-portrait"><img class="photo-img" src="'+UNKNOWN_AVATAR_IMG+'" alt=""><img class="frame-overlay" src="'+FRAME_IMG+'" alt=""></div><span class="nightkill-stamp">eliminated</span></div>'+
+      '<div class="nightkill-card"><div class="portrait-frame mystery-portrait"><img class="photo-img" src="'+portraitImgFor(v)+'" alt=""><img class="frame-overlay" src="'+FRAME_IMG+'" alt=""></div><span class="nightkill-stamp">eliminated</span></div>'+
       '<h2 class="nightkill-name">'+escapeHtmlMp(v.name)+'</h2>'+
       '</div>';
   }).join('');
@@ -4728,6 +4773,11 @@ function renderAvatarPicker(selectedKey){
     });
   });
 }
+function updateGameIconPreview(key){
+  var el = document.getElementById('game-icon-preview');
+  if(!el) return;
+  el.innerHTML = '<img src="'+(key && IMG[key] ? IMG[key] : UNKNOWN_AVATAR_IMG)+'" alt="">';
+}
 function renderGameIconPicker(selectedKey){
   var noneSel = selectedKey ? '' : ' selected';
   var items = '<div class="avatar-picker-item'+noneSel+'" data-key=""><img src="'+UNKNOWN_AVATAR_IMG+'" alt=""></div>' +
@@ -4736,10 +4786,12 @@ function renderGameIconPicker(selectedKey){
       return '<div class="avatar-picker-item'+sel+'" data-key="'+key+'"><img src="'+IMG[key]+'" alt=""></div>';
     }).join('');
   document.getElementById('game-icon-picker').innerHTML = items;
+  updateGameIconPreview(selectedKey);
   document.querySelectorAll('#game-icon-picker .avatar-picker-item').forEach(function(it){
     it.addEventListener('click', function(){
       document.querySelectorAll('#game-icon-picker .avatar-picker-item').forEach(function(s){s.classList.remove('selected');});
       it.classList.add('selected');
+      updateGameIconPreview(it.dataset.key);
     });
   });
 }
@@ -5873,15 +5925,12 @@ function renderTownBoard(){
       var blur = 10 + capped*7, spread = 2 + capped*2, opacity = Math.min(0.95, 0.3 + capped*0.12);
       spotStyle = ' style="--spot-blur:'+blur+'px; --spot-spread:'+spread+'px; --spot-opacity:'+opacity.toFixed(2)+';"';
     }
-    // PORTRAIT_REGRESSION_FIX - reverted. The "game icon" field must never
-    // drive what shows on the main grid; every tile goes back to the
-    // original, unconditional UNKNOWN_AVATAR_IMG here (see the note left
-    // for the user at the end of this session about what "real, distinct
-    // portrait" should actually mean, since no such per-character asset
-    // exists in CHARACTERS/game.js today).
+    // PORTRAIT_REGRESSION_FIX - every tile shows a real, distinct portrait
+    // by default (see portraitImgFor above), never the shared generic
+    // silhouette and never the optional "game icon" field.
     return '<div class="'+classes.join(' ')+'" data-id="'+p.id+'">'+
       '<div class="town-tile-label">'+escapeHtmlMp(label)+'</div>'+
-      '<div class="town-tile-avatar"'+spotStyle+'><img src="'+UNKNOWN_AVATAR_IMG+'" alt="">'+checkBadge+xOverlay+pencilBadge+'<span class="town-tile-frame"></span></div>'+
+      '<div class="town-tile-avatar"'+spotStyle+'><img src="'+portraitImgFor(p)+'" alt="">'+checkBadge+xOverlay+pencilBadge+'<span class="town-tile-frame"></span></div>'+
       noteHTML+
       '</div>';
   }).join('');
@@ -5912,7 +5961,7 @@ function openPlayerActionModal(id){
   actionModalTargetId = id;
   var p = byId(id);
   if(!p) return;
-  document.getElementById('player-action-avatar-img').src = UNKNOWN_AVATAR_IMG;
+  document.getElementById('player-action-avatar-img').src = portraitImgFor(p);
   document.getElementById('player-action-name').textContent = p.name;
   document.getElementById('player-action-status').textContent = (p.alive ? 'Alive' : 'Eliminated')+(p.occ ? ' — '+p.occ : '');
 
@@ -6207,7 +6256,7 @@ function chipGridHTML(opts, groupClass){
   return opts.map(function(p){
     var label = (p.id===myPlayerId) ? (p.name+' (You)') : p.name;
     return '<div class="chip '+groupClass+'" data-id="'+p.id+'">'+
-      '<span class="chip-avatar"><img src="'+UNKNOWN_AVATAR_IMG+'" alt=""></span>'+
+      '<span class="chip-avatar"><img src="'+portraitImgFor(p)+'" alt=""></span>'+
       '<span class="chip-name" title="'+escapeHtmlMp(label)+'">'+escapeHtmlMp(label)+'</span>'+
       '</div>';
   }).join('');
