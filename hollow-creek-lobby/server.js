@@ -319,6 +319,7 @@ function resetStageTurnTallies(room) {
   room.stage.turnDeadline = null;
   room.stage.donateUsedBy.clear();
   room.stage.voteOffStageVotes.clear();
+  room.stage.reactedBy.clear();
 }
 
 // Fully resets the stage to idle/empty - the start of every new day round
@@ -379,6 +380,8 @@ function broadcastStageState(room) {
   if (!room.stage) return;
   const threshold = stageVoteOffThreshold(room);
   const count = room.stage.voteOffStageVotes.size;
+  const reactionCounts = { up: 0, down: 0, smile: 0 };
+  room.stage.reactedBy.forEach(r => { if (reactionCounts[r] !== undefined) reactionCounts[r]++; });
   room.players.forEach(rp => {
     if (rp.socket.readyState !== WebSocket.OPEN) return;
     rp.socket.send(JSON.stringify({
@@ -388,9 +391,11 @@ function broadcastStageState(room) {
       turnDeadline: room.stage.turnDeadline,
       voteOffStageCount: count,
       voteOffStageThreshold: threshold,
+      reactions: reactionCounts,
       you: {
         votedOffStage: room.stage.voteOffStageVotes.has(rp.id),
-        donated: room.stage.donateUsedBy.has(rp.id)
+        donated: room.stage.donateUsedBy.has(rp.id),
+        reaction: room.stage.reactedBy.get(rp.id) || null
       }
     }));
   });
@@ -805,6 +810,26 @@ wss.on('connection', (socket) => {
       broadcastStageState(room);
     }
 
+    else if (msg.type === 'stageReaction') {
+      // GAP_COMPARISON Item 4 - real synced reactions, same pattern as the
+      // vote-off-stage tally above: one reaction per living player per
+      // turn, clicking your current reaction again clears it, cleared for
+      // everyone the moment the turn changes (resetStageTurnTallies).
+      // reaction is never trusted beyond this fixed set.
+      const { room, player } = getRoomAndPlayer(socket);
+      if (!room || !player || !room.started || !room.stage) return;
+      if (!room.stage.speakerId || room.stage.speakerId === player.id) return;
+      if (!['up', 'down', 'smile'].includes(msg.reaction)) return;
+      const sp = G.byId(room.state, player.id);
+      if (!sp || !sp.alive) return;
+      if (room.stage.reactedBy.get(player.id) === msg.reaction) {
+        room.stage.reactedBy.delete(player.id);
+      } else {
+        room.stage.reactedBy.set(player.id, msg.reaction);
+      }
+      broadcastStageState(room);
+    }
+
     else if (msg.type === 'requestIceConfig') {
       // Mints a fresh credential per request rather than caching one
       // server-side per room - cheap to generate, and avoids ever handing a
@@ -891,7 +916,7 @@ wss.on('connection', (socket) => {
       room.stage = {
         speakerId: null, queue: [], turnDeadline: null, turnStartedAt: null, turnTimer: null,
         donateUsedBy: new Set(), voteOffStageVotes: new Set(),
-        selfMuted: new Set(), hostMuted: new Map()
+        selfMuted: new Set(), hostMuted: new Map(), reactedBy: new Map()
       };
 
       let state;

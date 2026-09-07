@@ -48,7 +48,13 @@ body.bg-day{background:linear-gradient(rgba(20,18,15,0.76), rgba(20,18,15,0.88))
 .bg-crossfade.bg-day{background-image:linear-gradient(rgba(20,18,15,0.76), rgba(20,18,15,0.88)), var(--bg-day);}
 body.bg-end{background:linear-gradient(rgba(20,16,12,0.72), rgba(20,16,12,0.86)), var(--bg-end); background-size:cover; background-position:center; background-attachment:fixed;}
 .wrap{max-width:min(1600px, 96vw); margin:0 auto;}
-header{text-align:center; margin-bottom:6px;}
+header{position:relative; text-align:center; margin-bottom:6px;}
+.hollow-creek-sign{position:absolute; left:6px; top:0; display:flex; flex-direction:column; align-items:center; pointer-events:none;}
+.hollow-creek-sign-lamp{width:12px; height:12px; border-radius:50%; background:radial-gradient(circle, #fff3c4 0%, var(--lantern) 55%, transparent 75%); box-shadow:0 0 10px 4px rgba(227,177,85,0.55); margin-bottom:5px;}
+.hollow-creek-sign-board{background-color:var(--panel-2); background-image:linear-gradient(rgba(20,15,11,0.55), rgba(20,15,11,0.55)), var(--tex-wood); background-size:auto, 200px 200px; border:2px solid var(--gold-dim); border-radius:3px; padding:5px 12px; box-shadow:0 4px 10px rgba(0,0,0,0.5); display:flex; flex-direction:column; align-items:center;}
+.hollow-creek-sign-title{font-family:var(--font-ornate); font-size:13px; font-weight:700; color:var(--gold-bright); letter-spacing:0.5px; white-space:nowrap;}
+.hollow-creek-sign-est{font-family:var(--font-type); font-size:8px; letter-spacing:1.5px; text-transform:uppercase; color:var(--parchment-dim); margin-top:1px; white-space:nowrap;}
+@media (max-width: 720px){ .hollow-creek-sign{display:none;} }
 header h1{
   font-family:var(--font-ornate); font-weight:700; font-size:44px; letter-spacing:3px; margin:0;
   background:linear-gradient(180deg, var(--gold-bright) 0%, var(--gold) 55%, var(--gold-dim) 100%);
@@ -561,7 +567,20 @@ h2.sec{font-family:var(--font-type); font-size:12px; letter-spacing:2px; text-tr
 .report{background:var(--panel-2); border:1px solid var(--line); border-radius:8px; padding:14px 16px; margin-bottom:16px; font-family:var(--font-type); font-size:13px; line-height:1.7; color:var(--parchment-dim);}
 /* LAYOUT_AND_ASSETS Task 2 - the cork texture fits the bulletin-panel
    specifically, matching its pinned-paper concept (Town Bulletin). */
-.report.bulletin-panel{background-color:var(--panel-2); background-image:linear-gradient(rgba(20,15,11,0.75), rgba(20,15,11,0.75)), var(--tex-cork); background-size:auto, 260px 260px;}
+.bulletin-panel{background-color:var(--panel-2); background-image:linear-gradient(rgba(20,15,11,0.75), rgba(20,15,11,0.75)), var(--tex-cork); background-size:auto, 260px 260px;}
+/* GAP_COMPARISON Item 3 - the reference mockup builds Town Bulletin as
+   three separate pinned note-cards (Recent News / Phase Instructions /
+   Player Count) plus a distinct Public Announcement banner beneath them,
+   not one collapsed block of text. */
+.town-bulletin{border-radius:8px; padding:14px 16px 16px; margin-bottom:16px;}
+.town-bulletin-heading{margin:0 0 10px; text-align:center;}
+.town-bulletin-cards{display:flex; gap:10px; flex-wrap:wrap;}
+.bulletin-card{flex:1 1 140px; min-width:140px; background-color:var(--panel-2); background-image:linear-gradient(rgba(250,244,230,0.06), rgba(250,244,230,0.06)), var(--tex-parchment); background-size:auto, 200px 200px; border:1px solid var(--line); border-radius:4px; padding:10px 12px; box-shadow:0 3px 8px rgba(0,0,0,0.35);}
+.bulletin-card-title{font-family:var(--font-type); font-size:10.5px; letter-spacing:1px; text-transform:uppercase; color:#6b3a1f; margin:0 0 6px; text-align:center;}
+.bulletin-card-body{font-family:var(--font-type); font-size:12.5px; line-height:1.6; color:#3a2f22; margin:0; text-align:center;}
+.bulletin-announcement{margin-top:12px; background-color:var(--panel-2); background-image:linear-gradient(rgba(250,244,230,0.06), rgba(250,244,230,0.06)), var(--tex-parchment); background-size:auto, 200px 200px; border:1px solid var(--line); border-radius:4px; padding:10px 14px; text-align:center;}
+.bulletin-announcement-label{font-family:var(--font-type); font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:#6b3a1f; margin:0 0 5px;}
+.bulletin-announcement-text{font-family:var(--font-type); font-style:italic; font-size:13px; color:#3a2f22; margin:0;}
 .report b{color:var(--parchment);}
 .report.reveal-in, .msg.reveal-in{animation:revealFadeIn .5s ease;}
 .panel-fade-in{animation:panelFadeIn .3s ease;}
@@ -781,6 +800,12 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
 .stage-timer .timerfill{border-radius:5px; transition:width 1s linear, background .4s ease, box-shadow .4s ease;}
 .stage-timer .timerfill.timer-danger{box-shadow:0 0 10px 2px rgba(193,84,75,0.75);}
 .stage-controls{display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:4px;}
+.stage-reactions{display:flex; gap:8px; justify-content:center; margin-top:10px;}
+.stage-reaction-btn{background:var(--panel-2); border:1px solid var(--line); border-radius:14px; padding:4px 10px; font-size:14px; color:var(--parchment-dim); cursor:pointer; display:flex; align-items:center; gap:5px; transition:border-color .15s ease, background .15s ease;}
+.stage-reaction-btn:hover:not(:disabled){border-color:var(--gold-dim);}
+.stage-reaction-btn:disabled{opacity:0.4; cursor:default;}
+.stage-reaction-btn.active{border-color:var(--gold-bright); background:rgba(227,177,85,0.12);}
+.stage-reaction-count{font-family:var(--font-type); font-size:11px; color:var(--parchment);}
 .stage-vote-off-count{font-family:var(--font-type); font-size:11px; color:var(--parchment-dim);}
 .stage-queue{flex:1 1 190px; min-width:170px;}
 .stage-queue-label{font-family:var(--font-type); font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--gold-bright); margin:0 0 10px; padding-bottom:6px; border-bottom:1px solid var(--gold-dim);}
@@ -1195,6 +1220,13 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
 
 <div class="wrap">
 <header id="top-header" style="display:none;">
+  <div class="hollow-creek-sign" aria-hidden="true">
+    <span class="hollow-creek-sign-lamp"></span>
+    <span class="hollow-creek-sign-board">
+      <span class="hollow-creek-sign-title">Hollow Creek</span>
+      <span class="hollow-creek-sign-est">Est. 1884</span>
+    </span>
+  </div>
   <h1>The Mafia of Hollow Creek</h1>
   <p>a game of deduction and deception</p>
 </header>
@@ -1428,7 +1460,27 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
         <div class="town-board" id="town-board"></div>
       </div>
       <div class="day-main">
-        <div class="report bulletin-panel" id="overnight-report"></div>
+        <div class="town-bulletin bulletin-panel" id="town-bulletin">
+          <h2 class="sec town-bulletin-heading">Town Bulletin</h2>
+          <div class="town-bulletin-cards">
+            <div class="bulletin-card">
+              <p class="bulletin-card-title">Recent News</p>
+              <div class="bulletin-card-body" id="overnight-report"></div>
+            </div>
+            <div class="bulletin-card">
+              <p class="bulletin-card-title">Phase Instructions</p>
+              <p class="bulletin-card-body" id="bulletin-phase-instructions"></p>
+            </div>
+            <div class="bulletin-card">
+              <p class="bulletin-card-title" id="bulletin-player-count-title"></p>
+              <p class="bulletin-card-body">Find the mafia before it's too late.</p>
+            </div>
+          </div>
+          <div class="bulletin-announcement">
+            <p class="bulletin-announcement-label">Public Announcement</p>
+            <p class="bulletin-announcement-text" id="bulletin-announcement-text"></p>
+          </div>
+        </div>
         <div id="vote-section" style="display:none;">
           <h2 class="sec" style="margin-top:18px;" title="Press V to jump here">Cast your vote</h2>
           <div class="timerwrap">
@@ -1484,6 +1536,11 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
               <button class="btn ghost" id="stage-leave-queue-btn" style="display:none;">Leave Queue</button>
             </div>
           </div>
+          <div class="stage-reactions" id="stage-reactions" style="display:none;">
+            <button type="button" class="stage-reaction-btn" id="stage-reaction-up" data-reaction="up" aria-label="React thumbs up">&#128077; <span class="stage-reaction-count" id="stage-reaction-count-up">0</span></button>
+            <button type="button" class="stage-reaction-btn" id="stage-reaction-down" data-reaction="down" aria-label="React thumbs down">&#128078; <span class="stage-reaction-count" id="stage-reaction-count-down">0</span></button>
+            <button type="button" class="stage-reaction-btn" id="stage-reaction-smile" data-reaction="smile" aria-label="React smile">&#128522; <span class="stage-reaction-count" id="stage-reaction-count-smile">0</span></button>
+          </div>
           <button class="btn ghost" id="self-mic-toggle-btn" style="display:none;">Mute myself</button>
         </div>
         <div id="lynch-reveal" style="display:none; margin-top:14px;">
@@ -1538,6 +1595,10 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
       </div>
     </div>
     <div class="bottom-nav" id="bottom-nav">
+      <button type="button" class="bottom-nav-item" id="bottom-nav-files" title="Case Files" aria-label="Case Files - review what's happened so far">
+        <img class="bottom-nav-icon" id="bottom-nav-icon-files" alt="">
+        <span class="bottom-nav-label">Case Files</span>
+      </button>
       <button type="button" class="bottom-nav-item" id="bottom-nav-casefiles" title="Characters (C)" aria-label="Characters - browse every resident's votes and accusations">
         <img class="bottom-nav-icon" id="bottom-nav-icon-folder" alt="">
         <span class="bottom-nav-label">Characters</span>
@@ -5497,6 +5558,27 @@ function renderFarmerRevengePicker(){
   };
 }
 
+// GAP_COMPARISON Item 3 - Town Bulletin's "Phase Instructions" card and
+// "Public Announcement" banner. Instructions are static per-phase guidance
+// text (no game state needed beyond which phase it is); the announcement
+// is flavor only - no in-game system actually produces mayoral
+// announcements, so a small fixed pool is picked deterministically by
+// night number (stable for the whole round, varies round to round) rather
+// than randomized on every re-render.
+var BULLETIN_PHASE_TEXT = {
+  'day-discuss': "Discuss freely. Share your suspicions, ask for alibis, and look for contradictions.",
+  'day-vote': "The floor is closing. Cast your vote for who you believe is working against the town.",
+  'day-reveal': "The town holds its breath as the verdict comes in.",
+  'farmer-revenge': "One last stand. Choose who goes down with you."
+};
+var BULLETIN_ANNOUNCEMENTS = [
+  "The truth will out in Hollow Creek.",
+  "Lock your doors. Trust your neighbors less than you used to.",
+  "The town square isn't safe for whispers anymore - everyone's listening.",
+  "Justice moves slow in Hollow Creek, but it moves.",
+  "Every soul here has something to hide. Find the one that matters."
+];
+
 function renderDayPanel(){
   var view = latestView;
   var me = meFromView(view);
@@ -5520,6 +5602,11 @@ function renderDayPanel(){
     overnightHTML += '<p class="detective-last-read">Your examination: <b>'+escapeHtmlMp(lastExam.name)+'</b> turned out to be <span class="detective-log-read detective-log-guilty">'+ROLE_SHORT[lastExam.role]+'</span>.</p>';
   }
   document.getElementById('overnight-report').innerHTML = overnightHTML;
+  var phaseInstructions = BULLETIN_PHASE_TEXT[view.phase] || BULLETIN_PHASE_TEXT['day-discuss'];
+  document.getElementById('bulletin-phase-instructions').textContent = phaseInstructions;
+  var livingCount = view.players.filter(function(p){ return p.alive; }).length;
+  document.getElementById('bulletin-player-count-title').textContent = livingCount+(livingCount===1 ? ' Player' : ' Players')+' Remain';
+  document.getElementById('bulletin-announcement-text').textContent = BULLETIN_ANNOUNCEMENTS[view.night % BULLETIN_ANNOUNCEMENTS.length];
   renderChatLog();
   renderChatTagOptions();
   renderTownBoard();
@@ -6718,10 +6805,32 @@ function renderStagePanel(){
   } else {
     micToggleBtn.style.display = 'none';
   }
+
+  // GAP_COMPARISON Item 4 - real synced reactions (server tallies who
+  // reacted per turn, see stageReaction in server.js). Hidden entirely
+  // with no speaker; disabled (but still visible, so the live counts stay
+  // readable) for the speaker themselves, matching the server-side guard
+  // that blocks reacting to your own turn.
+  var reactionsRow = document.getElementById('stage-reactions');
+  if(!s.speakerId){
+    reactionsRow.style.display = 'none';
+  } else {
+    reactionsRow.style.display = 'flex';
+    var reactionCounts = s.reactions || {up:0, down:0, smile:0};
+    ['up','down','smile'].forEach(function(key){
+      var btn = document.getElementById('stage-reaction-'+key);
+      document.getElementById('stage-reaction-count-'+key).textContent = reactionCounts[key] || 0;
+      btn.disabled = iAmSpeaker;
+      btn.classList.toggle('active', !iAmSpeaker && s.you && s.you.reaction === key);
+    });
+  }
 }
 document.getElementById('stage-join-queue-btn').addEventListener('click', function(){ sendWS({type:'joinQueue'}); });
 document.getElementById('stage-leave-queue-btn').addEventListener('click', function(){ sendWS({type:'leaveQueue'}); });
 document.getElementById('self-mic-toggle-btn').addEventListener('click', function(){ sendWS({type:'selfMuteToggle'}); });
+['up','down','smile'].forEach(function(key){
+  document.getElementById('stage-reaction-'+key).addEventListener('click', function(){ sendWS({type:'stageReaction', reaction:key}); });
+});
 
 // ---- Reason-picker modal (Task 3: kick, Task 4: host-mute) ----
 var MODERATION_REASONS = [
@@ -7389,6 +7498,11 @@ document.addEventListener('keydown', function(e){
 });
 
 // ==================== LAYOUT_AND_ASSETS Task 6 - bottom nav ====================
+document.getElementById('bottom-nav-files').addEventListener('click', function(){
+  SoundFX.playCaseFileOpen();
+  caseLogActiveTab = 'players';
+  openCaseLogModal();
+});
 document.getElementById('bottom-nav-casefiles').addEventListener('click', function(){
   SoundFX.playCaseFileOpen();
   caseLogActiveTab = 'players';
@@ -7464,7 +7578,7 @@ var DAYTIME_IMG = {
     'watch-glow': 'watchGlow', 'role-envelope-sprite': 'envClosed',
     'stage-curtain-left': 'curtainLeft', 'stage-curtain-right': 'curtainRight',
     'ballot-box-img': 'ballotClosed',
-    'bottom-nav-icon-folder': 'navFolder', 'bottom-nav-icon-notebook': 'navNotebook',
+    'bottom-nav-icon-files': 'navFolder', 'bottom-nav-icon-folder': 'navFolder', 'bottom-nav-icon-notebook': 'navNotebook',
     'bottom-nav-icon-history': 'navNewspaper', 'bottom-nav-icon-settings': 'navGear',
     'chat-tab-icon-accusations': 'accusationPointer', 'chat-tab-icon-system': 'phaseBell',
     'chat-tag-select-icon': 'playerTagCard'
