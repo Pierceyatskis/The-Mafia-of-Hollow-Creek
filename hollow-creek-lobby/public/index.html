@@ -5873,15 +5873,15 @@ function renderTownBoard(){
       var blur = 10 + capped*7, spread = 2 + capped*2, opacity = Math.min(0.95, 0.3 + capped*0.12);
       spotStyle = ' style="--spot-blur:'+blur+'px; --spot-spread:'+spread+'px; --spot-opacity:'+opacity.toFixed(2)+';"';
     }
-    // LAYOUT_AND_ASSETS Task 7 (per user clarification) - a SEPARATE "game
-    // icon" field (not the profile picture/avatarKey used in chat/roster)
-    // shows on this player's own town-board tile instead of the one
-    // generic mystery silhouette everyone previously shared there. Falls
-    // back to that same shared silhouette when no game icon is chosen.
-    var tileAvatarImg = p.gameIcon && IMG[p.gameIcon] ? IMG[p.gameIcon] : UNKNOWN_AVATAR_IMG;
+    // PORTRAIT_REGRESSION_FIX - reverted. The "game icon" field must never
+    // drive what shows on the main grid; every tile goes back to the
+    // original, unconditional UNKNOWN_AVATAR_IMG here (see the note left
+    // for the user at the end of this session about what "real, distinct
+    // portrait" should actually mean, since no such per-character asset
+    // exists in CHARACTERS/game.js today).
     return '<div class="'+classes.join(' ')+'" data-id="'+p.id+'">'+
       '<div class="town-tile-label">'+escapeHtmlMp(label)+'</div>'+
-      '<div class="town-tile-avatar"'+spotStyle+'><img src="'+tileAvatarImg+'" alt="">'+checkBadge+xOverlay+pencilBadge+'<span class="town-tile-frame"></span></div>'+
+      '<div class="town-tile-avatar"'+spotStyle+'><img src="'+UNKNOWN_AVATAR_IMG+'" alt="">'+checkBadge+xOverlay+pencilBadge+'<span class="town-tile-frame"></span></div>'+
       noteHTML+
       '</div>';
   }).join('');
