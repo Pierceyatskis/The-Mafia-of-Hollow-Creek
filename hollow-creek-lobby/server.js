@@ -123,7 +123,7 @@ function sanitizeRolesConfig(raw) {
   return roles;
 }
 
-function createRoom(socket, name, isPublic, avatarKey, color, initialVoiceEnabled) {
+function createRoom(socket, name, isPublic, avatarKey, color, initialVoiceEnabled, gameIconKey) {
   const code = makeRoomCode();
   const id = makePlayerId();
   // draftConfig: the host's in-progress (not yet started) setup-screen
@@ -135,7 +135,7 @@ function createRoom(socket, name, isPublic, avatarKey, color, initialVoiceEnable
   // preference couldn't match into it until the host's client sent its own
   // first real edit.
   rooms[code] = {
-    players: [{ id, name, socket, avatarKey, color }], hostId: id, started: false, state: null, timer: null,
+    players: [{ id, name, socket, avatarKey, color, gameIconKey }], hostId: id, started: false, state: null, timer: null,
     phaseEndsAt: null, isPublic: !!isPublic,
     draftConfig: typeof initialVoiceEnabled === 'boolean' ? { voiceEnabled: initialVoiceEnabled } : null
   };
@@ -146,10 +146,10 @@ function createRoom(socket, name, isPublic, avatarKey, color, initialVoiceEnable
   return code;
 }
 
-function joinRoom(socket, code, name, avatarKey, color) {
+function joinRoom(socket, code, name, avatarKey, color, gameIconKey) {
   const room = rooms[code];
   const id = makePlayerId();
-  room.players.push({ id, name, socket, avatarKey, color });
+  room.players.push({ id, name, socket, avatarKey, color, gameIconKey });
   socket.roomCode = code;
   socket.playerId = id;
   socket.send(JSON.stringify({ type: 'joined', roomCode: code, playerId: id }));
@@ -567,7 +567,7 @@ wss.on('connection', (socket) => {
 
     if (msg.type === 'create') {
       const name = sanitizeName(msg.name);
-      const code = createRoom(socket, name, msg.isPublic, sanitizeAvatarKey(msg.avatarKey), sanitizeColor(msg.color));
+      const code = createRoom(socket, name, msg.isPublic, sanitizeAvatarKey(msg.avatarKey), sanitizeColor(msg.color), undefined, sanitizeAvatarKey(msg.gameIconKey));
       console.log(`Room ${code} created by ${name}${msg.isPublic ? ' (public)' : ''}`);
     }
 
@@ -587,7 +587,7 @@ wss.on('connection', (socket) => {
         return;
       }
       const name = sanitizeName(msg.name);
-      joinRoom(socket, code, name, sanitizeAvatarKey(msg.avatarKey), sanitizeColor(msg.color));
+      joinRoom(socket, code, name, sanitizeAvatarKey(msg.avatarKey), sanitizeColor(msg.color), sanitizeAvatarKey(msg.gameIconKey));
       console.log(`${name} joined room ${code}`);
     }
 
@@ -595,6 +595,7 @@ wss.on('connection', (socket) => {
       const name = sanitizeName(msg.name);
       const avatarKey = sanitizeAvatarKey(msg.avatarKey);
       const color = sanitizeColor(msg.color);
+      const gameIconKey = sanitizeAvatarKey(msg.gameIconKey);
       // A searcher who didn't state a preference is treated as "without mic"
       // (matches DEFAULT_VOICE_ENABLED=false) rather than matching anything.
       const wantsVoice = msg.micPreference === 'with';
@@ -605,10 +606,10 @@ wss.on('connection', (socket) => {
         return roomWantsVoice === wantsVoice;
       });
       if (openCode) {
-        joinRoom(socket, openCode, name, avatarKey, color);
+        joinRoom(socket, openCode, name, avatarKey, color, gameIconKey);
         console.log(`${name} quick-matched into room ${openCode}`);
       } else {
-        const code = createRoom(socket, name, true, avatarKey, color, wantsVoice);
+        const code = createRoom(socket, name, true, avatarKey, color, wantsVoice, gameIconKey);
         console.log(`Room ${code} created via quick-match by ${name}`);
       }
     }
@@ -636,13 +637,14 @@ wss.on('connection', (socket) => {
       const name = sanitizeName(msg.name);
       const avatarKey = sanitizeAvatarKey(msg.avatarKey);
       const color = sanitizeColor(msg.color);
+      const gameIconKey = sanitizeAvatarKey(msg.gameIconKey);
 
       if (!room.started) {
         if (room.players.length >= G.MAX_PLAYERS) {
           socket.send(JSON.stringify({ type: 'rejoinFailed', message: 'That room is full.' }));
           return;
         }
-        joinRoom(socket, code, name, avatarKey, color);
+        joinRoom(socket, code, name, avatarKey, color, gameIconKey);
         return;
       }
 
@@ -655,7 +657,7 @@ wss.on('connection', (socket) => {
       sp.connected = true;
       const existingEntry = room.players.find(p => p.id === playerId);
       if (existingEntry) { existingEntry.socket = socket; }
-      else { room.players.push({ id: playerId, name: sp.name, socket, avatarKey, color }); }
+      else { room.players.push({ id: playerId, name: sp.name, socket, avatarKey, color, gameIconKey }); }
       socket.roomCode = code;
       socket.playerId = playerId;
       socket.send(JSON.stringify({ type: 'rejoined', roomCode: code, playerId, started: true }));
@@ -871,7 +873,7 @@ wss.on('connection', (socket) => {
       mafiaCount = Math.max(0, Math.min(G.MAX_MAFIA_COUNT, Math.round(mafiaCount)));
 
       const roles = sanitizeRolesConfig(msg.roles);
-      const seats = room.players.map(p => ({ id: p.id, name: p.name, avatarKey: p.avatarKey, color: p.color }));
+      const seats = room.players.map(p => ({ id: p.id, name: p.name, avatarKey: p.avatarKey, gameIconKey: p.gameIconKey, color: p.color }));
       const config = { playerCount, mafiaCount, roles };
       // Host-configurable per room (Accessibility/Settings follow-up) - kept
       // on the room so every phase for the rest of this room's life (this

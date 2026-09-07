@@ -91,7 +91,7 @@ function createGame(seats, config){
       // A player who never opened the avatar picker gets a distinct fallback
       // color (cycling the same palette the placeholder cast uses) instead
       // of undefined, which would render as an invisible/blank avatar swatch.
-      avatarKey: seat.avatarKey || null, color: seat.color || CHARACTERS[idx % CHARACTERS.length].color,
+      avatarKey: seat.avatarKey || null, gameIcon: seat.gameIconKey || null, color: seat.color || CHARACTERS[idx % CHARACTERS.length].color,
       alive: true, silencedToday: false, role: roles[idx], align: alignOf(roles[idx]),
       flipped: false, investigateCount: 0, usedNavySealCounter: false, usedVigilanteShot: false,
       usedMayorReveal: false
@@ -843,7 +843,7 @@ function getPlayerView(state, playerId){
   // teammate-visibility principle as mafia, just a different faction/roster.
   const iAmCult = me && me.alive && me.align === 'cult';
   const players = state.players.map(p => {
-    const base = {id:p.id, name:p.name, alive:p.alive, silencedToday:p.silencedToday, isPlaceholder:p.isPlaceholder, occ:p.occ, color:p.color, avatarKey:p.avatarKey};
+    const base = {id:p.id, name:p.name, alive:p.alive, silencedToday:p.silencedToday, isPlaceholder:p.isPlaceholder, occ:p.occ, color:p.color, avatarKey:p.avatarKey, gameIcon:p.gameIcon};
     // PREBETA Phase 2 Task 4 - Hitman's teammate awareness is asymmetric: he
     // never gets the system's passive teammate-visibility (excluded as the
     // VIEWER, `me`, so he never learns who his teammates are), but his own
