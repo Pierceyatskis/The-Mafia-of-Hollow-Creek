@@ -463,7 +463,7 @@ body.force-reduced-motion .ballot-box-seal.playing{animation:none !important; op
    proportions, replacing the old square tile - fitting a tall frame into
    a square box was the root cause of "frames don't fit portraits". */
 .town-board-subtitle{font-family:var(--font-type); font-size:11.5px; color:var(--parchment-dim); margin:-6px 0 14px;}
-.town-board{display:grid; grid-template-columns:repeat(5, 1fr); grid-auto-rows:min-content; gap:10px 8px; align-content:start; justify-content:center;}
+.town-board{display:grid; grid-template-columns:repeat(6, 1fr); grid-auto-rows:min-content; gap:4px 3px; align-content:start; justify-content:center;}
 .town-tile{position:relative; cursor:pointer; text-align:center;}
 .town-tile-card{position:relative; width:100%; aspect-ratio:1/2; transition:transform .15s ease; filter:drop-shadow(0 0 var(--spot-blur,0px) rgba(227,177,85,var(--spot-opacity,0)));}
 .town-tile:hover .town-tile-card{transform:translateY(-3px);}
@@ -752,10 +752,10 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
 .chatline-reply-btn:hover{color:var(--lantern);}
 .spinner{font-family:var(--font-type); font-size:12px; color:var(--parchment-dim); letter-spacing:1px;}
 .day-layout{display:flex; gap:16px; align-items:stretch; height:800px;}
-.day-roster-col{flex:0 0 31%; max-width:31%; min-width:0; height:100%; background-color:#211c15; border-style:solid; border-width:26px; border-image-source:var(--panel-frame-side); border-image-slice:56; border-image-repeat:stretch; background-clip:padding-box; padding:16px; box-sizing:border-box; overflow:hidden; display:flex; flex-direction:column;}
+.day-roster-col{flex:0 0 31%; max-width:31%; min-width:0; height:100%; background-color:#211c15; border:none; padding:10px; box-sizing:border-box; overflow:hidden; display:flex; flex-direction:column;}
 .day-main{flex:1 1 36%; min-width:0; height:100%; display:flex; flex-direction:column; gap:14px;}
 .day-right-col{flex:0 0 31%; max-width:31%; min-width:0; height:100%; display:flex; flex-direction:column; gap:10px;}
-.day-chat-sidebar{flex:1 1 auto; min-width:0; min-height:0; background-color:#211c15; border-style:solid; border-width:26px; border-image-source:var(--panel-frame-side); border-image-slice:56; border-image-repeat:stretch; background-clip:padding-box; padding:16px; box-sizing:border-box; display:flex; flex-direction:column; overflow:hidden;}
+.day-chat-sidebar{flex:1 1 auto; min-width:0; min-height:0; background-color:#211c15; border:none; padding:10px; box-sizing:border-box; display:flex; flex-direction:column; overflow:hidden;}
 .day-chat-sidebar .discussion-wrap{flex:1; min-height:0; position:relative; display:flex;}
 .day-chat-sidebar #discussion{flex:1; overflow-y:auto; min-height:0;}
 .day-chat-sidebar .chatline .who{min-width:0; flex-shrink:1; font-size:14px;}
@@ -6189,8 +6189,6 @@ function renderTownBoard(){
     var xOverlay = !p.alive ? '<span class="town-tile-x"><img src="'+PAINTED_X_IMG+'" alt="eliminated"></span>' : '';
     var hasNote = !!(notebookNotes[p.id] || notebookMarks[p.id]);
     var pencilBadge = hasNote ? '<span class="avatar-pencil-badge" title="You have a note on this person"><img src="'+DAYTIME_IMG.noteMarker+'" alt=""></span>' : '';
-    var note = localPlayerNotes[p.id];
-    var noteHTML = note ? '<div class="town-tile-note">'+escapeHtmlMp(note)+'</div>' : '';
     // Spotlight glow: identity-free aggregate count only (latestSpotlightCounts) -
     // brighter/wider the more players currently have the spotlight on this
     // person, capped so it doesn't grow without bound in a big room.
@@ -6214,7 +6212,6 @@ function renderTownBoard(){
         '<div class="town-tile-name">'+escapeHtmlMp(label)+'</div>'+
         pencilBadge+
       '</div>'+
-      noteHTML+
       '</div>';
   }).join('');
   applySelectedTileTilt(board);
@@ -7733,7 +7730,6 @@ var DAYTIME_IMG = {
   document.documentElement.style.setProperty('--daytime-empty-notes', 'url('+DAYTIME_IMG.emptyNotes+')');
   document.documentElement.style.setProperty('--daytime-empty-chat', 'url('+DAYTIME_IMG.emptyChat+')');
   document.documentElement.style.setProperty('--daytime-empty-stage', 'url('+DAYTIME_IMG.emptyStage+')');
-  document.documentElement.style.setProperty('--panel-frame-side', 'url('+DAYTIME_IMG.sidePanelFrame+')');
 })();
 
 initGame();
