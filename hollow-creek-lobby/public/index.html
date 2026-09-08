@@ -34,19 +34,24 @@
    except inside actual inputs/textareas, which opt back in below. */
 body{-webkit-user-select:none; -moz-user-select:none; user-select:none; -webkit-touch-callout:none;}
 input, textarea{-webkit-user-select:text; -moz-user-select:text; user-select:text;}
-html, body{height:100%;}
-body{margin:0; overflow:hidden; background:#080705; color:var(--parchment); font-family:var(--font-body);}
-/* Fixed 16:9 design canvas (item 14) - the whole interface lives inside
-   #design-canvas at a fixed 1920x1080 design resolution and is scaled as
-   ONE unit via updateCanvasScale() below, never per-column/per-panel.
-   #canvas-outer centers it and provides the letterbox background when the
-   real viewport isn't 16:9. Percentages/flex/px sizing inside the canvas
-   all scale together automatically through the transform; only vw/vh
-   units would break this (they'd reference the real viewport instead of
-   the design canvas), so those were removed from every rule the canvas
-   contains. */
-#canvas-outer{position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:#000; overflow:hidden;}
-#design-canvas{width:1920px; height:1080px; flex-shrink:0; position:relative; transform-origin:center center; background:radial-gradient(ellipse at 50% -10%, #2b241c 0%, var(--ink) 60%), var(--ink); overflow:hidden;}
+html{height:100%;}
+body{margin:0; min-height:100%; overflow-y:auto; overflow-x:hidden; background:#080705; color:var(--parchment); font-family:var(--font-body);}
+body.game-mode{height:100%; overflow:hidden;}
+/* Fixed 16:9 design canvas (item 14) - ONLY while a game panel (night/day/
+   end) is active, via the .game-mode class toggled in switchPanel(). Those
+   panels live inside #design-canvas at a fixed 1920x1080 design resolution
+   and are scaled as ONE unit via updateCanvasScale() below, never per-
+   column/per-panel; #canvas-outer centers it and letterboxes when the real
+   viewport isn't 16:9. Percentages/flex/px sizing inside the canvas all
+   scale together automatically through the transform; only vw/vh units
+   would break this, so those were removed from every rule the canvas
+   contains. Outside game panels (home/lobby/mpentry/etc) the canvas is
+   just a normal-flow, normal-height block so the page scrolls like any
+   other page - the lobby needs real scroll, the game pages don't. */
+#canvas-outer{position:static; min-height:100vh; overflow:visible; background:none;}
+#canvas-outer.game-mode{position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:#000; overflow:hidden;}
+#design-canvas{width:100%; min-height:100vh; position:relative; background:radial-gradient(ellipse at 50% -10%, #2b241c 0%, var(--ink) 60%), var(--ink); overflow:visible;}
+#design-canvas.game-mode{width:1920px; height:1080px; min-height:1080px; flex-shrink:0; transform-origin:center center; overflow:hidden;}
 #boot-loading{position:fixed; inset:0; z-index:1000; background:var(--ink); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; transition:opacity .5s ease;}
 .boot-loading-mark{font-size:28px; color:var(--gold); animation:bootSpin 1.4s ease-in-out infinite;}
 .boot-loading-text{font-family:var(--font-type); font-size:12px; letter-spacing:2px; text-transform:uppercase; color:var(--parchment-dim);}
@@ -1731,6 +1736,7 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
 function updateCanvasScale(){
   var canvas = document.getElementById('design-canvas');
   if(!canvas) return;
+  if(!canvas.classList.contains('game-mode')){ canvas.style.transform = 'none'; return; }
   var w = window.innerWidth, h = window.innerHeight;
   if(!w || !h) return; // viewport not ready yet (e.g. pane still hidden) - a later call fixes it
   var scale = Math.min(w / 1920, h / 1080);
@@ -3283,6 +3289,14 @@ function switchPanel(p){
   document.getElementById('statusbar').style.display = isMenu ? 'none' : 'flex';
   document.getElementById('global-home-btn').style.display = isMenu ? 'none' : 'block';
   var canvasEl = document.getElementById('design-canvas');
+  // Only night/day/end lock into the fixed 16:9 no-scroll canvas - the
+  // lobby and every menu panel need real page scroll, not to be confined
+  // to a 1080px-tall box.
+  var isGamePanel = (p==='night' || p==='day' || p==='end');
+  document.body.classList.toggle('game-mode', isGamePanel);
+  document.getElementById('canvas-outer').classList.toggle('game-mode', isGamePanel);
+  canvasEl.classList.toggle('game-mode', isGamePanel);
+  updateCanvasScale();
   var dayNightSwap = (p==='night' && canvasEl.classList.contains('bg-day')) || (p==='day' && canvasEl.classList.contains('bg-night'));
   if(dayNightSwap){
     var outgoing = canvasEl.classList.contains('bg-night') ? 'bg-night' : 'bg-day';
@@ -6111,6 +6125,14 @@ function switchPanel(p){
     homeBtn.textContent = (p==='lobby') ? 'Leave Lobby' : (p==='night'||p==='day') ? 'Leave Game' : 'Back to Home';
   }
   var canvasEl = document.getElementById('design-canvas');
+  // Only night/day/end lock into the fixed 16:9 no-scroll canvas - the
+  // lobby and every menu panel need real page scroll, not to be confined
+  // to a 1080px-tall box.
+  var isGamePanel = (p==='night' || p==='day' || p==='end');
+  document.body.classList.toggle('game-mode', isGamePanel);
+  document.getElementById('canvas-outer').classList.toggle('game-mode', isGamePanel);
+  canvasEl.classList.toggle('game-mode', isGamePanel);
+  updateCanvasScale();
   var dayNightSwap = (p==='night' && canvasEl.classList.contains('bg-day')) || (p==='day' && canvasEl.classList.contains('bg-night'));
   if(dayNightSwap){
     var outgoing = canvasEl.classList.contains('bg-night') ? 'bg-night' : 'bg-day';
