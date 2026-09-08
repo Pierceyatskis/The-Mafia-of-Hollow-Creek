@@ -63,6 +63,42 @@ async function cropGrid(srcPath, cols, rows, keys, opts) {
   return out;
 }
 
+// Day page visual rebuild batch (2026-09-07) - this newer set of assets
+// bakes in a LIGHTER checkerboard (near-white / light-gray, ~200-255) than
+// the original batch's medium-gray one, confirmed by sampling raw pixels
+// (the original dechecker's bands left the whole image opaque on these
+// files). Same idea, wider band.
+async function dechecker2(inputPath) {
+  const img = sharp(inputPath).ensureAlpha();
+  const { data, info } = await img.raw().toBuffer({ resolveWithObject: true });
+  const { width, height, channels } = info;
+  for (let i = 0; i < width * height; i++) {
+    const o = i * channels;
+    const r = data[o], g = data[o + 1], b = data[o + 2];
+    const maxc = Math.max(r, g, b), minc = Math.min(r, g, b);
+    const spread = maxc - minc;
+    if (spread <= 12 && r >= 178) data[o + 3] = 0;
+  }
+  return sharp(data, { raw: { width, height, channels } });
+}
+
+// For standalone hero-shot assets (one object, lots of checker margin
+// around it, no grid) - crops to the actual content bounding box instead
+// of a fixed grid cell. Robust to isolated anti-aliasing/noise pixels:
+// only counts a row/column as "content" once it has a real run of opaque
+// pixels, same technique proven on the role-envelope crop (GAP_COMPARISON
+// item 6) and the frame-window measurements (DAYTIME Step 3).
+async function cropSingle(srcPath, key, bbox, opts) {
+  opts = opts || {};
+  const base = await (opts.decheckerFn || dechecker2)(srcPath);
+  const buf = await base.clone()
+    .extract({ left: bbox.left, top: bbox.top, width: bbox.w, height: bbox.h })
+    .resize({ width: opts.width || 500 })
+    .webp({ quality: opts.quality || 85 })
+    .toBuffer();
+  return { key, uri: 'data:image/webp;base64,' + buf.toString('base64'), bytes: buf.length };
+}
+
 async function main() {
   const entries = [];
 
@@ -131,6 +167,54 @@ async function main() {
     path.join(ASSETS_DIR, '4c54f3e5-c5c8-4f35-8ee0-734efb5865bd.png'), 3, 2,
     ['navFolder', 'emptyNotes', 'emptyChat', 'emptyStage', null, null],
     { width: 260 }
+  ));
+
+  // Day page visual rebuild - the bottom nav gets 5 real hero-shot icons
+  // (main case file/character stack/journal book/news paper/gear.png)
+  // instead of small crops from a shared sheet. navFolder above stays as
+  // the empty-state icon (case-log-empty etc.) - only the nav BUTTON now
+  // points elsewhere. Bounding boxes measured with the robust per-row/
+  // column opaque-count technique (see cropSingle).
+  entries.push(await cropSingle(
+    path.join(ASSETS_DIR, 'main case file.png'), 'navCaseFile',
+    { left: 37, top: 152, w: 1598, h: 652 }, { width: 320 }
+  ));
+  entries.push(await cropSingle(
+    path.join(ASSETS_DIR, 'main character stack.png'), 'navCharacterStack',
+    { left: 38, top: 195, w: 1461, h: 690 }, { width: 320 }
+  ));
+  entries.push(await cropSingle(
+    path.join(ASSETS_DIR, 'main journal book.png'), 'navJournalBook',
+    { left: 104, top: 19, w: 1342, h: 980 }, { width: 260 }
+  ));
+  entries.push(await cropSingle(
+    path.join(ASSETS_DIR, 'main news paper.png'), 'navNewspaperMain',
+    { left: 90, top: 118, w: 1997, h: 496 }, { width: 320 }
+  ));
+  entries.push(await cropSingle(
+    path.join(ASSETS_DIR, 'main gear.png'), 'navGearMain',
+    { left: 37, top: 26, w: 1232, h: 1115 }, { width: 260 }
+  ));
+
+  // Day page visual rebuild Region 2 - side-column frame (Character Grid
+  // and Town Talk), used as a CSS border-image so the brass corner plates
+  // stay crisp while the middle stretches to fit each column's height.
+  // Solid rectangle, no checker margin - no dechecker/crop needed.
+  {
+    const buf = await sharp(path.join(ASSETS_DIR, '7393c436-3dd3-47a6-b15a-aa917650278e.png'))
+      .resize({ width: 900 }).webp({ quality: 88 }).toBuffer();
+    entries.push({ key: 'sidePanelFrame', uri: 'data:image/webp;base64,' + buf.toString('base64'), bytes: buf.length });
+  }
+
+  // Day page visual rebuild Region 3 - the whole Bulletin+Stage+Voting
+  // center column as one image (confirmed with the user: this replaces
+  // the three separate CSS panels entirely). Uses the ORIGINAL dechecker -
+  // this file's baked-in checker matches the older batch's medium-gray
+  // tone, verified by a clean grid-overlay crop during measurement, unlike
+  // the newer "main *.png" batch which needed dechecker2.
+  entries.push(await cropSingle(
+    path.join(ASSETS_DIR, 'c45610ee-ebd8-4102-86bd-feee6d109fd0.png'), 'bulletinCabinet',
+    { left: 0, top: 0, w: 1145, h: 1374 }, { width: 900, decheckerFn: dechecker }
   ));
 
   // Step 9 - chat-stage-controls.png (37a04bae): 5x2 grid. Only the cells
