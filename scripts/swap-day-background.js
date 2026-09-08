@@ -3,12 +3,14 @@ const path = require('path');
 const sharp = require('sharp');
 
 // Day page visual rebuild, region 1 - swaps the outdoor street --bg-day
-// for the new painted study/office scene (2b0525c5), per the wireframe
-// (786757b5) the user confirmed. Real alpha channel but uniformly opaque
-// (verified: min/max alpha both 255) - safe to flatten to JPEG for size,
-// same as the original inject-night-day-bg.js pattern.
+// for the new painted study/office scene. 2b0525c5 was the WRONG file -
+// it's the rough hand-annotated sketch (visible scribble outlines/labels
+// baked into the pixels). The user corrected this: 4b62eef2 is the real
+// clean background with no annotations at all - the wireframe (786757b5)
+// and the rough sketch (2b0525c5) are positioning references ONLY, never
+// meant to ship.
 const GAME_FILE = path.join(__dirname, '..', 'hollow-creek-lobby', 'public', 'index.html');
-const BG_SRC = path.join(__dirname, '..', 'assets', 'Decorative assets', '2b0525c5-cf8a-49f5-af54-ade9a4f2223c.png');
+const BG_SRC = path.join(__dirname, '..', 'assets', 'Decorative assets', '4b62eef2-6103-4879-b437-b9025c60c69d.png');
 
 function replaceCssVar(html, varName, uri) {
   const marker = '--' + varName + ": url('";

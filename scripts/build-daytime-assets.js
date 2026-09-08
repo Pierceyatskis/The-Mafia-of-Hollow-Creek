@@ -199,22 +199,43 @@ async function main() {
   // Day page visual rebuild Region 2 - side-column frame (Character Grid
   // and Town Talk), used as a CSS border-image so the brass corner plates
   // stay crisp while the middle stretches to fit each column's height.
-  // Solid rectangle, no checker margin - no dechecker/crop needed.
+  // CORRECTION: this file DOES have checker baked in - it's just confined
+  // to the four corners (before the brass plate art starts, roughly the
+  // outer ~90px), which a full-image sample of the solid dark middle
+  // completely missed. Confirmed by sampling the actual corner pixels
+  // (alternating ~205/~253 gray, matching the newer batch's light-
+  // checker tone) - exactly where border-image-slice pulls its corners
+  // from, which is why it showed up live even though the panel's own
+  // fill looked fine. dechecker2, same as the other new-batch assets.
   {
-    const buf = await sharp(path.join(ASSETS_DIR, '7393c436-3dd3-47a6-b15a-aa917650278e.png'))
-      .resize({ width: 900 }).webp({ quality: 88 }).toBuffer();
+    const base = await dechecker2(path.join(ASSETS_DIR, '7393c436-3dd3-47a6-b15a-aa917650278e.png'));
+    const buf = await base.resize({ width: 900 }).webp({ quality: 88 }).toBuffer();
     entries.push({ key: 'sidePanelFrame', uri: 'data:image/webp;base64,' + buf.toString('base64'), bytes: buf.length });
   }
 
-  // Day page visual rebuild Region 3 - the whole Bulletin+Stage+Voting
-  // center column as one image (confirmed with the user: this replaces
-  // the three separate CSS panels entirely). Uses the ORIGINAL dechecker -
-  // this file's baked-in checker matches the older batch's medium-gray
-  // tone, verified by a clean grid-overlay crop during measurement, unlike
-  // the newer "main *.png" batch which needed dechecker2.
+  // Day page visual rebuild Region 3, corrected - the user's follow-up
+  // review caught two real bugs in the first pass: (1) this file needed
+  // dechecker2, not the original - a corner-pixel sample (not just the
+  // solid-looking middle) showed the same light checker tone as the
+  // newer batch, which the original dechecker's bands don't cover, so a
+  // faint checkerboard survived at the edges; (2) treating the whole
+  // cabinet as ONE stretched image was wrong - the user wants Bulletin/
+  // Stage/Voting as three separate, independently-aspect-ratio-preserved
+  // assets with real gaps between them, not one image force-stretched to
+  // fill an arbitrary container. Split at the two horizontal frame beams
+  // (measured via grid overlay): 0-580 bulletin, 580-1035 stage,
+  // 1035-1374 voting.
   entries.push(await cropSingle(
-    path.join(ASSETS_DIR, 'c45610ee-ebd8-4102-86bd-feee6d109fd0.png'), 'bulletinCabinet',
-    { left: 0, top: 0, w: 1145, h: 1374 }, { width: 900, decheckerFn: dechecker }
+    path.join(ASSETS_DIR, 'c45610ee-ebd8-4102-86bd-feee6d109fd0.png'), 'cabinetBulletin',
+    { left: 0, top: 0, w: 1145, h: 580 }, { width: 900 }
+  ));
+  entries.push(await cropSingle(
+    path.join(ASSETS_DIR, 'c45610ee-ebd8-4102-86bd-feee6d109fd0.png'), 'cabinetStage',
+    { left: 0, top: 580, w: 1145, h: 455 }, { width: 900 }
+  ));
+  entries.push(await cropSingle(
+    path.join(ASSETS_DIR, 'c45610ee-ebd8-4102-86bd-feee6d109fd0.png'), 'cabinetVoting',
+    { left: 0, top: 1035, w: 1145, h: 339 }, { width: 900 }
   ));
 
   // Step 9 - chat-stage-controls.png (37a04bae): 5x2 grid. Only the cells
