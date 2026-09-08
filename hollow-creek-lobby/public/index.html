@@ -129,7 +129,7 @@ header p{font-family:var(--font-type); font-size:11px; letter-spacing:3px; text-
    DAYTIME_PAGE_BUILD_ORDER Step 7 - ballotClosed/ballotMidslot/
    ballotWaxSeal are individually-cropped images now (voting-controls-
    sheet.png per ASSET_GUIDE_CORRECTED), not sprite-position CSS. */
-.ballot-paper{display:flex; align-items:center; gap:6px; min-width:0; font-family:var(--font-type); font-size:clamp(10px,1vw,13px); color:#3a2f22; font-weight:600;}
+.ballot-paper{display:flex; align-items:center; gap:6px; min-width:0; font-family:var(--font-type); font-size:14px; color:#3a2f22; font-weight:600;}
 .ballot-paper span{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 .ballot-box{position:relative; width:46px; height:38px; flex-shrink:0; cursor:pointer; transition:transform .15s ease;}
 .ballot-box:hover{transform:translateY(-2px);}
@@ -599,15 +599,19 @@ h2.sec{font-family:var(--font-type); font-size:12px; letter-spacing:2px; text-tr
 .cabinet-voting{aspect-ratio:1145/339;}
 .cabinet-bg{position:absolute; inset:0; width:100%; height:100%; z-index:0; pointer-events:none; display:block;}
 .day-cabinet-title{position:absolute; left:32.3%; top:7.8%; width:34.9%; height:13.8%; margin:0; z-index:1; display:flex; align-items:center; justify-content:center; font-size:19px; text-align:center; color:#e8dfc7; letter-spacing:1px; text-transform:uppercase;}
-.day-cabinet-note{position:absolute; z-index:1; top:26.7%; height:41.4%; display:flex; flex-direction:column; padding:6% 7% 3%; box-sizing:border-box; overflow:hidden; text-align:center;}
+.day-cabinet-note{position:absolute; z-index:1; top:26.7%; height:41.4%; display:flex; flex-direction:column; padding:10px 10px 6px; box-sizing:border-box; overflow:hidden; text-align:center;}
 #cabinet-note-1{left:12.2%; width:22.3%;}
 #cabinet-note-2{left:37.6%; width:23.6%;}
 #cabinet-note-3{left:64.2%; width:23.1%;}
-.day-cabinet-banner{position:absolute; left:25.3%; top:72.4%; width:49.3%; height:12.9%; z-index:1; text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; overflow:hidden; padding:0 3%; box-sizing:border-box;}
+.day-cabinet-banner{position:absolute; left:25.3%; top:72.4%; width:49.3%; height:12.9%; z-index:1; text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; overflow:hidden; padding:0 10px; box-sizing:border-box;}
 .bulletin-card-title{font-family:var(--font-type); font-size:12px; letter-spacing:0.5px; text-transform:uppercase; color:#6b3a1f; margin:0 0 4px; text-align:center; flex-shrink:0;}
 .bulletin-card-body{font-family:var(--font-type); font-size:11px; line-height:1.28; color:#3a2f22; margin:0; text-align:center;}
-.stage-content{position:absolute; left:17%; top:3.3%; width:66.4%; height:85.7%; z-index:1; overflow:hidden; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:1.5%; box-sizing:border-box; color:#e8dfc7;}
-.stage-heading{margin:0 0 6px; font-size:18px;}
+.stage-content{position:absolute; left:17%; top:3.3%; width:66.4%; height:85.7%; z-index:1; overflow:hidden; display:flex; flex-direction:row; flex-wrap:wrap; align-items:center; justify-content:center; padding:1.5%; box-sizing:border-box; color:#e8dfc7;}
+.stage-content .stage-heading{flex:0 0 100%;}
+.stage-content .stage-row{flex:0 0 100%;}
+.stage-content .stage-reactions{flex:0 0 auto; margin:3px 0 0;}
+.stage-content #self-mic-toggle-btn{flex:0 0 auto; margin:3px 0 0;}
+.stage-heading{margin:0 0 3px; font-size:16px;}
 .voting-content{position:absolute; left:5.7%; top:1%; width:88.6%; height:73%; z-index:1; overflow:hidden; display:flex; flex-direction:column; justify-content:center; gap:6px; box-sizing:border-box; padding:0 2.5%;}
 .voting-row{display:flex; align-items:center; gap:16px;}
 .voting-your-vote{flex:1; min-width:0;}
@@ -854,24 +858,28 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
 /* The stage now sits inside the cabinet's painted opening (much narrower
    than the old full-width panel) - tighten sizing so speaker+queue still
    fit side by side instead of wrapping. */
-.stage-content .stage-row{gap:16px; width:100%; justify-content:center; flex-wrap:nowrap;}
-.stage-content .stage-speaker{min-width:0; flex:1.2 1 auto; padding:8px; gap:5px; background:none; border:none;}
+.stage-content .stage-row{gap:14px; width:100%; justify-content:center; flex-wrap:nowrap;}
+.stage-content .stage-speaker{min-width:0; flex:1.2 1 auto; padding:6px; background:none; border:none; flex-direction:row; flex-wrap:wrap; align-items:center; justify-content:center; column-gap:7px; row-gap:2px;}
+.stage-content .stage-speaker-name{flex:0 0 auto;}
+.stage-content .stage-speaking-tag{flex:0 0 auto;}
+.stage-content .stage-timer{flex:0 0 100%;}
+.stage-content .stage-controls{flex:0 0 100%;}
 .stage-content .stage-queue{min-width:0; flex:1 1 auto; max-width:180px;}
-.stage-content .stage-speaker-avatar-wrap{width:64px; height:64px;}
-.stage-content .stage-speaker-avatar-wrap .avatar{width:64px !important; height:64px !important; font-size:22px !important;}
-.stage-content .stage-mic-icon{width:24px; height:24px;}
-.stage-content .stage-mic-icon img{width:13px; height:13px;}
-.stage-content .stage-speaker-name{font-size:15px;}
-.stage-content .stage-speaking-tag{font-size:10px;}
-.stage-content .stage-timer .timernum{font-size:18px; margin-bottom:3px;}
-.stage-content .stage-timer .timerwrap{margin-top:5px;}
-.stage-content .stage-timer .timerbar{height:7px;}
-.stage-content .stage-queue-label{font-size:11px; margin:0 0 5px; padding-bottom:3px;}
-.stage-content .stage-queue-row{padding:3px 5px; font-size:12px;}
-.stage-content .btn{font-size:12px; padding:6px 10px;}
-.stage-content .stage-controls{margin-top:4px; gap:6px;}
-.stage-content .stage-reactions{margin-top:6px; gap:6px;}
-.stage-content .stage-reaction-btn{padding:3px 8px; font-size:13px;}
+.stage-content .stage-speaker-avatar-wrap{width:50px; height:50px;}
+.stage-content .stage-speaker-avatar-wrap .avatar{width:50px !important; height:50px !important; font-size:18px !important;}
+.stage-content .stage-mic-icon{width:20px; height:20px;}
+.stage-content .stage-mic-icon img{width:11px; height:11px;}
+.stage-content .stage-speaker-name{font-size:14px;}
+.stage-content .stage-speaking-tag{font-size:9px;}
+.stage-content .stage-timer .timernum{font-size:15px; margin-bottom:2px;}
+.stage-content .stage-timer .timerwrap{margin-top:3px;}
+.stage-content .stage-timer .timerbar{height:5px;}
+.stage-content .stage-queue-label{font-size:10px; margin:0 0 3px; padding-bottom:2px;}
+.stage-content .stage-queue-row{padding:2px 5px; font-size:11px;}
+.stage-content .btn{font-size:11px; padding:4px 8px;}
+.stage-content .stage-controls{margin-top:2px; gap:4px;}
+.stage-content .stage-reactions{margin-top:3px; gap:5px;}
+.stage-content .stage-reaction-btn{padding:2px 7px; font-size:12px;}
 .stage-content .stage-vote-off-count{font-size:10px;}
 .stage-queue-label{font-family:var(--font-type); font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--gold-bright); margin:0 0 10px; padding-bottom:6px; border-bottom:1px solid var(--gold-dim);}
 .stage-queue-row{display:flex; align-items:center; gap:8px; padding:6px 8px; font-family:var(--font-type); font-size:12.5px; color:var(--parchment); border-radius:4px;}
@@ -879,7 +887,7 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
 .stage-queue-row-next .stage-queue-name{color:var(--gold-bright); font-weight:600;}
 .stage-queue-empty{font-family:var(--font-type); font-size:12px; color:var(--parchment-dim);}
 .stage-panel-fade-out{animation:revealFadeIn .4s ease reverse;}
-#self-mic-toggle-btn{margin:12px 0 0;}
+#self-mic-toggle-btn{margin:4px 0 0;}
 .poster-wrap{position:fixed; inset:0; z-index:1; margin:0; border-radius:0; overflow:hidden; box-shadow:none;}
 #panel-home{display:block; min-height:0;}
 .poster-img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block;}
