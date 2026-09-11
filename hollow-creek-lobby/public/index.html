@@ -103,6 +103,9 @@ body.game-mode{height:100%; overflow:hidden;}
 #daylayout-top-cluster{display:contents;}
 #design-canvas.bg-day #daylayout-top-cluster{display:block; position:absolute; inset:0; pointer-events:none;}
 #design-canvas.bg-day #daylayout-stage-mute-btn, #design-canvas.bg-day #daylayout-stage-request-btn{pointer-events:auto;}
+/* Roster cards are now real click targets (open that player's notebook
+   page) - same override pattern as the chat sidebar below. */
+#design-canvas.bg-day #daylayout-roster-grid{pointer-events:auto;}
 /* The whole chat panel needs real interaction (typing, clicking tabs/
    buttons/messages-to-reply) - re-enabling the container is enough,
    pointer-events:auto on it overrides the wrapper's :none for every
@@ -224,6 +227,8 @@ body.game-mode{height:100%; overflow:hidden;}
    gives 120.32x180.87 exactly. */
 #design-canvas.bg-day #daylayout-roster-grid{display:grid; position:absolute; left:38.41px; top:252.03px; width:562.29px; height:570.62px; grid-template-columns:repeat(4, 120.32px); justify-content:center; gap:14px; z-index:3;}
 .daylayout-roster-tile{position:relative; aspect-ratio:308/463;}
+.daylayout-roster-tile.is-clickable{cursor:pointer; transition:transform .15s ease, box-shadow .15s ease; border-radius:4px;}
+.daylayout-roster-tile.is-clickable:hover{transform:translateY(-2px); box-shadow:0 0 0 2px rgba(227,177,85,0.4), 0 4px 8px rgba(0,0,0,0.3);}
 /* Picture-window and nameplate fractions measured off the same
    cardFrameTight crop (308x463): the window is the transparent cutout
    (alpha=0 there) so the avatar sits BEHIND the frame img and only shows
@@ -585,10 +590,10 @@ header p{font-family:var(--font-type); font-size:11px; letter-spacing:3px; text-
    sheet.png per ASSET_GUIDE_CORRECTED), not sprite-position CSS. */
 .ballot-paper{display:flex; align-items:center; gap:6px; min-width:0; font-family:var(--font-type); font-size:14px; color:#3a2f22; font-weight:600;}
 .ballot-paper span{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-.ballot-box{position:relative; width:46px; height:38px; flex-shrink:0; cursor:pointer; transition:transform .15s ease;}
+.ballot-box{position:relative; width:139px; height:109px; flex-shrink:0; cursor:pointer; transition:transform .15s ease;}
 .ballot-box:hover{transform:translateY(-2px);}
 .ballot-box-img{width:100%; height:100%; object-fit:contain; display:block;}
-.ballot-box-seal{position:absolute; width:34px; height:34px; left:50%; top:50%; margin:-17px 0 0 -17px; object-fit:contain; opacity:0; pointer-events:none;}
+.ballot-box-seal{position:absolute; width:52px; height:52px; left:50%; top:50%; margin:-26px 0 0 -26px; object-fit:contain; opacity:0; pointer-events:none;}
 .ballot-box-seal.playing{animation:ballotSealPop .8s ease forwards;}
 @keyframes ballotSealPop{0%{opacity:0; transform:scale(2.2) rotate(-18deg);} 35%{opacity:1; transform:scale(1.05) rotate(4deg);} 55%{opacity:1; transform:scale(1) rotate(0deg);} 100%{opacity:0; transform:scale(1) rotate(0deg);}}
 body.force-reduced-motion .ballot-box-seal.playing{animation:none !important; opacity:0 !important;}
@@ -935,7 +940,19 @@ body.force-reduced-motion .notebook-view.notebook-page-turn{animation:none;}
 .notebook-vote-btn{position:absolute; left:7.94%; top:73.76%; width:37.75%; height:11.53%; background:none; border:none; cursor:pointer; font-family:var(--font-ornate); font-weight:700; font-size:clamp(10px, 1.1vw, 15px); letter-spacing:1px; text-transform:uppercase; color:#e9d9b8; text-shadow:0 1px 2px rgba(0,0,0,0.8);}
 .notebook-vote-btn:hover{color:#fff;}
 .notebook-vote-btn:disabled{color:#8a7a68; cursor:default;}
-.notebook-pin-limit-msg{position:absolute; left:8.125%; top:86%; width:36.875%; margin:0; font-family:var(--font-type); font-size:10px; color:var(--danger); text-align:center;}
+/* Whisper/More row - plain UI chrome (same rgba-parchment treatment as the
+   judgment buttons above) rather than a painted button, since the art has
+   no dedicated box here - there's nothing to line up against. */
+.notebook-dossier-actions{position:absolute; left:7.94%; top:86.2%; width:37.75%; display:flex; gap:4%; z-index:6;}
+.notebook-dossier-action-btn{flex:1; background:rgba(255,250,235,0.28); border:2px solid rgba(90,70,45,0.35); border-radius:4px; cursor:pointer; padding:5px 2px; font-family:var(--font-type); font-size:clamp(8px, 0.85vw, 10px); letter-spacing:0.5px; text-transform:uppercase; color:#3a2f22; transition:filter .15s ease, background .15s ease;}
+.notebook-dossier-action-btn:hover{filter:brightness(1.08);}
+.notebook-dossier-action-btn:disabled{opacity:0.4; cursor:default;}
+.notebook-dossier-action-btn[aria-expanded="true"]{border-color:var(--gold-bright); background:rgba(227,177,85,0.22);}
+.notebook-dossier-popover{position:absolute; left:7.94%; width:37.75%; bottom:15%; max-height:48%; overflow-y:auto; box-sizing:border-box; background:rgba(250,240,220,0.97); border:2px solid rgba(90,70,45,0.5); border-radius:6px; padding:3% 4%; z-index:7; box-shadow:0 6px 18px rgba(0,0,0,0.5); font-family:var(--font-body); font-size:clamp(10px, 0.95vw, 13px); color:#2a2015;}
+.notebook-dossier-whisper-form{display:flex; gap:6px; margin-top:8px;}
+.notebook-dossier-whisper-form input{flex:1; min-width:0; background:rgba(255,255,255,0.6); border:1px solid rgba(90,70,45,0.35); border-radius:5px; padding:6px 8px; font-family:var(--font-body); font-size:clamp(10px, 0.9vw, 12px); color:#2a2015;}
+.notebook-dossier-whisper-remaining{font-size:10px; color:#6b5a42; margin:6px 0 0;}
+.notebook-pin-limit-msg{position:absolute; left:8.125%; top:91%; width:36.875%; margin:0; font-family:var(--font-type); font-size:10px; color:var(--danger); text-align:center;}
 .notebook-section-heading{margin:0 0 4px; font-family:var(--font-type); font-weight:400; font-size:11px; letter-spacing:2px; text-transform:uppercase; text-align:center; color:#7a6448;}
 .notebook-notes-section{position:absolute; left:54.75%; top:8.5%; width:37.6%; height:40.7%;}
 .notebook-notes-input{width:100%; height:88%; background:transparent; border:none; resize:none; outline:none; font-family:'Special Elite','Segoe Script',cursive; font-size:clamp(10px, 1.05vw, 14px); color:#2a2015; line-height:2.15; padding:0;}
@@ -958,13 +975,14 @@ body.force-reduced-motion .notebook-view.notebook-page-turn{animation:none;}
   .notebook-card{position:static; width:auto; height:auto; padding:6px; background:rgba(255,250,235,0.55); border-radius:6px;}
   .notebook-card-badges{top:2px; right:2px;}
   .notebook-return-btn{position:sticky; top:0; left:0; width:120px; aspect-ratio:1408/419; margin:8px;}
-  .notebook-dossier-portrait-frame,.notebook-dossier-name,.notebook-dossier-status,.notebook-judgment-row,.notebook-vote-btn,.notebook-notes-section,.notebook-events-section{position:static; width:auto; margin:10px 16px;}
+  .notebook-dossier-portrait-frame,.notebook-dossier-name,.notebook-dossier-status,.notebook-judgment-row,.notebook-vote-btn,.notebook-notes-section,.notebook-events-section,.notebook-dossier-actions,.notebook-pin-limit-msg{position:static; width:auto; margin:10px 16px;}
   .notebook-dossier-portrait-frame{width:140px; margin:10px auto;}
   .notebook-judgment-row{display:flex;}
   .notebook-notes-input{background:rgba(255,250,235,0.5); border:1px solid rgba(90,70,45,0.3); border-radius:6px; padding:8px; height:120px;}
   .notebook-pencil-deco{display:none;}
   .notebook-events-section{max-height:none; overflow-y:visible;}
   .notebook-pin-toggle{left:auto; right:-6px; top:-6px; width:34px;}
+  .notebook-dossier-popover{position:static; width:auto; max-height:none; margin:6px 16px;}
 }
 .avatar-badge-wrap{position:relative; display:inline-block;}
 .avatar-pencil-badge{position:absolute; bottom:-2px; right:-2px; font-size:10px; line-height:1; background:var(--gold-bright); color:#1a1410; border-radius:50%; width:14px; height:14px; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 3px rgba(0,0,0,0.5);}
@@ -1032,9 +1050,12 @@ body.force-reduced-motion .notebook-view.notebook-page-turn{animation:none;}
 .town-board-subtitle{font-family:var(--font-type); font-size:11.5px; color:var(--parchment-dim); margin:-6px 0 14px;}
 .town-board{display:grid; grid-template-columns:repeat(6, 1fr); grid-auto-rows:min-content; gap:4px 3px; align-content:start; justify-content:center;}
 .town-tile{position:relative; cursor:pointer; text-align:center;}
-.town-tile-card{position:relative; width:100%; aspect-ratio:1/2; transition:transform .15s ease; filter:drop-shadow(0 0 var(--spot-blur,0px) rgba(227,177,85,var(--spot-opacity,0)));}
-.town-tile:hover .town-tile-card{transform:translateY(-3px);}
-.town-board.locked .town-tile:not(.is-you):hover .town-tile-card{transform:none;}
+.town-tile-card{position:relative; width:100%; aspect-ratio:1/2; transition:transform .15s ease, box-shadow .15s ease; filter:drop-shadow(0 0 var(--spot-blur,0px) rgba(227,177,85,var(--spot-opacity,0)));}
+/* Button feedback for the town-tile itself - a soft outline highlight, not
+   the big spotlight glow above (that's a shared multiplayer signal, not a
+   per-viewer hover state, so it stays on filter/drop-shadow untouched). */
+.town-tile:hover .town-tile-card{transform:translateY(-3px); box-shadow:0 0 0 2px rgba(227,177,85,0.4), 0 4px 8px rgba(0,0,0,0.3);}
+.town-board.locked .town-tile:not(.is-you):hover .town-tile-card{transform:none; box-shadow:none;}
 .town-tile-portrait{position:absolute; left:22.4%; top:23.1%; width:64.9%; height:39.4%; object-fit:cover; display:block; z-index:1; border-radius:1px;}
 .town-tile-frame-img{position:absolute; inset:0; width:100%; height:100%; z-index:3; pointer-events:none;}
 .town-tile-name{position:absolute; left:14%; top:65.5%; width:72%; height:12%; z-index:4; display:flex; align-items:center; justify-content:center; font-family:var(--font-type); font-weight:700; font-size:9px; letter-spacing:0.3px; color:#2a1f14; text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding:0 3px;}
@@ -1163,7 +1184,6 @@ h2.sec{font-family:var(--font-type); font-size:12px; letter-spacing:2px; text-tr
 .cabinet-section{position:relative; width:100%;}
 .cabinet-bulletin{aspect-ratio:1145/580;}
 .cabinet-stage{aspect-ratio:1145/455;}
-.cabinet-voting{aspect-ratio:1145/339;}
 .cabinet-bg{position:absolute; inset:0; width:100%; height:100%; z-index:0; pointer-events:none; display:block;}
 .day-cabinet-title{position:absolute; left:32.3%; top:7.8%; width:34.9%; height:13.8%; margin:0; z-index:1; display:flex; align-items:center; justify-content:center; font-size:19px; text-align:center; color:#e8dfc7; letter-spacing:1px; text-transform:uppercase;}
 .day-cabinet-note{position:absolute; z-index:1; top:26.7%; height:41.4%; display:flex; flex-direction:column; padding:10px 10px 6px; box-sizing:border-box; overflow:hidden; text-align:center;}
@@ -1179,13 +1199,39 @@ h2.sec{font-family:var(--font-type); font-size:12px; letter-spacing:2px; text-tr
 .stage-content .stage-reactions{flex:0 0 auto; margin:3px 0 0;}
 .stage-content #self-mic-toggle-btn{flex:0 0 auto; margin:3px 0 0;}
 .stage-heading{margin:0 0 3px; font-size:16px;}
-.voting-content{position:absolute; left:5.7%; top:1%; width:88.6%; height:73%; z-index:1; overflow:hidden; display:flex; flex-direction:column; justify-content:center; gap:6px; box-sizing:border-box; padding:0 2.5%;}
-.voting-row{display:flex; align-items:center; gap:16px;}
-.voting-your-vote{flex:1; min-width:0;}
-.voting-heading{margin:0 0 4px; font-size:15px; color:#6b3a1f; font-family:var(--font-type); text-transform:uppercase; letter-spacing:0.5px;}
-.ballot-paper-portrait{width:32px; height:32px; border-radius:4px; object-fit:cover; flex-shrink:0;}
-.ballot-clear-btn{background:none; border:none; color:#7a1f1f; font-size:20px; line-height:1; cursor:pointer; flex-shrink:0; padding:0 3px;}
-.voting-box-col{display:flex; flex-direction:column; align-items:center; gap:6px; flex-shrink:0;}
+/* Ballot area - lives directly on the cabinet canvas now (not inside a
+   percentage-based cabinet-section box), positioned in raw px against the
+   1920x1080 design canvas like every other daylayout-* piece. The ballot
+   box itself (.ballot-box) is pinned to the exact painted box measured off
+   c45610ee (connected-component scan on the box's dark wood against the
+   parchment strip: left 558-800px, top 1096-1285px of the 1145x1374
+   source -> 952,780 at 139x109 once the cabinet renders at 790px tall,
+   centered on the 1920-wide canvas); everything else is laid out around
+   that fixed anchor, not the other way around. */
+#vote-section{display:none;}
+#design-canvas.bg-day #vote-section{display:block; position:absolute; inset:0; z-index:3; pointer-events:none;}
+.voting-your-vote{position:absolute; left:689px; top:772px; width:250px; pointer-events:auto;}
+.voting-heading{margin:0 0 4px; font-size:12px; color:#e8dfc7; font-family:var(--font-type); text-transform:uppercase; letter-spacing:1px; text-shadow:0 1px 2px rgba(0,0,0,0.8);}
+.ballot-paper{background:rgba(250,240,220,0.9); border:1px solid rgba(90,70,45,0.4); border-radius:5px; padding:6px 8px;}
+.ballot-paper-portrait{width:26px; height:26px; border-radius:3px; object-fit:cover; flex-shrink:0;}
+.ballot-clear-btn{background:none; border:none; color:#7a1f1f; font-size:18px; line-height:1; cursor:pointer; flex-shrink:0; padding:0 2px;}
+.voting-box-col{position:absolute; left:952px; top:780px; width:139px; display:flex; flex-direction:column; align-items:center;}
+#day-confirm-btn{position:absolute; left:1101px; top:812px; width:132px; height:44px; pointer-events:auto; font-size:11px;}
+#mayor-reveal-section{position:absolute; left:689px; top:825px; width:270px; pointer-events:auto;}
+#mayor-reveal-section label{display:flex; align-items:flex-start; gap:5px; font-size:9.5px; color:#e8dfc7; cursor:pointer; text-shadow:0 1px 2px rgba(0,0,0,0.8);}
+#mayor-reveal-section input{margin-top:1px;}
+.vote-confirmed-card{position:absolute; left:689px; top:797px; width:250px; pointer-events:auto;}
+#day-error{position:absolute; left:689px; top:825px; width:270px; pointer-events:auto;}
+#silenced-notice, #dead-notice, #vote-decide-spinner, #farmer-revenge-section{display:none;}
+#design-canvas.bg-day #silenced-notice, #design-canvas.bg-day #dead-notice, #design-canvas.bg-day #vote-decide-spinner, #design-canvas.bg-day #farmer-revenge-section{display:block; position:absolute; left:679px; top:751px; width:564px; height:139px; z-index:3; pointer-events:auto; box-sizing:border-box; overflow:hidden;}
+#silenced-notice .status-notice, #dead-notice .status-notice{padding:8px 14px; margin-top:0;}
+#silenced-notice .msg, #dead-notice .msg{font-size:11px; margin:0 0 6px;}
+#silenced-notice .btn, #dead-notice .btn{font-size:10px; padding:5px 10px;}
+#dead-notice .status-notice-stamp{width:32px; height:32px; margin:0 auto 4px;}
+#vote-decide-spinner{display:flex; align-items:center; justify-content:center; color:#e8dfc7; font-size:12px; font-style:italic;}
+#farmer-revenge-section{padding:8px 14px; overflow-y:auto;}
+#farmer-revenge-section p{font-size:11px; color:#e8dfc7; margin:0 0 6px; text-shadow:0 1px 2px rgba(0,0,0,0.8);}
+#farmer-revenge-section .btn{font-size:10px; padding:5px 10px; margin-top:6px;}
 .bulletin-announcement-label{font-family:var(--font-type); font-size:9px; letter-spacing:1.5px; text-transform:uppercase; color:#6b3a1f; margin:0 0 3px;}
 .bulletin-announcement-text{font-family:var(--font-type); font-style:italic; font-size:9.5px; line-height:1.3; color:#3a2f22; margin:0;}
 .report b{color:var(--parchment);}
@@ -1362,6 +1408,15 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
 .status-notice.danger{border-color:var(--danger);}
 .status-notice-stamp{width:64px; height:64px; object-fit:contain; margin:0 auto 12px; display:block; filter:drop-shadow(0 2px 8px rgba(0,0,0,0.6));}
 .status-notice .msg{margin:0 0 12px;}
+/* Same painted-card language as .status-notice, but a compact horizontal
+   row (portrait + name + wax seal) since this sits inline under the
+   ballot box rather than replacing the whole voting panel. */
+.vote-confirmed-card{display:flex; align-items:center; gap:8px; background:rgba(20,16,12,0.6); border:1px solid var(--gold-dim); border-radius:6px; padding:6px 8px; box-sizing:border-box;}
+.vote-confirmed-portrait{width:34px; height:34px; border-radius:5px; object-fit:cover; border:2px solid var(--gold-dim); flex-shrink:0;}
+.vote-confirmed-text{min-width:0; flex:1;}
+.vote-confirmed-title{font-family:var(--font-type); font-size:8.5px; letter-spacing:0.5px; text-transform:uppercase; color:var(--town); margin:0; line-height:1.2;}
+.vote-confirmed-name{font-family:var(--font-ornate); font-weight:700; font-size:13px; color:var(--gold-bright); margin:2px 0 0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.vote-confirmed-seal{width:22px; height:22px; object-fit:contain; flex-shrink:0; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.6));}
 .end-stats-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin:0 0 26px;}
 .end-stat-card{background:rgba(20,16,12,0.55); border:1px solid var(--gold-dim); border-radius:6px; padding:12px 14px; text-align:center; opacity:0; animation:revealFadeIn .5s ease forwards;}
 .end-stat-card:nth-child(1){animation-delay:.05s;} .end-stat-card:nth-child(2){animation-delay:.12s;} .end-stat-card:nth-child(3){animation-delay:.19s;} .end-stat-card:nth-child(4){animation-delay:.26s;} .end-stat-card:nth-child(5){animation-delay:.33s;}
@@ -1628,6 +1683,63 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
 </div>
 <button id="daylayout-stage-mute-btn" class="daylayout-btn-fx" type="button" aria-label="Mute speaker">Mute Speaker</button>
 <button id="daylayout-stage-request-btn" class="daylayout-btn-fx" type="button" aria-label="Request to speak"></button>
+<!-- Ballot area - overlaid on the cabinet's own painted bottom drawer/box
+     (measured off c45610ee directly, same connected-component pixel
+     technique as every other region here), not a separate background. -->
+<div id="vote-section" class="voting-content" style="display:none;">
+  <div class="voting-row">
+    <div class="voting-your-vote">
+      <h3 class="voting-heading">Your Vote</h3>
+      <div class="ballot-paper" id="ballot-paper">
+        <img class="ballot-paper-portrait" id="ballot-paper-portrait" alt="" style="display:none;">
+        <span id="ballot-paper-name">Select a player to vote for</span>
+        <button type="button" class="ballot-clear-btn" id="ballot-clear-btn" title="Remove selection" style="display:none;">&times;</button>
+      </div>
+    </div>
+    <div class="voting-box-col">
+      <div class="ballot-box" id="ballot-box" title="Click the box to submit your ballot" tabindex="0" role="button" aria-label="Submit your ballot">
+        <img class="ballot-box-img" id="ballot-box-img" alt="">
+        <img class="ballot-box-seal" id="ballot-box-seal" alt="">
+      </div>
+    </div>
+    <button class="btn btn-red-wide" id="day-confirm-btn">Confirm Vote</button>
+  </div>
+  <div id="mayor-reveal-section" style="display:none;">
+    <label>
+      <input type="checkbox" id="mayor-reveal-checkbox">
+      <span>Double your vote today - one-time use.</span>
+    </label>
+  </div>
+  <div class="vote-confirmed-card" id="vote-confirmed-card" style="display:none;">
+    <img class="vote-confirmed-portrait" id="vote-confirmed-portrait" alt="">
+    <div class="vote-confirmed-text">
+      <p class="vote-confirmed-title">Your vote has been confirmed</p>
+      <p class="vote-confirmed-name" id="vote-confirmed-name"></p>
+    </div>
+    <img class="vote-confirmed-seal" id="vote-confirmed-seal" alt="">
+  </div>
+  <p class="msg err" id="day-error" style="display:none;">Cast a vote first.</p>
+</div>
+<div id="silenced-notice" class="voting-content" style="display:none;">
+  <div class="status-notice">
+    <p class="msg err">You've been silenced today. You cannot speak, but your vote still counts.</p>
+    <button class="btn" id="silenced-continue-btn">Let the town decide without you</button>
+  </div>
+</div>
+<div id="dead-notice" class="voting-content" style="display:none;">
+  <div class="status-notice danger">
+    <img class="status-notice-stamp" id="dead-notice-stamp" src="" alt="">
+    <p class="msg err">You've been eliminated. You can keep watching, but can no longer speak or vote.</p>
+    <button class="btn" id="dead-continue-btn">Watch the town decide</button>
+  </div>
+</div>
+<div id="vote-decide-spinner" class="voting-content spinner" style="display:none;">the town is making up its mind...</div>
+<div id="farmer-revenge-section" class="voting-content" style="display:none;">
+  <p>The Town Plans to take you out, but you've got one shot left. Who do you take down with you?</p>
+  <div class="chipgrid" id="farmer-revenge-grid"></div>
+  <button class="btn" id="farmer-revenge-confirm-btn">Confirm</button>
+  <p class="msg err" id="farmer-revenge-error" style="display:none;">Choose someone first.</p>
+</div>
 <div class="role-envelope" id="role-envelope" title="Your Secret Role — click to reveal" tabindex="0" role="button" aria-label="Your secret role — open to reveal">
   <img class="role-envelope-sprite" id="role-envelope-sprite" alt="">
   <span class="role-envelope-label">Your Secret Role</span>
@@ -1820,6 +1932,19 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
           <button class="notebook-judgment-btn" data-judgment="suspicious" aria-pressed="false" aria-label="Mark suspicious"><img src="" alt=""><span>Suspicious</span></button>
         </div>
         <button class="notebook-vote-btn" id="notebook-dossier-vote-btn" type="button"></button>
+        <div class="notebook-dossier-actions" id="notebook-dossier-actions">
+          <button type="button" class="notebook-dossier-action-btn" id="notebook-dossier-whisper-toggle" aria-label="Whisper privately to this player" aria-expanded="false">Whisper</button>
+          <button type="button" class="notebook-dossier-action-btn" id="notebook-dossier-more-btn" aria-label="More actions for this player">More&hellip;</button>
+        </div>
+        <div class="notebook-dossier-popover" id="notebook-dossier-whisper-panel" hidden>
+          <div id="notebook-dossier-whisper-log"></div>
+          <div class="notebook-dossier-whisper-form" id="notebook-dossier-whisper-form">
+            <input type="text" id="notebook-dossier-whisper-input" maxlength="140" placeholder="Say something privately...">
+            <button type="button" class="btn" id="notebook-dossier-whisper-send-btn">Send</button>
+          </div>
+          <p class="notebook-dossier-whisper-remaining" id="notebook-dossier-whisper-remaining"></p>
+          <p class="msg err" id="notebook-dossier-whisper-blocked" style="display:none;"></p>
+        </div>
         <p class="notebook-pin-limit-msg" id="notebook-pin-limit-msg" role="status" hidden>Already pinned 3 - unpin one first.</p>
       </div>
       <div class="notebook-dossier-right">
@@ -2310,60 +2435,6 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
               <button type="button" class="stage-reaction-btn" id="stage-reaction-smile" data-reaction="smile" aria-label="React smile">&#128522; <span class="stage-reaction-count" id="stage-reaction-count-smile">0</span></button>
             </div>
             <button class="btn ghost" id="self-mic-toggle-btn" style="display:none;">Mute myself</button>
-          </div>
-        </div>
-        <div class="cabinet-section cabinet-voting">
-          <img class="cabinet-bg" id="cabinet-voting-bg" alt="">
-          <div id="vote-section" class="voting-content" style="display:none;">
-            <div class="voting-row">
-              <div class="voting-your-vote">
-                <h3 class="voting-heading">Your Vote</h3>
-                <div class="ballot-paper" id="ballot-paper">
-                  <img class="ballot-paper-portrait" id="ballot-paper-portrait" alt="" style="display:none;">
-                  <span id="ballot-paper-name">Select a player to vote for</span>
-                  <button type="button" class="ballot-clear-btn" id="ballot-clear-btn" title="Remove selection" style="display:none;">&times;</button>
-                </div>
-              </div>
-              <div class="voting-box-col">
-                <div class="ballot-box" id="ballot-box" title="Click the box to submit your ballot" tabindex="0" role="button" aria-label="Submit your ballot">
-                  <img class="ballot-box-img" id="ballot-box-img" alt="">
-                  <img class="ballot-box-seal" id="ballot-box-seal" alt="">
-                </div>
-                <button class="btn btn-red-wide" id="day-confirm-btn">Confirm Vote</button>
-              </div>
-            </div>
-            <div class="timerwrap">
-              <span class="timernum"><span id="timer-num">120</span>s until the town decides</span>
-              <div class="timerbar"><div class="timerfill" id="timer-fill" style="width:100%;"></div></div>
-            </div>
-            <div id="mayor-reveal-section" style="display:none; margin:4px 0;">
-              <label style="display:flex; align-items:flex-start; gap:6px; font-size:11px; color:#3a2f22; cursor:pointer;">
-                <input type="checkbox" id="mayor-reveal-checkbox" style="margin-top:2px;">
-                <span>Double your vote today. One-time use — spent the moment you check this box and vote, for the rest of the game.</span>
-              </label>
-            </div>
-            <p class="msg ok" id="vote-status-msg" style="display:none;">Vote locked in for this round.</p>
-            <p class="msg err" id="day-error" style="display:none;">Cast a vote first.</p>
-          </div>
-          <div id="silenced-notice" class="voting-content" style="display:none;">
-            <div class="status-notice">
-              <p class="msg err">You've been silenced today. You cannot speak, but your vote still counts.</p>
-              <button class="btn" id="silenced-continue-btn">Let the town decide without you</button>
-            </div>
-          </div>
-          <div id="dead-notice" class="voting-content" style="display:none;">
-            <div class="status-notice danger">
-              <img class="status-notice-stamp" id="dead-notice-stamp" src="" alt="">
-              <p class="msg err">You've been eliminated and are out for the rest of this game. You can keep watching how the case unfolds, but you can no longer speak or vote.</p>
-              <button class="btn" id="dead-continue-btn">Watch the town decide</button>
-            </div>
-          </div>
-          <div id="vote-decide-spinner" class="voting-content spinner" style="display:none;">the town is making up its mind...</div>
-          <div id="farmer-revenge-section" class="voting-content" style="display:none;">
-            <p style="font-size:12px; color:#3a2f22;">The Town Plans to take you out, but you've got one shot left. Who do you take down with you?</p>
-            <div class="chipgrid" id="farmer-revenge-grid"></div>
-            <button class="btn" id="farmer-revenge-confirm-btn" style="margin-top:8px;">Confirm</button>
-            <p class="msg err" id="farmer-revenge-error" style="display:none;">Choose someone first.</p>
           </div>
         </div>
         <div id="lynch-reveal" style="display:none; margin-top:14px;">
@@ -2927,6 +2998,9 @@ function handleServerMessage(msg){
     multiplayerWhisperLog.push(msg);
     if(actionModalTargetId && (msg.fromId===actionModalTargetId || msg.toId===actionModalTargetId) && document.getElementById('player-action-modal').style.display==='flex'){
       renderWhisperPanel();
+    }
+    if(notebookOpenPlayerId && (msg.fromId===notebookOpenPlayerId || msg.toId===notebookOpenPlayerId) && !document.getElementById('notebook-dossier-whisper-panel').hidden){
+      renderDossierWhisperPanel(notebookOpenPlayerId);
     }
   } else if(msg.type==='nightProgress'){
     latestNightProgress = msg;
@@ -4800,7 +4874,7 @@ document.getElementById('town-board').addEventListener('click', function(e){
   if(id===myPlayerId){ openRoleCardModal(); return; }
   if(this.classList.contains('locked')) return;
   SoundFX.click();
-  openPlayerActionModal(id);
+  openNotebookModalToPlayer(id);
 });
 
 var actionModalTargetId = null;
@@ -6425,7 +6499,9 @@ function renderRosterGrid(view){
     if(p){
       var frameSrc = p.alive ? DAYTIME_IMG.cardFrameTight : DAYTIME_IMG.cardFrameDeadTight;
       var deathTint = p.alive ? '' : '<div class="daylayout-roster-tile-death-tint"></div>';
-      html += '<div class="daylayout-roster-tile">'
+      var isYou = p.id === myPlayerId;
+      var tileLabel = isYou ? 'Your role card' : ("Open "+escapeHtmlMp(p.name)+"'s notebook page");
+      html += '<div class="daylayout-roster-tile is-clickable" data-id="'+p.id+'" role="button" tabindex="0" aria-label="'+tileLabel+'">'
         + '<img class="daylayout-roster-tile-avatar" src="' + portraitImgFor(p) + '" alt="">'
         + deathTint
         + '<img class="daylayout-roster-tile-frame" src="' + frameSrc + '" alt="">'
@@ -6437,6 +6513,24 @@ function renderRosterGrid(view){
   }
   document.getElementById('daylayout-roster-grid').innerHTML = html;
 }
+// Clicking a roster card ("the game icons on the player grid") opens that
+// player's notebook page directly - your own tile still opens your role
+// card instead, same as it always has.
+document.getElementById('daylayout-roster-grid').addEventListener('click', function(e){
+  var tile = e.target.closest('.daylayout-roster-tile[data-id]');
+  if(!tile) return;
+  var id = tile.getAttribute('data-id');
+  if(id===myPlayerId){ openRoleCardModal(); return; }
+  SoundFX.click();
+  openNotebookModalToPlayer(id);
+});
+document.getElementById('daylayout-roster-grid').addEventListener('keydown', function(e){
+  if(e.key!=='Enter' && e.key!==' ') return;
+  var tile = e.target.closest && e.target.closest('.daylayout-roster-tile[data-id]');
+  if(!tile) return;
+  e.preventDefault();
+  tile.click();
+});
 
 function renderDayPanel(){
   var view = latestView;
@@ -6521,7 +6615,7 @@ function renderDayPanel(){
       if(me.silencedToday){ silencedNotice.style.display='block'; }
       else { chatInputRow.style.display='flex'; }
       voteSection.style.display='block';
-      document.getElementById('vote-status-msg').style.display = mpVoteSubmitted ? 'block' : 'none';
+      updateVoteConfirmedCard();
       if(mpVoteSubmitted){
         document.getElementById('day-confirm-btn').disabled = true;
         stopVoteTimer();
@@ -6977,7 +7071,8 @@ function renderTownBoard(){
     // normal - only one frame image can show at a time). Portrait is
     // rendered every tile regardless (PORTRAIT_REGRESSION_FIX).
     var frameKey = !p.alive ? 'frameDead' : (pendingDayVoteId===p.id ? 'frameSelected' : (hasNote ? 'frameNotification' : 'frameNormal'));
-    return '<div class="'+classes.join(' ')+'" data-id="'+p.id+'">'+
+    var tileAriaLabel = isYou ? 'Your role card' : ('Open '+escapeHtmlMp(p.name)+"'s notebook page");
+    return '<div class="'+classes.join(' ')+'" data-id="'+p.id+'" role="button" tabindex="0" aria-label="'+tileAriaLabel+'">'+
       '<div class="town-tile-card"'+spotStyle+'>'+
         '<img class="town-tile-portrait" src="'+portraitImgFor(p)+'" alt="">'+
         checkBadge+xOverlay+
@@ -7200,19 +7295,21 @@ function stopVoteTimer(){
 function startVoteTimer(){
   clearInterval(voteTimerInterval);
   SoundFX.stopClockTickSound();
+  // The cabinet's ballot area no longer carries its own countdown bar (the
+  // top title bar's phase timer already shows it) - only run the interval
+  // itself (still needed for stopVoteTimer()'s auto-lock at zero), skip the
+  // display-writing half if those elements aren't there to write to.
   var numEl = document.getElementById('timer-num');
   var fillEl = document.getElementById('timer-fill');
-  numEl.classList.remove('timer-danger');
-  fillEl.classList.remove('timer-danger');
+  if(numEl) numEl.classList.remove('timer-danger');
+  if(fillEl) fillEl.classList.remove('timer-danger');
   var totalMs = phaseEndsAt ? Math.max(1, phaseEndsAt - Date.now()) : 105000;
   function tick(){
     if(!phaseEndsAt){ return; }
     var remaining = Math.max(0, Math.round((phaseEndsAt - Date.now())/1000));
     var danger = remaining<=15 && remaining>0;
-    numEl.textContent = remaining;
-    numEl.classList.toggle('timer-danger', danger);
-    fillEl.style.width = Math.max((phaseEndsAt - Date.now())/totalMs*100, 0)+'%';
-    fillEl.classList.toggle('timer-danger', danger);
+    if(numEl){ numEl.textContent = remaining; numEl.classList.toggle('timer-danger', danger); }
+    if(fillEl){ fillEl.style.width = Math.max((phaseEndsAt - Date.now())/totalMs*100, 0)+'%'; fillEl.classList.toggle('timer-danger', danger); }
     if(remaining<=0){ stopVoteTimer(); }
   }
   // Paint immediately - without this, the bar/number stay at whatever was
@@ -8402,8 +8499,80 @@ function renderNotebookDossier(playerId){
   voteBtn.disabled = !canVoteFor;
   voteBtn.setAttribute('aria-label', canVoteFor ? 'Vote for '+p.name : 'Voting is not currently available');
 
+  // Whisper/More row - hidden entirely on your own page (nothing here
+  // applies to yourself), and any panel left open from a previous player's
+  // page gets closed rather than silently pointing at the wrong person.
+  var isSelf = p.id === myPlayerId;
+  document.getElementById('notebook-dossier-actions').hidden = isSelf;
+  var whisperToggle = document.getElementById('notebook-dossier-whisper-toggle');
+  var whisperPanel = document.getElementById('notebook-dossier-whisper-panel');
+  whisperPanel.hidden = true;
+  whisperToggle.setAttribute('aria-expanded', 'false');
+  var h = you();
+  whisperToggle.disabled = isSelf || !h || !h.alive;
+
   notebookRenderDossierEvents(p);
 }
+
+// Dossier whisper composer - a self-contained twin of the old player-action
+// modal's whisper tab (same multiplayerWhisperLog/sendWS wiring), reading
+// notebookOpenPlayerId instead of that modal's own target variable so
+// this can live independently on the dossier page.
+function renderDossierWhisperPanel(pid){
+  var p = byId(pid);
+  var h = you();
+  if(!p || !h) return;
+  var log = document.getElementById('notebook-dossier-whisper-log');
+  log.innerHTML = multiplayerWhisperLog.filter(function(w){
+    return (w.fromId===myPlayerId && w.toId===pid) || (w.fromId===pid && w.toId===myPlayerId);
+  }).map(function(w){
+    var who = w.fromId===myPlayerId ? 'You whispered' : escapeHtmlMp(p.name)+' whispered';
+    return '<div class="whisper-log-line"><b>'+who+'</b>'+escapeHtmlMp(w.text)+'</div>';
+  }).join('') || '<p style="font-size:12px; color:var(--parchment-dim);">No whispers yet.</p>';
+  var used = multiplayerWhisperLog.filter(function(w){return w.fromId===myPlayerId;}).length;
+  var remaining = 3 - used;
+  document.getElementById('notebook-dossier-whisper-remaining').textContent = remaining+' whisper'+(remaining===1?'':'s')+' remaining this round.';
+  var blocked = document.getElementById('notebook-dossier-whisper-blocked');
+  var form = document.getElementById('notebook-dossier-whisper-form');
+  var reason = null;
+  if(!h.alive) reason = "You can't whisper — you've been eliminated.";
+  else if(h.silencedToday) reason = "You've been silenced today and can't whisper.";
+  else if(!p.alive) reason = "You can't whisper to someone who's been eliminated.";
+  else if(used >= 3) reason = "You're out of whispers for this round.";
+  else if(latestView.phase!=='day-vote') reason = "Whispers are only available during the day.";
+  if(reason){ blocked.textContent = reason; blocked.style.display = 'block'; form.style.display = 'none'; }
+  else { blocked.style.display = 'none'; form.style.display = 'flex'; }
+}
+function sendDossierWhisper(){
+  if(!notebookOpenPlayerId) return;
+  var input = document.getElementById('notebook-dossier-whisper-input');
+  var msg = (input.value||'').trim();
+  if(!msg) return;
+  var p = byId(notebookOpenPlayerId);
+  var h = you();
+  var used = multiplayerWhisperLog.filter(function(w){return w.fromId===myPlayerId;}).length;
+  if(!p || !h || !h.alive || h.silencedToday || !p.alive || used >= 3 || latestView.phase!=='day-vote') return;
+  sendWS({type:'whisper', targetId: notebookOpenPlayerId, text: msg});
+  input.value = '';
+  renderDossierWhisperPanel(notebookOpenPlayerId);
+}
+document.getElementById('notebook-dossier-whisper-send-btn').addEventListener('click', sendDossierWhisper);
+document.getElementById('notebook-dossier-whisper-input').addEventListener('keydown', function(e){
+  if(e.key==='Enter') document.getElementById('notebook-dossier-whisper-send-btn').click();
+});
+document.getElementById('notebook-dossier-whisper-toggle').addEventListener('click', function(){
+  var panel = document.getElementById('notebook-dossier-whisper-panel');
+  var willOpen = panel.hidden;
+  panel.hidden = !willOpen;
+  this.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+  if(willOpen) renderDossierWhisperPanel(notebookOpenPlayerId);
+});
+// Spotlight and host moderation (mute/kick) still live only in the old
+// player-action modal - not worth duplicating here, so "More..." just
+// opens that modal on the same player already showing in the dossier.
+document.getElementById('notebook-dossier-more-btn').addEventListener('click', function(){
+  if(notebookOpenPlayerId) openPlayerActionModal(notebookOpenPlayerId);
+});
 
 function notebookGoToDossier(playerId){
   notebookOpenPlayerId = playerId;
@@ -8465,6 +8634,17 @@ function openNotebookModal(){
   var focusables = notebookFocusableEls();
   if(focusables.length) focusables[0].focus();
   else document.getElementById('notebook-book').focus();
+}
+// Town-tile click ("game icons on the player grid") jumps straight to that
+// player's dossier page instead of opening the directory first - same
+// notebook, just skipping the step of finding their card by hand.
+function openNotebookModalToPlayer(playerId){
+  notebookOpen = true;
+  notebookHasUnseen = false;
+  notebookReturnFocusEl = document.activeElement;
+  document.getElementById('notebook-modal').style.display = 'flex';
+  document.getElementById('notebook-book').addEventListener('keydown', notebookTrapFocus);
+  notebookGoToDossier(playerId);
 }
 function closeNotebookModal(){
   notebookOpen = false;
@@ -8734,6 +8914,34 @@ function updateBallotPaper(){
   }
   if(clearBtn) clearBtn.style.display = p ? 'inline-flex' : 'none';
 }
+// Confirmed-vote card - shown once mpVoteSubmitted is true, in place of the
+// bare "locked in" text: who you voted for (portrait + name), spelled out,
+// plus the same wax-seal art the ballot box itself uses.
+function updateVoteConfirmedCard(){
+  var card = document.getElementById('vote-confirmed-card');
+  if(!card) return;
+  // The confirmed card replaces the ballot-paper/box/button trio (they'd
+  // otherwise occupy the same painted strip and visually stack on top of
+  // each other) - only the box itself stays, re-skinned as sealed shut.
+  var yourVote = document.querySelector('.voting-your-vote');
+  var boxCol = document.querySelector('.voting-box-col');
+  var confirmBtn = document.getElementById('day-confirm-btn');
+  var show = mpVoteSubmitted && pendingDayVoteId && byId(pendingDayVoteId);
+  if(!show){
+    card.style.display = 'none';
+    if(yourVote) yourVote.style.display = '';
+    if(confirmBtn) confirmBtn.style.display = '';
+    return;
+  }
+  var p = byId(pendingDayVoteId);
+  document.getElementById('vote-confirmed-portrait').src = portraitImgFor(p);
+  document.getElementById('vote-confirmed-name').textContent = p.name;
+  card.style.display = 'flex';
+  if(yourVote) yourVote.style.display = 'none';
+  if(confirmBtn) confirmBtn.style.display = 'none';
+  var boxImg = document.getElementById('ballot-box-img');
+  if(boxImg) boxImg.src = DAYTIME_IMG.ballotClosed;
+}
 document.getElementById('ballot-clear-btn').addEventListener('click', function(e){
   e.stopPropagation();
   pendingDayVoteId = null;
@@ -8910,7 +9118,7 @@ var DAYTIME_IMG = {
     'watch-hand-hour': 'watchHourHand', 'watch-hand-minute': 'watchMinuteHand',
     'watch-glow': 'watchGlow', 'role-envelope-sprite': 'envClosed',
     'cabinet-bulletin-bg': 'cabinetBulletin', 'cabinet-stage-bg': 'cabinetStage', 'cabinet-voting-bg': 'cabinetVoting',
-    'ballot-box-img': 'ballotClosed', 'daylayout-cabinet-full': 'cabinetFull', 'daylayout-roster-frame': 'rosterFrame',
+    'ballot-box-img': 'ballotClosed', 'vote-confirmed-seal': 'ballotWaxSeal', 'daylayout-cabinet-full': 'cabinetFull', 'daylayout-roster-frame': 'rosterFrame',
     'daylayout-timer-bar': 'timerBar', 'daylayout-game-title': 'gameTitle', 'daylayout-chat-frame': 'chatPanelFrame',
     'daylayout-desk-newspaper': 'deskNewspaper', 'daylayout-desk-casefile': 'deskCaseFile',
     'daylayout-desk-notebook': 'deskNotebook', 'daylayout-desk-gear': 'deskGear',
