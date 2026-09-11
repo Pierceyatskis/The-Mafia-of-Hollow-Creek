@@ -81,8 +81,12 @@ body.game-mode{height:100%; overflow:hidden;}
 /* Night now gets the same title+timer bar day does, which sits right on
    top of the old #top-header's own "The Mafia of Hollow Creek" text -
    hide just that one (not the other badges/night-fog below, which are
-   still legitimately used during night and weren't asked about). */
-#design-canvas.bg-night #top-header{display:none !important;}
+   still legitimately used during night and weren't asked about). End
+   never grew its own replacement bar, but switchPanel() still unhides
+   #top-header there (its isMenu check treats every game panel the same),
+   so without this the old full-size lobby header rendered on top of the
+   end screen too - hide it there as well, same as night. */
+#design-canvas.bg-night #top-header, #design-canvas.bg-end #top-header{display:none !important;}
 /* TEMP day-layout-rebuild step 2 - the single cabinetFull illustration,
    centered, base anchored to where the desk starts in the background
    (measured via raw pixel sampling at ~87% down the 4b62eef2 background,
@@ -651,16 +655,19 @@ body.force-reduced-motion .ballot-box-seal.playing{animation:none !important; op
 #panel-night{background-image:linear-gradient(rgba(8,7,6,0.8), rgba(8,7,6,0.88)), var(--bg-night);}
 #panel-day{background-image:linear-gradient(rgba(20,18,15,0.68), rgba(20,18,15,0.8)), var(--bg-day);}
 #panel-end{background-image:linear-gradient(rgba(20,16,12,0.62), rgba(20,16,12,0.78)), var(--bg-end);}
-/* Night/end still use this original un-rebuilt panel (unlike day, which
-   now draws its own title+timer bar into its cabinet layout), but that
-   shared title+timer bar (#daylayout-game-title/#daylayout-timer-bar,
-   #design-canvas.bg-night included) still overlays on top of them at a
-   fixed canvas-relative position - top:0 to ~142px. The panel's own 22px
-   padding never accounted for that overlay, so its heading/content
-   started right underneath/behind it instead of clearing it. Push just
-   these two down far enough to sit below the bar, without touching day
-   (which positions everything itself and doesn't need this). */
-#panel-night, #panel-end{padding-top:140px;}
+/* Night still uses this original un-rebuilt panel (unlike day, which now
+   draws its own title+timer bar into its cabinet layout), but that shared
+   title+timer bar (#daylayout-game-title/#daylayout-timer-bar) still
+   overlays on top of it at a fixed canvas-relative position - top:0 to
+   ~142px. The panel's own 22px padding never accounted for that overlay,
+   so its heading/content started right underneath/behind it instead of
+   clearing it. Push it down far enough to sit below the bar.
+   End does NOT get this - it never grew a title+timer bar of its own
+   (#top-header is just hidden there now, leaving nothing to clear), so
+   giving it the same 140px would only shove its content down into empty
+   space it doesn't need. Same reasoning keeps day untouched too, which
+   positions everything itself. */
+#panel-night{padding-top:140px;}
 .app-frame::before{content:''; position:absolute; inset:6px; border:1px solid var(--gold-dim); border-radius:4px; opacity:0.7;}
 .corner{position:absolute; width:44px; height:44px;}
 .corner-tl{top:-2px; left:-2px;}
@@ -7761,7 +7768,7 @@ function renderStagePanel(){
     var speakingTagHTML = '<div class="stage-speaking-tag"><span class="stage-speaking-bars"><span></span><span></span><span></span></span>On the stage</div>';
     var timerHTML = '';
     if(s.turnDeadline){
-      timerHTML = '<div class="stage-timer"><div class="timerwrap" style="margin:8px 0 0;"><span class="timernum" id="stage-timer-num-wrap"><span id="stage-timer-num"></span>s left</span><div class="timerbar"><div class="timerfill" id="stage-timer-fill" style="width:100%;"></div></div></div></div>';
+      timerHTML = '<div class="stage-timer"><div class="timerwrap" style="margin:8px 0 0;"><span class="timernum" id="legacy-stage-timer-num-wrap"><span id="legacy-stage-timer-num"></span>s left</span><div class="timerbar"><div class="timerfill" id="legacy-stage-timer-fill" style="width:100%;"></div></div></div></div>';
     }
     var controlsHTML = '<div class="stage-controls">';
     if(iAmSpeaker){
