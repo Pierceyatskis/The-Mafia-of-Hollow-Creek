@@ -448,17 +448,24 @@ function resolveNight(state){
       log(state, 'The mafia moved on '+killTarget.name+', but they fought back and killed '+counterVictim.name+' instead.');
       deathSummary = counterVictim.name+' ('+counterVictim.role+') was killed in the night.';
       nightDeathOccurred = true; revealVictim = counterVictim;
+      state.cachedNearMissId = null;
     } else {
       reportLines.push('A quiet night, for once. No one made a move.');
       deathSummary = 'No one died last night.';
+      state.cachedNearMissId = null;
     }
   } else if(!killTarget){
     reportLines.push('A quiet night, for once. No one made a move.');
     deathSummary = 'No one died last night.';
+    state.cachedNearMissId = null;
   } else if(doctorSaved){
-    reportLines.push('An empty coffin. Someone tried, in the dark, and someone else stopped them just in time.');
+    // Name the near-victim (this is public news the whole town reads the
+    // next morning), but never name WHO saved them - that would out the
+    // Doctor's role to everyone, not just tell the town someone survived.
+    reportLines.push(killTarget.name+' was attacked in the dark last night, but someone reached them just in time and saved their life.');
     log(state, 'The mafia struck at '+killTarget.name+', but the doctor\'s hands got there first.');
-    deathSummary = 'No one died last night, the doctor\'s protection held.';
+    deathSummary = killTarget.name+' was nearly killed last night, the doctor\'s protection held.';
+    state.cachedNearMissId = killTarget.id;
   } else {
     killTarget.alive = false;
     checkBountyHit(state, killTarget);
@@ -467,6 +474,7 @@ function resolveNight(state){
     log(state, killTarget.name+' was killed in the night.');
     deathSummary = killTarget.name+' ('+killTarget.role+') was killed in the night.';
     nightDeathOccurred = true; revealVictim = killTarget;
+    state.cachedNearMissId = null;
   }
 
   state.players.forEach(p => { p.silencedToday = false; });
@@ -1068,7 +1076,7 @@ function getPlayerView(state, playerId){
       return entry;
     }),
     voteLog: state.voteLog, voteHistory: state.voteHistory, accusationLog: state.accusationLog, history: state.history,
-    cachedOvernightReport: state.cachedOvernightReport, farmerRevengeName: state.farmerRevengeName,
+    cachedOvernightReport: state.cachedOvernightReport, cachedNearMissId: state.cachedNearMissId || null, farmerRevengeName: state.farmerRevengeName,
     farmerRevengePending: state.farmerRevengePending,
     // A whisper is visible only to the two players in it, same scoping
     // principle as mafiaChatLog above - everyone else's whispers are

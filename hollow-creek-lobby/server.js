@@ -422,8 +422,14 @@ function maybeEarlyResolve(room) {
     // Silenced blocks speaking only, not voting - every living connected
     // human is eligible to vote, silenced or not.
     const eligible = connectedLivingHumans(room);
-    if (eligible.every(p => room.dayVoteSubmitted.has(p.id))) { resolveDayVotePhase(room); return; }
+    // Broadcast BEFORE checking for early resolve, not after - the old order
+    // meant whoever cast the LAST vote (the only voter, in a solo game -
+    // every game a solo player plays) never got a dayVoteProgress broadcast
+    // for their own submission, since the early-resolve branch returned
+    // before broadcastDayVoteProgress ever ran. Their own checkmark on the
+    // town board never appeared as a result.
     broadcastDayVoteProgress(room);
+    if (eligible.every(p => room.dayVoteSubmitted.has(p.id))) { resolveDayVotePhase(room); return; }
   }
 }
 

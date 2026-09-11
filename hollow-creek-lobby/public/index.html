@@ -594,6 +594,11 @@ header p{font-family:var(--font-type); font-size:11px; letter-spacing:3px; text-
    sheet.png per ASSET_GUIDE_CORRECTED), not sprite-position CSS. */
 .ballot-paper{display:flex; align-items:center; gap:6px; min-width:0; font-family:var(--font-type); font-size:14px; color:#3a2f22; font-weight:600;}
 .ballot-paper span{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+/* Portrait sits above the name (a little newspaper-clipping style pick),
+   not inline beside it - a bigger, more legible confirmation of who's
+   selected than the old small inline icon. */
+.ballot-paper-pick{display:flex; flex-direction:column; align-items:center; gap:3px; flex:1; min-width:0;}
+.ballot-paper-pick span{font-size:11px; max-width:100%;}
 .ballot-box{position:relative; width:139px; height:109px; flex-shrink:0; cursor:pointer; transition:transform .15s ease;}
 .ballot-box:hover{transform:translateY(-2px);}
 .ballot-box-img{width:100%; height:100%; object-fit:contain; display:block;}
@@ -1230,16 +1235,19 @@ h2.sec{font-family:var(--font-type); font-size:12px; letter-spacing:2px; text-tr
 .voting-your-vote{position:absolute; left:689px; top:760px; width:250px; pointer-events:auto;}
 .voting-heading{margin:0 0 2px; font-size:12px; color:#e8dfc7; font-family:var(--font-type); text-transform:uppercase; letter-spacing:1px; text-shadow:0 1px 2px rgba(0,0,0,0.8);}
 .voting-subheading{margin:0 0 5px; font-size:9.5px; color:#cbbfa3; font-family:var(--font-body); font-style:italic; text-shadow:0 1px 2px rgba(0,0,0,0.8);}
-.ballot-paper{background:rgba(250,240,220,0.9); border:1px solid rgba(90,70,45,0.4); border-radius:5px; padding:6px 8px;}
-.ballot-paper-portrait{width:26px; height:26px; border-radius:3px; object-fit:cover; flex-shrink:0; border:2px solid var(--gold-dim); box-shadow:0 0 0 1px rgba(0,0,0,0.45) inset;}
+.ballot-paper{background:rgba(250,240,220,0.9); border:1px solid rgba(90,70,45,0.4); border-radius:5px; padding:6px 8px 8px;}
+.ballot-paper-portrait{width:36px; height:36px; border-radius:3px; object-fit:cover; flex-shrink:0; border:2px solid var(--gold-dim); box-shadow:0 0 0 1px rgba(0,0,0,0.45) inset;}
 .ballot-clear-btn{background:none; border:none; color:#7a1f1f; font-size:18px; line-height:1; cursor:pointer; flex-shrink:0; padding:0 2px;}
 .voting-box-col{position:absolute; left:952px; top:780px; width:139px; display:flex; flex-direction:column; align-items:center;}
 #day-confirm-btn{position:absolute; left:1101px; top:806px; width:165px; height:44px; pointer-events:auto; font-size:11px;}
-#mayor-reveal-section{position:absolute; left:689px; top:825px; width:270px; pointer-events:auto;}
+/* Pushed down from top:825 - the ballot paper grew taller (portrait now
+   stacked above the name instead of a small inline icon beside it), so
+   these two would otherwise sit underneath/overlapping it. */
+#mayor-reveal-section{position:absolute; left:689px; top:862px; width:270px; pointer-events:auto;}
 #mayor-reveal-section label{display:flex; align-items:flex-start; gap:5px; font-size:9.5px; color:#e8dfc7; cursor:pointer; text-shadow:0 1px 2px rgba(0,0,0,0.8);}
 #mayor-reveal-section input{margin-top:1px;}
 .vote-confirmed-card{position:absolute; left:689px; top:797px; width:250px; pointer-events:auto;}
-#day-error{position:absolute; left:689px; top:825px; width:270px; pointer-events:auto;}
+#day-error{position:absolute; left:689px; top:862px; width:270px; pointer-events:auto;}
 #silenced-notice, #dead-notice, #vote-decide-spinner, #farmer-revenge-section{display:none;}
 #design-canvas.bg-day #silenced-notice, #design-canvas.bg-day #dead-notice, #design-canvas.bg-day #vote-decide-spinner, #design-canvas.bg-day #farmer-revenge-section{display:block; position:absolute; left:679px; top:751px; width:564px; height:139px; z-index:3; pointer-events:auto; box-sizing:border-box; overflow:hidden;}
 #silenced-notice .status-notice, #dead-notice .status-notice{padding:8px 14px; margin-top:0;}
@@ -1710,8 +1718,10 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
       <h3 class="voting-heading">Your Vote</h3>
       <p class="voting-subheading">Select who you think is part of the mafia.</p>
       <div class="ballot-paper" id="ballot-paper">
-        <img class="ballot-paper-portrait" id="ballot-paper-portrait" alt="" style="display:none;">
-        <span id="ballot-paper-name">Select a player to vote for</span>
+        <div class="ballot-paper-pick">
+          <img class="ballot-paper-portrait" id="ballot-paper-portrait" alt="" style="display:none;">
+          <span id="ballot-paper-name">Select a player to vote for</span>
+        </div>
         <button type="button" class="ballot-clear-btn" id="ballot-clear-btn" title="Remove selection" style="display:none;">&times;</button>
       </div>
     </div>
@@ -1796,6 +1806,14 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
     </select>
     <button class="btn" id="chat-send-btn" style="padding:9px 16px;">Send</button>
   </div>
+  <!-- Silenced-during-day-vote notice - lives in the chat column's own flex
+       flow, replacing #chat-input-row right where it sits, instead of the
+       big absolutely-positioned #silenced-notice everywhere else uses (that
+       one is sized/placed to replace the WHOLE vote section, which is wrong
+       here - during day-vote the vote itself still goes through, only chat
+       is blocked, and that box's fixed cabinet-area position landed
+       directly on top of the ballot paper/box/confirm button instead). -->
+  <p id="chat-silenced-note" style="display:none; margin:12px 0 0; font-family:var(--font-body); font-size:11.5px; font-style:italic; color:var(--parchment-dim); text-shadow:0 1px 2px rgba(0,0,0,0.8);">You've been silenced today - you can't speak, but your vote still counts.</p>
 </div>
 </div>
 <div id="daylayout-desk-newspaper-wrap" class="daylayout-btn-fx">
@@ -1819,7 +1837,7 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
 <img id="daylayout-news-modal-img" alt="Hollow Creek Chronicle">
 <img id="daylayout-news-marker-circle" alt="">
 <div id="daylayout-obituary">
-<h3 id="daylayout-obit-headline"><span id="daylayout-obit-headline-name"></span><span id="daylayout-obit-headline-sub">FOUND DEAD</span></h3>
+<h3 id="daylayout-obit-headline"><span id="daylayout-obit-headline-name"></span><span id="daylayout-obit-headline-sub"></span></h3>
 <img id="daylayout-news-marker-underline" alt="">
 <div id="daylayout-obit-content">
 <img id="daylayout-obit-portrait" alt="">
@@ -6617,6 +6635,7 @@ function renderDayPanel(){
 
   voteSection.style.display='none'; silencedNotice.style.display='none'; deadNotice.style.display='none';
   lynchReveal.style.display='none'; chatInputRow.style.display='none'; farmerSection.style.display='none';
+  document.getElementById('chat-silenced-note').style.display='none';
   if(view.phase!=='day-vote') stopVoteTimer();
 
   if(view.phase==='day-discuss'){
@@ -6631,8 +6650,11 @@ function renderDayPanel(){
     else {
       // Silenced blocks speaking only - the vote itself still goes through,
       // just with the chat input hidden instead of the whole vote section.
-      if(me.silencedToday){ silencedNotice.style.display='block'; }
-      else { chatInputRow.style.display='flex'; }
+      // #silenced-notice itself is NOT used here (see chat-silenced-note's
+      // own comment) - it's sized to replace the entire vote section, which
+      // would sit right on top of the ballot paper/box/confirm button.
+      document.getElementById('chat-silenced-note').style.display = me.silencedToday ? 'block' : 'none';
+      if(!me.silencedToday) chatInputRow.style.display='flex';
       voteSection.style.display='block';
       updateVoteConfirmedCard();
       if(mpVoteSubmitted){
@@ -8928,7 +8950,11 @@ function updateBallotPaper(){
   nameEl.textContent = p ? p.name : 'Select a player to vote for';
   if(boxImg) boxImg.src = DAYTIME_IMG[p ? 'ballotMidslot' : 'ballotClosed'];
   if(portraitImg){
-    if(p){ portraitImg.src = portraitImgFor(p); portraitImg.style.display = 'block'; }
+    // The Chronicle-style illustrated portrait (same art used in the
+    // newspaper's own obituary/survivor story), not the roster's plain
+    // photo - reads as "here's who's about to go in the paper," which is
+    // the point of picking a name on a ballot.
+    if(p){ portraitImg.src = newsPortraitFor(p); portraitImg.style.display = 'block'; }
     else { portraitImg.style.display = 'none'; }
   }
   if(clearBtn) clearBtn.style.display = p ? 'inline-flex' : 'none';
@@ -9303,6 +9329,43 @@ function buildObituary(deadPlayer, view){
   sentences.push(Math.random() < 0.5 ? obitPick(OBIT_INVESTIGATION) : obitPick(OBIT_MEMORIAL));
   return sentences.join(' ');
 }
+// Near-miss "narrow escape" story - the Chronicle's other front-page
+// article, for the night the mafia struck but the Doctor's protection
+// held. Never names who did the saving (that would out the Doctor's role
+// to the whole town), only that the victim survived and is grateful to
+// their still-unknown rescuer.
+var SURVIVOR_INTROS = [
+  '{name} narrowly escaped death last night, and all of Hollow Creek is talking about it.',
+  'Hollow Creek breathes a sigh of relief this morning: {name} survived an attempt on their life overnight.',
+  '{name} came within inches of losing their life last night - and lived to tell the tale.',
+  'A brush with death: {name} was attacked in the dark last night, but somehow made it through.'
+];
+var SURVIVOR_CLOSECALL = [
+  'By all accounts it was close - neighbors report hearing a struggle in the dark that went suddenly, eerily quiet.',
+  'Witnesses describe a shadow at the window moments before whoever was lurking there seemed to simply give up and flee.',
+  'The details remain hazy, but everyone agrees {name} was saved with only seconds to spare.',
+  'No one can say exactly what happened, only that it was close enough to leave the whole street rattled.'
+];
+var SURVIVOR_GRATITUDE = [
+  '"I don\'t know who saved me, but I owe them my life," {name} told reporters, still shaken.',
+  '{name} says they never saw their rescuer\'s face - only felt someone pull them back from the brink. "Whoever you are, thank you."',
+  'Through tears, {name} thanked the mystery hero who intervened: "I would not be alive right now if not for them."',
+  '{name} has taken to calling their unknown rescuer a guardian angel, and says they intend to spend the rest of their days repaying the debt.'
+];
+var SURVIVOR_CLOSING = [
+  'The identity of the rescuer remains a total mystery, and the town council says it has no leads.',
+  'Hollow Creek is left wondering who among them has such a steady hand and a good heart.',
+  'For now, the town\'s guardian angel remains anonymous - but not forgotten.',
+  'Whoever they are, Hollow Creek owes them a debt it may never be able to repay.'
+];
+function buildSurvivorStory(survivor){
+  var name = survivor.name;
+  var sentences = [obitPick(SURVIVOR_INTROS).replace(/\{name\}/g, name)];
+  sentences.push(obitPick(SURVIVOR_CLOSECALL).replace(/\{name\}/g, name));
+  sentences.push(obitPick(SURVIVOR_GRATITUDE).replace(/\{name\}/g, name));
+  sentences.push(obitPick(SURVIVOR_CLOSING));
+  return sentences.join(' ');
+}
 // "Most recently dead" isn't tracked as its own field anywhere in view -
 // approximated from whichever dead player's own last logged activity
 // (chat or accusation) has the latest timestamp, since a round-1 death
@@ -9332,15 +9395,22 @@ function renderObituary(){
   var circle = document.getElementById('daylayout-news-marker-circle');
   var underline = document.getElementById('daylayout-news-marker-underline');
   if(!latestView){ box.style.display = 'none'; circle.style.display = 'none'; underline.style.display = 'none'; return; }
-  var dead = mostRecentlyDeadPlayer(latestView);
-  if(!dead){ box.style.display = 'none'; circle.style.display = 'none'; underline.style.display = 'none'; return; }
+  // A near-miss from last night is always fresher news than an old death on
+  // record (cachedNearMissId is reset every single night resolution - see
+  // game.js resolveNight - so it only survives to the next morning's paper,
+  // never lingers from an earlier round the way a standing death does).
+  var survivor = latestView.cachedNearMissId ? (latestView.players || []).find(function(p){ return p.id === latestView.cachedNearMissId; }) : null;
+  var dead = survivor ? null : mostRecentlyDeadPlayer(latestView);
+  if(!survivor && !dead){ box.style.display = 'none'; circle.style.display = 'none'; underline.style.display = 'none'; return; }
   box.style.display = 'block';
   circle.style.display = 'block';
   underline.style.display = 'block';
   var headlineEl = document.getElementById('daylayout-obit-headline');
-  document.getElementById('daylayout-obit-headline-name').textContent = dead.name.toUpperCase();
-  document.getElementById('daylayout-obit-portrait').src = newsPortraitFor(dead);
-  document.getElementById('daylayout-obit-body').textContent = buildObituary(dead, latestView);
+  var subject = survivor || dead;
+  document.getElementById('daylayout-obit-headline-name').textContent = subject.name.toUpperCase();
+  document.getElementById('daylayout-obit-headline-sub').textContent = survivor ? 'NARROW ESCAPE' : 'FOUND DEAD';
+  document.getElementById('daylayout-obit-portrait').src = newsPortraitFor(subject);
+  document.getElementById('daylayout-obit-body').textContent = survivor ? buildSurvivorStory(survivor) : buildObituary(dead, latestView);
   document.getElementById('daylayout-obit-byline').textContent = obitPick(OBIT_BYLINE);
   // The headline wraps to 1 or 2 lines depending on name length, so the
   // underline's top has to be measured after the real text is in place,
