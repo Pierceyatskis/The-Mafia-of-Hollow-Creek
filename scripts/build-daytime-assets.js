@@ -248,6 +248,57 @@ async function decheckerRedLineOvalOnly(inputPath) {
   return sharp(data, { raw: { width, height, channels } });
 }
 
+// Untitled_design.png (the wide red banner button) sits on a plain WHITE
+// canvas (hasAlpha:false), not a checkerboard - none of the checker-band
+// dechecker functions above apply. Fades pixels to transparent as they
+// approach pure white instead of a hard cutoff, so the banner's own soft
+// drop-shadow tapers off naturally instead of ending in a visible white
+// rectangle once it's composited onto the game's parchment/wood surfaces.
+async function decheckerWhite(inputPath) {
+  const img = sharp(inputPath).ensureAlpha();
+  const { data, info } = await img.raw().toBuffer({ resolveWithObject: true });
+  const { width, height, channels } = info;
+  for (let i = 0; i < width * height; i++) {
+    const o = i * channels;
+    const r = data[o], g = data[o + 1], b = data[o + 2];
+    const brightness = (r + g + b) / 3;
+    if (brightness >= 248) data[o + 3] = 0;
+    else if (brightness >= 200) data[o + 3] = Math.round(data[o + 3] * Math.pow((248 - brightness) / (248 - 200), 1.5));
+  }
+  return sharp(data, { raw: { width, height, channels } });
+}
+
+// The voting-controls-sheet's wax seal (c9ac3aec, row2/col3) is a plain
+// blank blob - the mockup's version has a five-pointed star embossed into
+// it and no separate starred asset exists anywhere in the decorative-
+// assets folder, so this bakes one on at build time instead: a dark
+// semi-transparent maroon polygon (not flat black) so the wax's own
+// texture still shows through, the same way a real pressed emboss would.
+async function addEmbossedStar(entry) {
+  const mimeMatch = entry.uri.match(/^data:(image\/\w+);base64,/);
+  const mime = mimeMatch ? mimeMatch[1] : 'image/webp';
+  const buf = Buffer.from(entry.uri.slice(entry.uri.indexOf(',') + 1), 'base64');
+  const meta = await sharp(buf).metadata();
+  const size = Math.round(Math.min(meta.width, meta.height) * 0.46);
+  const c = size / 2;
+  const outerR = size / 2, innerR = outerR * 0.42;
+  const pts = [];
+  for (let i = 0; i < 10; i++) {
+    const r = i % 2 === 0 ? outerR : innerR;
+    const angle = (Math.PI / 5) * i - Math.PI / 2;
+    pts.push((c + r * Math.cos(angle)).toFixed(1) + ',' + (c + r * Math.sin(angle)).toFixed(1));
+  }
+  const starSvg = '<svg width="' + size + '" height="' + size + '" xmlns="http://www.w3.org/2000/svg">' +
+    '<polygon points="' + pts.join(' ') + '" fill="#4a0d0e" fill-opacity="0.6" stroke="#2c0607" stroke-width="' + Math.max(1, size * 0.02) + '" stroke-opacity="0.55"/>' +
+    '</svg>';
+  const composited = await sharp(buf)
+    .composite([{ input: Buffer.from(starSvg), gravity: 'center' }])
+    .toFormat(mime === 'image/webp' ? 'webp' : 'png', { quality: 85 })
+    .toBuffer();
+  entry.uri = 'data:' + mime + ';base64,' + composited.toString('base64');
+  entry.bytes = composited.length;
+}
+
 // For standalone hero-shot assets (one object, lots of checker margin
 // around it, no grid) - crops to the actual content bounding box instead
 // of a fixed grid cell. Robust to isolated anti-aliasing/noise pixels:
@@ -318,6 +369,7 @@ async function main() {
     [null, null, null, 'ballotClosed', 'ballotMidslot', 'ballotWaxSeal', 'ballotLocked', 'ballotCancel', 'ballotUnavailable'],
     { width: 300 }
   ));
+  await addEmbossedStar(entries.find(e => e.key === 'ballotWaxSeal'));
 
   // Step 6 - stage-curtains.png, left+right halves as one piece each side
   // (already a matched pair side by side in the source).
@@ -766,12 +818,19 @@ async function main() {
   ));
 
   // button-red-wide.png (Untitled_design.png) - wide red button background,
-  // real HTML text goes on top, never baked in.
-  {
-    const buf = await sharp(path.join(ASSETS_DIR, 'Untitled_design.png'))
-      .resize({ width: 600 }).png({ compressionLevel: 9 }).toBuffer();
-    entries.push({ key: 'buttonRedWide', uri: 'data:image/png;base64,' + buf.toString('base64'), bytes: buf.length });
-  }
+  // real HTML text goes on top, never baked in. Was a plain full-canvas
+  // resize before (no crop at all) - the actual notched-banner art only
+  // fills a 835x208 patch of the source's 1632x624 white canvas (measured
+  // via non-white-pixel bbox scan), so every button using this asset via
+  // background-size:100% 100% was stretching mostly blank white margin
+  // into the button box instead of the banner. Tight bbox + a little
+  // padding for the gold trim's own soft glow, decheckerWhite for the
+  // canvas around it.
+  entries.push(await cropSingle(
+    path.join(ASSETS_DIR, 'Untitled_design.png'), 'buttonRedWide',
+    { left: 369, top: 197, w: 855, h: 228 },
+    { width: 700, decheckerFn: decheckerWhite, quality: 90 }
+  ));
 
   let html = fs.readFileSync(GAME_FILE, 'utf8');
   const marker = 'var DAYTIME_IMG = {';
