@@ -1001,7 +1001,16 @@ wss.on('connection', (socket) => {
       const replyTo = (rawReply && typeof rawReply === 'object' && typeof rawReply.name === 'string' && typeof rawReply.text === 'string')
         ? { name: String(rawReply.name).slice(0, 40), text: String(rawReply.text).slice(0, 120) }
         : null;
-      const entry = { playerId: player.id, name: sp.name, text, ts: Date.now(), targetId, replyTo };
+      // Simple rule-based content classification (accusation/defense/
+      // role_claim/question/suspicion/trust_statement/no_gameplay_meaning) -
+      // separate from the mechanical targetId tag above. Now read by the
+      // Case File's per-player event feed (role_claim/defense entries).
+      const category = G.classifyChatMessage(text, room.state.players.map(p => p.name));
+      // night: same round number voteHistory/accusationLog already stamp
+      // their own entries with, so the Case File can sort/group a chat-
+      // derived event (a role claim, a defense) alongside those without
+      // having to reverse-engineer a round from a raw timestamp.
+      const entry = { playerId: player.id, name: sp.name, text, ts: Date.now(), targetId, replyTo, category, night: room.state.night };
       room.state.chatLog.push(entry);
       if (targetId) G.recordAccusation(room.state, player.id, targetId);
       room.players.forEach(rp => {
@@ -1166,7 +1175,7 @@ wss.on('connection', (socket) => {
       // the raw entry to everyone would leak the text to bystanders.
       // `kind` (not `type`) so it doesn't collide with the chatMsg envelope's
       // own `type` field once the two get merged below.
-      const announceEntry = { kind: 'whisperAnnounce', fromId: player.id, fromName: sp.name, toId: targetSp.id, toName: targetSp.name, text, ts: entry.ts };
+      const announceEntry = { kind: 'whisperAnnounce', fromId: player.id, fromName: sp.name, toId: targetSp.id, toName: targetSp.name, text, ts: entry.ts, night: room.state.night };
       room.state.chatLog.push(announceEntry);
       room.players.forEach(rp => {
         if (rp.socket.readyState !== WebSocket.OPEN) return;

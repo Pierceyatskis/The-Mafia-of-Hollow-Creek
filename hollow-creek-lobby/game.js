@@ -91,7 +91,7 @@ function createGame(seats, config){
       // A player who never opened the avatar picker gets a distinct fallback
       // color (cycling the same palette the placeholder cast uses) instead
       // of undefined, which would render as an invisible/blank avatar swatch.
-      avatarKey: seat.avatarKey || null, gameIcon: seat.gameIconKey || null, color: seat.color || CHARACTERS[idx % CHARACTERS.length].color,
+      avatarKey: seat.avatarKey || null, gameIconKey: seat.gameIconKey || null, color: seat.color || CHARACTERS[idx % CHARACTERS.length].color,
       alive: true, silencedToday: false, role: roles[idx], align: alignOf(roles[idx]),
       flipped: false, investigateCount: 0, usedNavySealCounter: false, usedVigilanteShot: false,
       usedMayorReveal: false
@@ -809,6 +809,57 @@ function recordAccusation(state, accuserId, targetId){
   state.accusationLog.push({ night: state.night, accuserId, targetId, ts: Date.now() });
 }
 
+// Simple rule-based day-chat message classifier - deliberately NOT the
+// mechanical accusation-tag system above (that's still untouched: purely
+// "who tagged whom", no content judgment). This DOES read message
+// content, but with no external AI/API call - just pattern templates,
+// each cross-checked against the room's real player names so genre-
+// idiomatic phrasing resolves without literal keyword triggering (e.g.
+// "I think it's Corky" is recognized as an accusation naming Corky
+// because "I think/believe/bet it's <name>" is *itself* the template -
+// same as a human reading it instantly knows "it" means "the killer"
+// from mafia-chat convention, without "it" ever being resolved as a
+// literal pronoun). Comparably plain messages that don't line up with a
+// real player name ("I think it's cold outside") correctly fall through
+// instead of false-triggering.
+const CHAT_CATEGORY_ROLE_WORDS = SPECIAL_ROLES.concat(['Mafia', 'Villager', 'Townsperson', 'Town', 'Cult']).map(r => r.toLowerCase());
+function classifyChatMessage(text, playerNames){
+  const t = String(text || '').toLowerCase().trim();
+  if (!t) return 'no_gameplay_meaning';
+  const names = (playerNames || []).filter(Boolean).slice().sort((a, b) => b.length - a.length);
+  function findName(str){
+    for (const n of names) {
+      if (new RegExp('\\b' + String(n).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i').test(str)) return n;
+    }
+    return null;
+  }
+
+  const roleClaimRe = new RegExp('\\bi(?:\'m| am)\\b[^.!?]*\\b(' + CHAT_CATEGORY_ROLE_WORDS.join('|') + ')\\b');
+  if (roleClaimRe.test(t) || /\bmy role is\b/.test(t)) return 'role_claim';
+
+  if (/\bi accuse\b/.test(t)) return 'accusation';
+  const thinkItsMatch = t.match(/\b(?:i think|i believe|i bet|i'?m sure|pretty sure|i reckon|i know)\b[^.!?]*\b(?:it'?s|it is)\s+(\w+)/);
+  if (thinkItsMatch && findName(thinkItsMatch[1])) return 'accusation';
+  // "sus"/"suspicious" deliberately excluded here - those belong to the
+  // dedicated suspicion category below, not accusation (a bug caught by
+  // testing "Corky is acting really suspicious", which this pattern used
+  // to swallow before suspicion ever got a turn).
+  if (findName(t) && /\b(?:is|was)\b[^.!?]*\b(?:the )?(?:mafia|killer|guilty|lying|a liar|murderer|traitor)\b/.test(t)) return 'accusation';
+  if (/\bvote (?:for )?\w+/.test(t) && findName(t)) return 'accusation';
+
+  if (/\bi defend\b/.test(t)) return 'defense';
+  if (/\b(?:i'?m not|i am not|i didn'?t|i did not|that'?s not (?:true|fair)|i swear|you'?re wrong about me|i can prove)\b/.test(t)) return 'defense';
+
+  if (/\b(?:suspicious|sus|acting (?:weird|strange|off)|something'?s off|something is off|seems (?:off|weird|fishy)|why (?:did|would|were) you)\b/.test(t)) return 'suspicion';
+
+  if (/\bi trust\b/.test(t)) return 'trust_statement';
+  if (findName(t) && /\b(?:is|seems)\b[^.!?]*\b(?:innocent|clean|trustworthy|telling the truth|on our side)\b/.test(t)) return 'trust_statement';
+
+  if (/\?\s*$/.test(t) || /^(?:who|what|why|where|when|how|did|do|does|are|is|can|could|would)\b/.test(t)) return 'question';
+
+  return 'no_gameplay_meaning';
+}
+
 // Who first publicly accused targetId (optionally scoped to a single round),
 // plus how that accusation's timing relates to the room's actual day-vote
 // sequence for that same target: did it land before any vote for them came
@@ -843,7 +894,7 @@ function getPlayerView(state, playerId){
   // teammate-visibility principle as mafia, just a different faction/roster.
   const iAmCult = me && me.alive && me.align === 'cult';
   const players = state.players.map(p => {
-    const base = {id:p.id, name:p.name, alive:p.alive, silencedToday:p.silencedToday, isPlaceholder:p.isPlaceholder, occ:p.occ, color:p.color, avatarKey:p.avatarKey, gameIcon:p.gameIcon};
+    const base = {id:p.id, name:p.name, alive:p.alive, silencedToday:p.silencedToday, isPlaceholder:p.isPlaceholder, occ:p.occ, color:p.color, avatarKey:p.avatarKey, gameIconKey:p.gameIconKey};
     // PREBETA Phase 2 Task 4 - Hitman's teammate awareness is asymmetric: he
     // never gets the system's passive teammate-visibility (excluded as the
     // VIEWER, `me`, so he never learns who his teammates are), but his own
@@ -927,5 +978,5 @@ module.exports = {
   detectiveRead, investigateAndRead, resolveNight, resolveDayVote, resolveFarmerRevenge, startNextNight,
   getPlayerView, log, specialRoleCount, validateSeatCapacity,
   recordDayVoteSubmission, recordMayorReveal, recordLivingCountSnapshot, recordAccusation, firstAccuserOf,
-  recordSpotlight, spotlightCounts
+  recordSpotlight, spotlightCounts, classifyChatMessage
 };
