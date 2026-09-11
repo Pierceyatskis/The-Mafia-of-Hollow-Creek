@@ -276,6 +276,64 @@ async function decheckerWhite(inputPath) {
   return sharp(data, { raw: { width, height, channels } });
 }
 
+// "main give time to speaker button.png" has no alpha channel at all
+// (hasAlpha:false) and its "transparent" area is baked in as plain solid
+// black (0,0,0), not a checkerboard like every other "main *.png" hero
+// asset - confirmed by sampling raw corner pixels. A flat near-black
+// color threshold can't be used directly though: the plaque's own dark
+// wood-texture face is ALSO near-black in places (its grain dips close to
+// 0,0,0), so a per-pixel threshold punches speckle holes straight through
+// solid content. Flood-filling inward from the canvas border instead only
+// clears background that's actually CONNECTED to the outside edge - an
+// isolated dark speck in the middle of the plaque, even if its color
+// matches, is never reachable from the border and stays opaque.
+async function decheckerFloodBlack(inputPath, thresh) {
+  thresh = thresh == null ? 14 : thresh;
+  const img = sharp(inputPath).ensureAlpha();
+  const { data, info } = await img.raw().toBuffer({ resolveWithObject: true });
+  const { width, height, channels } = info;
+  const isBg = (x, y) => {
+    const o = (y * width + x) * channels;
+    return data[o] <= thresh && data[o + 1] <= thresh && data[o + 2] <= thresh;
+  };
+  const visited = new Uint8Array(width * height);
+  const stack = [];
+  const seed = (x, y) => { if (isBg(x, y) && !visited[y * width + x]) { visited[y * width + x] = 1; stack.push([x, y]); } };
+  for (let x = 0; x < width; x++) { seed(x, 0); seed(x, height - 1); }
+  for (let y = 0; y < height; y++) { seed(0, y); seed(width - 1, y); }
+  while (stack.length) {
+    const [x, y] = stack.pop();
+    for (const [nx, ny] of [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]]) {
+      if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
+      const idx = ny * width + nx;
+      if (visited[idx] || !isBg(nx, ny)) continue;
+      visited[idx] = 1;
+      stack.push([nx, ny]);
+    }
+  }
+  for (let i = 0; i < width * height; i++) { if (visited[i]) data[i * channels + 3] = 0; }
+  return sharp(data, { raw: { width, height, channels } });
+}
+
+// "main leave stage button.png" - back to a real (dithered gray) checker,
+// but a wider/noisier one than dechecker2's band catches (confirmed by
+// sampling: unique tones spread continuously from ~85 to ~220, all
+// near-neutral spread<=20 - dechecker2's spread<=12/r>=178 floor left
+// visible speckle, and decheckerWide's own bands left MORE, not less).
+async function decheckerStagePlaque(inputPath) {
+  const img = sharp(inputPath).ensureAlpha();
+  const { data, info } = await img.raw().toBuffer({ resolveWithObject: true });
+  const { width, height, channels } = info;
+  for (let i = 0; i < width * height; i++) {
+    const o = i * channels;
+    const r = data[o], g = data[o + 1], b = data[o + 2];
+    const maxc = Math.max(r, g, b), minc = Math.min(r, g, b);
+    const spread = maxc - minc;
+    if (spread <= 20 && r >= 85 && r <= 222) data[o + 3] = 0;
+  }
+  return sharp(data, { raw: { width, height, channels } });
+}
+
 // The voting-controls-sheet's wax seal (c9ac3aec, row2/col3) is a plain
 // blank blob - the mockup's version has a five-pointed star embossed into
 // it and no separate starred asset exists anywhere in the decorative-
@@ -530,6 +588,18 @@ async function main() {
   entries.push(await cropSingle(
     path.join(ASSETS_DIR, 'main gear.png'), 'navGearMain',
     { left: 37, top: 26, w: 1232, h: 1115 }, { width: 260 }
+  ));
+  // Stage panel's Give Time / Leave Stage button (one swapped icon, see
+  // renderStagePanel) - two small riveted plaques, bboxes measured via the
+  // usual per-row/column opaque-count scan on each one's own dechecked
+  // alpha mask.
+  entries.push(await cropSingle(
+    path.join(ASSETS_DIR, 'main give time to speaker button.png'), 'stageGiveTimeBtn',
+    { left: 13, top: 25, w: 1227, h: 1200 }, { width: 300, decheckerFn: decheckerFloodBlack }
+  ));
+  entries.push(await cropSingle(
+    path.join(ASSETS_DIR, 'main leave stage button.png'), 'stageLeaveStageBtn',
+    { left: 342, top: 341, w: 570, h: 543 }, { width: 300, decheckerFn: decheckerStagePlaque }
   ));
 
   // Day page visual rebuild Region 2 - side-column frame (Character Grid
