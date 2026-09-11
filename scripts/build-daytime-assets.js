@@ -236,12 +236,20 @@ async function decheckerRedLine(inputPath) {
 // use. The two pieces are then positioned independently in CSS instead
 // of trying to force one fixed drawing's proportions onto the obituary
 // layout.
+// CORRECTION: blanking the full row width also erased the oval's own
+// left/right edge strokes wherever they pass through that same y-band
+// (measured: the oval's sides sit at roughly x 44-76 and x 954-987
+// throughout y 385-450, never coming in past there - the underline
+// itself only ever spans roughly x 102-934), leaving a visible gap/split
+// in the oval outline at both sides. Narrowed the blanked band to
+// x 85-950 - comfortably inside the oval's edges on both sides, still
+// wide enough to cover the underline's full measured span.
 async function decheckerRedLineOvalOnly(inputPath) {
   const base = await decheckerRedLine(inputPath);
   const { data, info } = await base.raw().toBuffer({ resolveWithObject: true });
   const { width, height, channels } = info;
   for (let y = 385; y < 450; y++) {
-    for (let x = 0; x < width; x++) {
+    for (let x = 85; x < 950; x++) {
       data[(y * width + x) * channels + 3] = 0;
     }
   }
