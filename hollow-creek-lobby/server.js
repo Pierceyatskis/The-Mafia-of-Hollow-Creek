@@ -1005,7 +1005,15 @@ wss.on('connection', (socket) => {
       // role_claim/question/suspicion/trust_statement/no_gameplay_meaning) -
       // separate from the mechanical targetId tag above. Now read by the
       // Case File's per-player event feed (role_claim/defense entries).
-      const category = G.classifyChatMessage(text, room.state.players.map(p => p.name));
+      // Context is the short thread this message landed in - the explicit
+      // reply-to line (if the sender hit Reply) and the last few day-chat
+      // lines before it - so a bare "I am" answering an earlier "who's the
+      // doctor?" still resolves to a role claim.
+      const recentTexts = room.state.chatLog.slice(-6).map(e => e.text);
+      const category = G.classifyChatMessage(text, room.state.players.map(p => p.name), {
+        replyToText: replyTo ? replyTo.text : null,
+        recentTexts
+      });
       // night: same round number voteHistory/accusationLog already stamp
       // their own entries with, so the Case File can sort/group a chat-
       // derived event (a role claim, a defense) alongside those without

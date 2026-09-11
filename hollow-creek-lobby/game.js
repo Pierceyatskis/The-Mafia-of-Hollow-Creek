@@ -822,30 +822,145 @@ function recordAccusation(state, accuserId, targetId){
 // literal pronoun). Comparably plain messages that don't line up with a
 // real player name ("I think it's cold outside") correctly fall through
 // instead of false-triggering.
-const CHAT_CATEGORY_ROLE_WORDS = SPECIAL_ROLES.concat(['Mafia', 'Villager', 'Townsperson', 'Town', 'Cult']).map(r => r.toLowerCase());
-function classifyChatMessage(text, playerNames){
+//
+// Two upgrades on top of the single-message pattern matching, both still
+// zero-API/pure-function:
+//  1. Name resolution is fuzzy, not just an exact substring of the full
+//     "First Last" name - it also matches a bare first name, and an
+//     unambiguous truncation of one ("cork" -> "Corky Wade", as long as
+//     no OTHER player's first name also starts with "cork" - an
+//     ambiguous prefix resolves to nobody rather than guessing wrong).
+//     A bare pronoun ("he"/"she"/"they"/"him"/"her"/"them") resolves the
+//     same way findName() would, but against whoever was last named in
+//     the passed-in context instead of the message itself.
+//  2. `context` (optional) carries the short-term thread this message is
+//     part of - `replyToText` (the line this message was an explicit
+//     Reply to, if any) and `recentTexts` (the last few lines in the
+//     room's chat log before this one, oldest first). It's used for
+//     exactly one thing: recognizing a bare self-ID ("I am", "that's
+//     me") as a role claim when it's actually answering a "who's the
+//     doctor?"-shaped question earlier in the thread - the same
+//     inference a human reader makes without "I am" ever containing the
+//     word "doctor" itself. Anywhere else, the two single-message
+//     patterns above still do the same job context ever did before.
+function chatRoleWordVariants(role){
+  // SPECIAL_ROLES is camelCase code names (DoubleAgent, NavySeal,
+  // CultLeader...) - nobody types those in chat. Add the space-separated
+  // form a real player would actually type, alongside the plain one.
+  const spaced = String(role).replace(/([a-z0-9])([A-Z])/g, '$1 $2').toLowerCase();
+  const plain = String(role).toLowerCase();
+  return spaced === plain ? [plain] : [spaced, plain];
+}
+const CHAT_CATEGORY_ROLE_WORDS = SPECIAL_ROLES.concat(['Mafia', 'Villager', 'Townsperson', 'Town', 'Cult', 'Civilian'])
+  .reduce((acc, r) => acc.concat(chatRoleWordVariants(r)), []);
+const CHAT_ROLE_WORDS_PATTERN = CHAT_CATEGORY_ROLE_WORDS.join('|');
+const PRONOUN_RE = /\b(?:he|she|they|him|her|them)\b/;
+
+// A handful of characters carry a title/descriptor ahead of their actual
+// given name ("Sister Agatha Pruitt", "Big Tom Yarrow") - nobody refers to
+// them in chat as "Sister" or "Big", so those words are dropped from the
+// token set rather than treated as a real, matchable name fragment.
+const NAME_TOKEN_STOPWORDS = new Set(['sister', 'brother', 'big', 'little', 'old', 'young', 'mr', 'mrs', 'ms', 'dr']);
+function nameTokensFor(full){
+  return String(full).trim().split(/\s+/).filter(w => w && !NAME_TOKEN_STOPWORDS.has(w.toLowerCase()));
+}
+
+function classifyChatMessage(text, playerNames, context){
   const t = String(text || '').toLowerCase().trim();
   if (!t) return 'no_gameplay_meaning';
-  const names = (playerNames || []).filter(Boolean).slice().sort((a, b) => b.length - a.length);
-  function findName(str){
-    for (const n of names) {
+  const names = (playerNames || []).filter(Boolean);
+  // Every real (non-title) word in each player's name is a candidate a
+  // player might actually type - first name, last name, or (for the
+  // three-word names) a middle given name - not just word[0].
+  const nameEntries = names.map(full => ({ full, tokens: nameTokensFor(full) }));
+
+  function findFullName(str){
+    for (const n of names.slice().sort((a, b) => b.length - a.length)) {
       if (new RegExp('\\b' + String(n).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i').test(str)) return n;
     }
     return null;
   }
+  function findTokenName(str){
+    const flat = [];
+    nameEntries.forEach(({ full, tokens }) => tokens.forEach(tok => flat.push({ full, tok })));
+    flat.sort((a, b) => b.tok.length - a.tok.length);
+    for (const { full, tok } of flat) {
+      if (new RegExp('\\b' + tok.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i').test(str)) return full;
+    }
+    return null;
+  }
+  function findPrefixName(str){
+    const words = str.toLowerCase().match(/[a-z']+/g) || [];
+    for (const w of words) {
+      if (w.length < 3) continue;
+      const matchedPlayers = [];
+      nameEntries.forEach(({ full, tokens }) => {
+        const hit = tokens.some(tok => { const tl = tok.toLowerCase(); return tl !== w && tl.startsWith(w); });
+        if (hit) matchedPlayers.push(full);
+      });
+      // Only resolve a truncation when it's unambiguous - "cor" fitting
+      // both "Corky" and "Cora" should name neither, "cork" fitting only
+      // "Corky" safely resolves.
+      if (matchedPlayers.length === 1) return matchedPlayers[0];
+    }
+    return null;
+  }
+  function findName(str){
+    return findFullName(str) || findTokenName(str) || findPrefixName(str);
+  }
 
-  const roleClaimRe = new RegExp('\\bi(?:\'m| am)\\b[^.!?]*\\b(' + CHAT_CATEGORY_ROLE_WORDS.join('|') + ')\\b');
+  const ctx = context || {};
+  const replyToText = String(ctx.replyToText || '').toLowerCase();
+  const recentTexts = (Array.isArray(ctx.recentTexts) ? ctx.recentTexts : []).map(s => String(s || ''));
+  // Who was last named, checking the explicit reply-to line first (a
+  // deliberate signal the sender chose) and then working backwards
+  // through the recent thread - same order a human catching up on the
+  // conversation would read it in.
+  function mostRecentlyMentioned(){
+    if (replyToText) { const n = findName(replyToText); if (n) return n; }
+    for (let i = recentTexts.length - 1; i >= 0; i--) {
+      const n = findName(recentTexts[i]);
+      if (n) return n;
+    }
+    return null;
+  }
+  function subjectPresent(str){
+    if (findName(str)) return true;
+    return PRONOUN_RE.test(str) && !!mostRecentlyMentioned();
+  }
+
+  // The (?:(?!\bnot\b)[^.!?])* stretch between "i'm/i am" and the role
+  // word is "any run of characters, as long as the word 'not' never
+  // starts partway through it" - so "I'm not the mafia" (a denial) is
+  // correctly excluded from ever reaching the role word, while "I'm
+  // definitely the mafia" still reaches it fine.
+  const roleClaimRe = new RegExp('\\bi(?:\'m| am)\\b(?:(?!\\bnot\\b)[^.!?])*\\b(?:' + CHAT_ROLE_WORDS_PATTERN + ')\\b');
   if (roleClaimRe.test(t) || /\bmy role is\b/.test(t)) return 'role_claim';
+
+  // Context upgrade: "I am"/"that's me" alone carries no role word of its
+  // own, so it only reads as a role claim when it's actually answering a
+  // "who's the X" question - checked against the reply-to line first,
+  // then the last few lines before this one.
+  if (/^(?:i'?m|i am|me|that'?s me|it'?s me)[.!]*$/.test(t)) {
+    const roleQuestionRe = new RegExp('\\bwho\\b[^.!?]*\\b(?:' + CHAT_ROLE_WORDS_PATTERN + ')\\b');
+    const askedAbout = roleQuestionRe.test(replyToText) || recentTexts.some(line => roleQuestionRe.test(line.toLowerCase()));
+    if (askedAbout) return 'role_claim';
+  }
 
   if (/\bi accuse\b/.test(t)) return 'accusation';
   const thinkItsMatch = t.match(/\b(?:i think|i believe|i bet|i'?m sure|pretty sure|i reckon|i know)\b[^.!?]*\b(?:it'?s|it is)\s+(\w+)/);
-  if (thinkItsMatch && findName(thinkItsMatch[1])) return 'accusation';
+  if (thinkItsMatch) {
+    const cap = thinkItsMatch[1];
+    if (findName(cap) || (PRONOUN_RE.test(cap) && mostRecentlyMentioned())) return 'accusation';
+  }
   // "sus"/"suspicious" deliberately excluded here - those belong to the
   // dedicated suspicion category below, not accusation (a bug caught by
   // testing "Corky is acting really suspicious", which this pattern used
   // to swallow before suspicion ever got a turn).
-  if (findName(t) && /\b(?:is|was)\b[^.!?]*\b(?:the )?(?:mafia|killer|guilty|lying|a liar|murderer|traitor)\b/.test(t)) return 'accusation';
-  if (/\bvote (?:for )?\w+/.test(t) && findName(t)) return 'accusation';
+  // "'s" covers the contraction ("he's the mafia") as well as the literal
+  // word - just as common in real chat as spelling "is" out.
+  if (subjectPresent(t) && /\b(?:is|was|'s)\b[^.!?]*\b(?:the )?(?:mafia|killer|guilty|lying|a liar|murderer|traitor)\b/.test(t)) return 'accusation';
+  if (/\bvote (?:for )?\w+/.test(t) && subjectPresent(t)) return 'accusation';
 
   if (/\bi defend\b/.test(t)) return 'defense';
   if (/\b(?:i'?m not|i am not|i didn'?t|i did not|that'?s not (?:true|fair)|i swear|you'?re wrong about me|i can prove)\b/.test(t)) return 'defense';
@@ -853,7 +968,7 @@ function classifyChatMessage(text, playerNames){
   if (/\b(?:suspicious|sus|acting (?:weird|strange|off)|something'?s off|something is off|seems (?:off|weird|fishy)|why (?:did|would|were) you)\b/.test(t)) return 'suspicion';
 
   if (/\bi trust\b/.test(t)) return 'trust_statement';
-  if (findName(t) && /\b(?:is|seems)\b[^.!?]*\b(?:innocent|clean|trustworthy|telling the truth|on our side)\b/.test(t)) return 'trust_statement';
+  if (subjectPresent(t) && /\b(?:is|seems|'s)\b[^.!?]*\b(?:innocent|clean|trustworthy|telling the truth|on our side)\b/.test(t)) return 'trust_statement';
 
   if (/\?\s*$/.test(t) || /^(?:who|what|why|where|when|how|did|do|does|are|is|can|could|would)\b/.test(t)) return 'question';
 
