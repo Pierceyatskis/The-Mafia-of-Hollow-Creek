@@ -436,6 +436,17 @@ async function main() {
     { width: 300 }
   ));
   await addEmbossedStar(entries.find(e => e.key === 'ballotWaxSeal'));
+  // Notification badge (role envelope's unread state already has one of
+  // these baked into its own art in the corner - this is the same look,
+  // as a standalone asset, for badges elsewhere like the Town News icon)
+  // - a tight crop of the now-embossed wax seal above, not a fresh source
+  // file of its own.
+  {
+    const sealEntry = entries.find(e => e.key === 'ballotWaxSeal');
+    const sealBuf = Buffer.from(sealEntry.uri.slice(sealEntry.uri.indexOf(',') + 1), 'base64');
+    const badgeBuf = await sharp(sealBuf).extract({ left: 38, top: 47, width: 249 - 38 + 1, height: 265 - 47 + 1 }).resize({ width: 120 }).webp({ quality: 90 }).toBuffer();
+    entries.push({ key: 'notificationSeal', uri: 'data:image/webp;base64,' + badgeBuf.toString('base64'), bytes: badgeBuf.length });
+  }
   // Overrides the plain 'ballotMidslot' entry above (later entries win when
   // objectBody is written - same pattern as ballotWaxSeal's emboss right
   // above) - a separate, much more detailed "already picked" illustration
