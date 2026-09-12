@@ -435,6 +435,21 @@ async function main() {
     [null, null, null, 'ballotClosed', 'ballotMidslot', 'ballotWaxSeal', 'ballotLocked', 'ballotCancel', 'ballotUnavailable'],
     { width: 300 }
   ));
+  // ballotClosed's cell above carries a lot of transparent margin around
+  // the actual box art (its real content is only a 243x192 region of the
+  // 300x288 cell - a 4x3 problem caught live: the CSS frame around this
+  // image was once sized to match the full cell's ~1.03 aspect instead of
+  // the box art's own ~1.27, leaving the cabinet's painted box peeking out
+  // around the smaller rendered box). Tight-cropped to just the real
+  // content so the frame's object-fit:cover has nothing but real pixels to
+  // work with - see .ballot-box's own CSS comment for the full story.
+  {
+    const closedEntry = entries.find(e => e.key === 'ballotClosed');
+    const closedBuf = Buffer.from(closedEntry.uri.slice(closedEntry.uri.indexOf(',') + 1), 'base64');
+    const croppedBuf = await sharp(closedBuf).extract({ left: 37, top: 69, width: 243, height: 192 }).webp({ quality: 90 }).toBuffer();
+    closedEntry.uri = 'data:image/webp;base64,' + croppedBuf.toString('base64');
+    closedEntry.bytes = croppedBuf.length;
+  }
   await addEmbossedStar(entries.find(e => e.key === 'ballotWaxSeal'));
   // Notification badge (role envelope's unread state already has one of
   // these baked into its own art in the corner - this is the same look,
@@ -921,12 +936,21 @@ async function main() {
   // fills a 835x208 patch of the source's 1632x624 white canvas (measured
   // via non-white-pixel bbox scan), so every button using this asset via
   // background-size:100% 100% was stretching mostly blank white margin
-  // into the button box instead of the banner. Tight bbox + a little
-  // padding for the gold trim's own soft glow, decheckerWhite for the
-  // canvas around it.
+  // into the button box instead of the banner.
+  // First crop attempt (855x228) still left a big painted drop-shadow blob
+  // under the plaque INSIDE that bbox - decheckerWhite only fades genuine
+  // white/near-white antialiasing, and this shadow is a real, fully-opaque
+  // gray gradient baked into the source (not background), so it survived
+  // and read as a wash of gray/white across the bottom ~40px of the button
+  // once stretched into a short box (Bug: Confirm Vote button "not cropped
+  // well, showing a lot of white"). Re-measured the real plaque content
+  // only (saturated trim/red pixels, or dark ink, excluding flat-gray
+  // shadow fill) -> 383-1205 x 208-387 - and cropped to that plus an 8px
+  // buffer for the gold trim's own soft glow, which cuts the shadow blob
+  // out entirely instead of trying to fade it.
   entries.push(await cropSingle(
     path.join(ASSETS_DIR, 'Untitled_design.png'), 'buttonRedWide',
-    { left: 369, top: 197, w: 855, h: 228 },
+    { left: 375, top: 200, w: 838, h: 195 },
     { width: 700, decheckerFn: decheckerWhite, quality: 90 }
   ));
 

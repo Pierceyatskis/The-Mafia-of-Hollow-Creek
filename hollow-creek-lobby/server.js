@@ -1156,7 +1156,7 @@ wss.on('connection', (socket) => {
       // Bug 14: previously had no server implementation at all - the
       // multiplayer client hard-disabled the whisper tab unconditionally.
       const { room, player } = getRoomAndPlayer(socket);
-      if (!room || !room.started || room.state.phase !== 'day-vote') return;
+      if (!room || !room.started || (room.state.phase !== 'day-discuss' && room.state.phase !== 'day-vote')) return;
       const sp = G.byId(room.state, player.id);
       // Whispering is speaking - silenced blocks it, same as dayChat.
       if (!sp || !sp.alive || sp.silencedToday) return;
