@@ -436,6 +436,15 @@ async function main() {
     { width: 300 }
   ));
   await addEmbossedStar(entries.find(e => e.key === 'ballotWaxSeal'));
+  // Overrides the plain 'ballotMidslot' entry above (later entries win when
+  // objectBody is written - same pattern as ballotWaxSeal's emboss right
+  // above) - a separate, much more detailed "already picked" illustration
+  // (checkmarked ballot + wax seal already on the box) at the user's
+  // request, shown while a vote is selected but not yet confirmed.
+  entries.push(await cropSingle(
+    path.join(ASSETS_DIR, 'main voting box voted.png'), 'ballotMidslot',
+    { left: 178, top: 124, w: 974, h: 965 }, { width: 300 }
+  ));
 
   // Step 6 - stage-curtains.png, left+right halves as one piece each side
   // (already a matched pair side by side in the source).
