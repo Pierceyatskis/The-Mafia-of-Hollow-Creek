@@ -428,28 +428,20 @@ async function main() {
   ));
 
   // Step 7 - voting-controls-sheet.png (c9ac3aec): row1 = 3 paper/blank card
-  // variants (unused here), row2 = box-closed, box-midslot, wax-seal,
-  // row3 = padlock(locked), cancel(X), unavailable(minus).
+  // variants (unused here), row2 = box-closed(retired, see below)/
+  // box-midslot(overridden below too)/wax-seal, row3 = padlock(locked),
+  // cancel(X), unavailable(minus).
+  // box-closed (was key 'ballotClosed') is deliberately left null / not
+  // cropped - per the user, none of this sheet's box art should ever be
+  // used, not even tightly cropped. The cabinet art (c45610ee) already
+  // paints its own ballot box into that exact spot, so the empty/no-
+  // selection state just lets that painted box show through instead of
+  // layering a second one on top - see .ballot-box's own CSS comment.
   entries.push(...await cropGrid(
     path.join(ASSETS_DIR, 'c9ac3aec-1393-4a1a-be0e-ecd8f4a801c0.png'), 3, 3,
-    [null, null, null, 'ballotClosed', 'ballotMidslot', 'ballotWaxSeal', 'ballotLocked', 'ballotCancel', 'ballotUnavailable'],
+    [null, null, null, null, 'ballotMidslot', 'ballotWaxSeal', 'ballotLocked', 'ballotCancel', 'ballotUnavailable'],
     { width: 300 }
   ));
-  // ballotClosed's cell above carries a lot of transparent margin around
-  // the actual box art (its real content is only a 243x192 region of the
-  // 300x288 cell - a 4x3 problem caught live: the CSS frame around this
-  // image was once sized to match the full cell's ~1.03 aspect instead of
-  // the box art's own ~1.27, leaving the cabinet's painted box peeking out
-  // around the smaller rendered box). Tight-cropped to just the real
-  // content so the frame's object-fit:cover has nothing but real pixels to
-  // work with - see .ballot-box's own CSS comment for the full story.
-  {
-    const closedEntry = entries.find(e => e.key === 'ballotClosed');
-    const closedBuf = Buffer.from(closedEntry.uri.slice(closedEntry.uri.indexOf(',') + 1), 'base64');
-    const croppedBuf = await sharp(closedBuf).extract({ left: 37, top: 69, width: 243, height: 192 }).webp({ quality: 90 }).toBuffer();
-    closedEntry.uri = 'data:image/webp;base64,' + croppedBuf.toString('base64');
-    closedEntry.bytes = croppedBuf.length;
-  }
   await addEmbossedStar(entries.find(e => e.key === 'ballotWaxSeal'));
   // Notification badge (role envelope's unread state already has one of
   // these baked into its own art in the corner - this is the same look,
