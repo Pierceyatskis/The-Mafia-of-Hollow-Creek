@@ -1645,6 +1645,13 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
 #self-mic-toggle-btn{margin:4px 0 0;}
 .poster-wrap{position:fixed; inset:0; z-index:1; margin:0; border-radius:0; overflow:hidden; box-shadow:none;}
 #panel-home{display:block; min-height:0;}
+/* Deploy version tag - shows the short commit SHA the running server was
+   built from (see /api/version in server.js), so it's possible to tell
+   from the live site alone whether a push has actually rolled out yet
+   instead of guessing from a stale-looking page. Empty/hidden until the
+   fetch in initVersionTag() resolves - never shows a misleading blank
+   "v" tag if the request fails. */
+#version-tag{position:absolute; right:12px; bottom:8px; z-index:3; font-family:var(--font-type); font-size:10px; letter-spacing:0.5px; color:rgba(232,223,199,0.4); text-shadow:0 1px 2px rgba(0,0,0,0.6); pointer-events:none;}
 .poster-img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block;}
 .poster-actions{position:absolute; left:50%; top:55%; transform:translateX(-50%); z-index:2; display:flex; flex-direction:column; align-items:center; gap:clamp(16px,2vw,26px); width:94%; max-width:1040px;}
 .poster-actions .btn{font-size:clamp(16px, 2vw, 24px); padding:clamp(12px,1.5vw,18px) clamp(26px,3.6vw,46px);}
@@ -2357,6 +2364,7 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
           <button class="btn" id="profile-btn">Profile</button>
         </div>
       </div>
+      <div id="version-tag"></div>
     </div>
   </div>
 
@@ -9709,6 +9717,18 @@ document.addEventListener('keydown', function(e){
 });
 
 initGame();
+// Deploy version tag - fetches /api/version (server.js) and shows the
+// short commit SHA the running server is actually built from, so it's
+// possible to tell from the live page alone whether a push has rolled
+// out yet. Fails silently (tag just stays empty) if the endpoint 404s
+// or the fetch errors, rather than showing something misleading.
+(function(){
+  var el = document.getElementById('version-tag');
+  if(!el) return;
+  fetch('/api/version').then(function(r){ return r.ok ? r.json() : null; }).then(function(data){
+    if(data && data.short) el.textContent = 'v' + data.short;
+  }).catch(function(){});
+})();
 </script>
 </body>
 </html>

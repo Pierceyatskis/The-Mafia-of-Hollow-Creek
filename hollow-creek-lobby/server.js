@@ -41,8 +41,28 @@ function sanitizeDurationMs(raw, minSeconds, maxSeconds, defaultMs) {
 
 const TOGGLEABLE_ROLES = G.SPECIAL_ROLES.filter(r => r !== 'Mafia');
 
+// Commit the running server was actually built from - lets the client
+// show a version tag so it's possible to tell from the live page alone
+// whether a push has rolled out yet, instead of guessing from a
+// stale-looking screen. Railway sets RAILWAY_GIT_COMMIT_SHA on every
+// deploy; falling back to `git rev-parse HEAD` covers local dev (and any
+// other host that doesn't set that var but still ships the .git dir).
+let GIT_SHA = process.env.RAILWAY_GIT_COMMIT_SHA || '';
+if (!GIT_SHA) {
+  try {
+    GIT_SHA = require('child_process').execSync('git rev-parse HEAD', { cwd: __dirname, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+  } catch (e) {
+    GIT_SHA = '';
+  }
+}
+
 // ---- tiny static file server for the client page ----
 const server = http.createServer((req, res) => {
+  if (req.url === '/api/version') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ sha: GIT_SHA || null, short: GIT_SHA ? GIT_SHA.slice(0, 7) : null }));
+    return;
+  }
   let filePath = req.url === '/' ? '/index.html' : req.url;
   filePath = path.join(__dirname, 'public', filePath);
   fs.readFile(filePath, (err, data) => {
