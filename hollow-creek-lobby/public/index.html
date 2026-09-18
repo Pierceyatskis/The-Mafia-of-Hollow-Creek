@@ -1651,7 +1651,12 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
    instead of guessing from a stale-looking page. Empty/hidden until the
    fetch in initVersionTag() resolves - never shows a misleading blank
    "v" tag if the request fails. */
-#version-tag{position:absolute; right:12px; bottom:8px; z-index:3; font-family:var(--font-type); font-size:10px; letter-spacing:0.5px; color:rgba(232,223,199,0.4); text-shadow:0 1px 2px rgba(0,0,0,0.6); pointer-events:none;}
+/* right/bottom pulled in from 12/8 to 26/22 - .app-frame (the fixed
+   double gold outline around the whole screen, inset:10px with a second
+   ring at inset:6px more, i.e. ~16px in from the true edge) was drawing
+   right through the tag at the old position. 26/22 clears both rings
+   with a few px to spare. */
+#version-tag{position:absolute; right:26px; bottom:22px; z-index:3; font-family:var(--font-type); font-size:10px; letter-spacing:0.5px; color:rgba(232,223,199,0.4); text-shadow:0 1px 2px rgba(0,0,0,0.6); pointer-events:none;}
 .poster-img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block;}
 .poster-actions{position:absolute; left:50%; top:55%; transform:translateX(-50%); z-index:2; display:flex; flex-direction:column; align-items:center; gap:clamp(16px,2vw,26px); width:94%; max-width:1040px;}
 .poster-actions .btn{font-size:clamp(16px, 2vw, 24px); padding:clamp(12px,1.5vw,18px) clamp(26px,3.6vw,46px);}
