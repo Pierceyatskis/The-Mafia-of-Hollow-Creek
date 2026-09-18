@@ -1115,29 +1115,50 @@ body.force-reduced-motion .notebook-view.notebook-page-turn{animation:none;}
 .vote-reveal-portrait-img{position:absolute; left:15.4%; top:11.2%; width:69.2%; height:62.6%; object-fit:cover; z-index:1; border-radius:1px;}
 .vote-reveal-portrait-frame{position:absolute; inset:0; width:100%; height:100%; z-index:2; pointer-events:none;}
 .vote-reveal-portrait-name{position:absolute; left:6.5%; top:77.8%; width:87%; height:15.5%; z-index:3; margin:0; display:flex; align-items:center; justify-content:center; text-align:center; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; font-family:var(--font-type); font-weight:700; font-size:clamp(8px,1vw,13px); letter-spacing:0.5px; text-transform:uppercase; color:#3a2a18; padding:0 4%; box-sizing:border-box;}
-#vote-reveal-role-name.align-mafia{color:var(--danger);}
-#vote-reveal-role-name.align-town{color:var(--align-town);}
+/* Deliberately NOT the shared --danger/--align-town vars (those stay
+   untouched everywhere else they're used - role-reveal screens, photo
+   borders, badges) - at this card's size/backdrop those read as salmon
+   pink and baby blue rather than the rich, saturated colors this reveal
+   card wants. #8B1414 is close to the wax stamp's own actual red
+   (sampled straight off its pixels), so the two now visually match
+   instead of clashing. */
+#vote-reveal-role-name.align-mafia{color:#8B1414;}
+#vote-reveal-role-name.align-town{color:#1F4E8C;}
 #vote-reveal-role-name.align-neutral{color:var(--align-neutral);}
 #vote-reveal-role-name.align-cult{color:var(--align-cult);}
 #vote-reveal-center{flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:0.35vw; padding:0 1%;}
-#vote-reveal-outcome{font-family:var(--font-display); font-weight:700; font-size:clamp(15px,2vw,28px); color:var(--danger); letter-spacing:1px; text-transform:uppercase; text-shadow:0 2px 3px rgba(0,0,0,0.3);}
+#vote-reveal-outcome{font-family:var(--font-display); font-weight:700; font-size:clamp(15px,2vw,28px); color:#8B1414; letter-spacing:1px; text-transform:uppercase; text-shadow:0 2px 3px rgba(0,0,0,0.3);}
 #vote-reveal-center-stamp{width:clamp(28px,3.8vw,54px); height:auto; margin:0.2vw 0;}
 #vote-reveal-role-revealed{font-family:var(--font-type); font-weight:700; font-size:clamp(10px,1.25vw,17px); letter-spacing:1px; text-transform:uppercase; color:#3a2a18;}
 #vote-reveal-flavor{font-family:var(--font-body); font-style:italic; font-size:clamp(9px,0.9vw,12.5px); color:#5a4a36; max-width:96%; line-height:1.3;}
 /* Wood band - one card per vote target (plus an "abstained" card when
-   relevant), each a parchment cutout sized to how many names it holds. */
-#vote-reveal-groups{position:absolute; left:6%; top:45.8%; width:88%; height:49%; z-index:2; display:flex; align-items:flex-start; justify-content:center; flex-wrap:wrap; gap:1.6% 1.2%; overflow-y:auto; overflow-x:hidden;}
-/* Fixed px padding, not %: percentage padding on a flex item resolves
-   against its flex CONTAINER's width, not its own 140px - that inflated
-   the padding hugely and squeezed .vote-reveal-group-voters to 0 width
+   relevant), each a parchment cutout sized to how many names it holds.
+   max-height, not height: a fixed height reserved the full band even
+   when the actual cards (short lists, few groups) only needed a
+   fraction of it, leaving a lot of visibly empty wood underneath. */
+#vote-reveal-groups{position:absolute; left:6%; top:45.8%; width:88%; max-height:49%; z-index:2; display:flex; align-items:flex-start; justify-content:center; flex-wrap:wrap; gap:1.6% 1.2%; overflow-y:auto; overflow-x:hidden;}
+/* No fixed width here anymore - renderVoteRevealModal sets each card's
+   width itself (from its own content-driven height x its tier's real
+   aspect ratio) right after building this markup, so background-size:
+   100% 100% below paints that tier's art undistorted instead of
+   stretching every tier into one fixed box regardless of its own shape.
+   min-width is just a sane floor before that JS pass runs.
+   Fixed px padding, not %: percentage padding on a flex item resolves
+   against its flex CONTAINER's width, not its own - that inflated the
+   padding hugely and squeezed .vote-reveal-group-voters to 0 width
    (voter names invisible despite rendering with real text content). */
-.vote-reveal-group{position:relative; width:140px; flex:0 0 auto; background-size:100% 100%; background-repeat:no-repeat; padding:16px 13px 10px; box-sizing:border-box; display:flex; flex-direction:column; align-items:center;}
-.vote-reveal-group-target{filter:drop-shadow(0 0 0 var(--danger)); outline:2.5px solid var(--danger); outline-offset:2px; border-radius:3px;}
-/* Sits just inside the card's own corner (not straddling the edge with a
-   negative offset) - #vote-reveal-groups scrolls vertically, and a stamp
-   poking above its own card's top edge was getting clipped by that
-   scroll container's top boundary, invisible despite display:block. */
-.vote-reveal-group-stamp{display:none; position:absolute; top:2%; right:2%; width:22%; height:auto; z-index:4; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.6));}
+.vote-reveal-group{position:relative; min-width:132px; flex:0 0 auto; background-size:100% 100%; background-repeat:no-repeat; padding:16px 13px 10px; box-sizing:border-box; display:flex; flex-direction:column; align-items:center;}
+/* Richer, more saturated red than --danger (which reads closer to salmon
+   at this size) - matches the wax stamp's own dark red instead of
+   clashing with it. Extra top padding clears the stamp badge (fixed
+   26px + 4px inset) so it sits in the corner instead of over the header
+   text. */
+.vote-reveal-group-target{filter:drop-shadow(0 0 0 #8B1414); outline:2.5px solid #8B1414; outline-offset:2px; border-radius:3px; padding-top:36px;}
+/* Fixed px size/offset (not %) - kept it from scaling with the card's own
+   now-variable width, which would put it at wildly different pixel sizes
+   across tiers and, at its old 2%-of-height top offset, right on top of
+   the header text on shorter cards. */
+.vote-reveal-group-stamp{display:none; position:absolute; top:4px; right:4px; width:26px; height:auto; z-index:4; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.6));}
 .vote-reveal-group-target .vote-reveal-group-stamp{display:block;}
 .vote-reveal-group-header{font-family:var(--font-type); font-weight:700; font-size:10.5px; letter-spacing:0.3px; text-transform:uppercase; color:#3a2a18; text-align:center; margin:0 0 9px; line-height:1.25;}
 .vote-reveal-group-voters{display:flex; flex-direction:column; gap:5px; width:100%;}
@@ -6502,10 +6523,22 @@ var VOTE_REVEAL_FLAVOR = {
   neutral: "Their own game, cut short by the noose.",
   cult: "One voice silenced from the circle's chorus."
 };
+// Native crop dimensions (before the pipeline's own resize, which doesn't
+// change aspect ratio) of each parchment tier - see build-daytime-assets.js's
+// vote-reveal section. Used to size each card to the tier's own true shape
+// (a near-square small note, a wide short one, a tall narrow one) instead of
+// stretching every tier into the same fixed box and warping whichever one
+// doesn't happen to match that box's own aspect ratio.
+var VOTE_REVEAL_PARCHMENT_TIERS = [
+  { max: 2, key: 'voteRevealParchmentSmall', ratio: 268 / 264 },
+  { max: 4, key: 'voteRevealParchmentMedium', ratio: 435 / 276 },
+  { max: Infinity, key: 'voteRevealParchmentLarge', ratio: 275 / 451 }
+];
 function voteRevealParchmentTier(count){
-  if(count<=2) return DAYTIME_IMG.voteRevealParchmentSmall;
-  if(count<=4) return DAYTIME_IMG.voteRevealParchmentMedium;
-  return DAYTIME_IMG.voteRevealParchmentLarge;
+  for(var i=0; i<VOTE_REVEAL_PARCHMENT_TIERS.length; i++){
+    if(count<=VOTE_REVEAL_PARCHMENT_TIERS[i].max) return VOTE_REVEAL_PARCHMENT_TIERS[i];
+  }
+  return VOTE_REVEAL_PARCHMENT_TIERS[VOTE_REVEAL_PARCHMENT_TIERS.length-1];
 }
 function renderVoteRevealModal(view){
   var lead = findLynchedFromHistory(view);
@@ -6548,21 +6581,36 @@ function renderVoteRevealModal(view){
     if(b.key==='abstain') return -1;
     return b.voters.length - a.voters.length;
   });
-  document.getElementById('vote-reveal-groups').innerHTML = groupList.map(function(g){
+  var groupsEl = document.getElementById('vote-reveal-groups');
+  groupsEl.innerHTML = groupList.map(function(g){
     var isTarget = !!(g.targetId && g.targetId===lead.id);
+    var tier = voteRevealParchmentTier(g.voters.length);
     var headerText = g.key==='abstain' ? ('Abstained \u2014 '+g.voters.length) : ('Voted for '+g.label+' \u2014 '+g.voters.length);
     var votersHTML = g.voters.map(function(v){
       var voterPlayer = view.players.find(function(p){ return p.id===v.voterId; });
       return '<div class="vote-reveal-voter"><img class="vote-reveal-voter-icon" src="'+portraitImgFor(voterPlayer)+'" alt=""><span class="vote-reveal-voter-name">'+escapeHtmlMp(v.name)+'</span></div>';
     }).join('');
-    return '<div class="vote-reveal-group'+(isTarget?' vote-reveal-group-target':'')+'" style="background-image:url('+voteRevealParchmentTier(g.voters.length)+')">'+
+    return '<div class="vote-reveal-group'+(isTarget?' vote-reveal-group-target':'')+'" data-ratio="'+tier.ratio+'" style="background-image:url('+DAYTIME_IMG[tier.key]+')">'+
       (isTarget ? '<img class="vote-reveal-group-stamp" src="'+DAYTIME_IMG.voteRevealStamp+'" alt="">' : '')+
       '<div class="vote-reveal-group-header">'+escapeHtmlMp(headerText)+'</div>'+
       '<div class="vote-reveal-group-voters">'+votersHTML+'</div>'+
     '</div>';
   }).join('');
-
+  // Modal has to actually be visible (display:flex, not none) before any
+  // getBoundingClientRect() below means anything - every rect on a
+  // display:none subtree reads as 0, which would silently skip every
+  // card's width fix (the h && ratio guard just never firing).
   document.getElementById('vote-reveal-modal').style.display = 'flex';
+  // Width is derived from each card's own content-driven height (however
+  // tall its voter list naturally made it) times its tier's real aspect
+  // ratio - the only way to get background-size:100% 100% to paint that
+  // tier's art at true proportions instead of stretching every tier into
+  // one fixed width regardless of its own shape.
+  Array.prototype.forEach.call(groupsEl.querySelectorAll('.vote-reveal-group'), function(el){
+    var ratio = parseFloat(el.getAttribute('data-ratio'));
+    var h = el.getBoundingClientRect().height;
+    if(h && ratio) el.style.width = Math.round(h * ratio) + 'px';
+  });
 }
 document.getElementById('vote-reveal-close-btn').addEventListener('click', function(){
   document.getElementById('vote-reveal-modal').style.display = 'none';
