@@ -56,6 +56,12 @@ body.game-mode{height:100%; overflow:hidden;}
 .boot-loading-mark{font-size:28px; color:var(--gold); animation:bootSpin 1.4s ease-in-out infinite;}
 .boot-loading-text{font-family:var(--font-type); font-size:13px; letter-spacing:2px; text-transform:uppercase; color:var(--parchment-dim);}
 @keyframes bootSpin{0%{transform:rotate(0deg) scale(1); opacity:0.6;} 50%{transform:rotate(180deg) scale(1.15); opacity:1;} 100%{transform:rotate(360deg) scale(1); opacity:0.6;}}
+/* Pinned above every panel/canvas (not just the join screen's own error
+   text, which is invisible while a game is actually on screen) - a dropped
+   socket mid-game used to leave the player staring at a frozen phase with
+   no feedback and no way back in. This is the visible half of that fix. */
+#reconnect-banner{display:none; position:fixed; top:14px; left:50%; transform:translateX(-50%); z-index:1001; background:rgba(20,16,12,0.94); border:2px solid var(--gold-dim); border-radius:6px; padding:10px 20px; font-family:var(--font-type); font-size:13px; letter-spacing:0.5px; color:var(--parchment); box-shadow:0 4px 14px rgba(0,0,0,0.5);}
+#reconnect-banner.showing{display:block;}
 
 #design-canvas.bg-leather{background:linear-gradient(180deg, rgba(10,8,6,0.6) 0%, rgba(10,8,6,0.8) 100%), var(--bg-leather); background-size:cover; background-position:center;}
 #design-canvas.bg-night{background:linear-gradient(rgba(8,7,6,0.84), rgba(8,7,6,0.92)), var(--bg-night); background-size:cover; background-position:center;}
@@ -1833,6 +1839,7 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
   <div class="boot-loading-mark">&#9670;</div>
   <p class="boot-loading-text">Loading the case files&hellip;</p>
 </div>
+<div id="reconnect-banner"></div>
 <div id="canvas-outer">
 <div id="design-canvas">
 <div class="app-frame" aria-hidden="true">
@@ -3162,7 +3169,58 @@ function connectMultiplayer(){
   ws.addEventListener('close', function(){
     var errEl = document.getElementById('mpentry-error');
     if(errEl){ errEl.textContent = 'Disconnected from server.'; errEl.style.display='block'; }
+    // That error text lives on the join screen and is invisible for the
+    // entire rest of a session - a drop mid-game (a network blip, a
+    // backgrounded tab, a local dev server restart) used to leave whoever's
+    // on screen staring at a permanently frozen phase with zero feedback,
+    // since nothing else ever tried to reconnect. myRoomCode/myPlayerId are
+    // only both set while genuinely in a room; leaveCurrentRoom() clears
+    // them before it closes the socket, so an intentional leave never
+    // reaches here.
+    if(myRoomCode && myPlayerId && !reconnectState){
+      reconnectState = {roomCode: myRoomCode, playerId: myPlayerId, attempt: 0, timer: null};
+      tryReconnect();
+    }
   });
+}
+
+var reconnectState = null;
+function showReconnectBanner(text){
+  var el = document.getElementById('reconnect-banner');
+  if(el){ el.textContent = text; el.classList.add('showing'); }
+}
+function hideReconnectBanner(){
+  var el = document.getElementById('reconnect-banner');
+  if(el) el.classList.remove('showing');
+}
+function stopReconnecting(){
+  if(reconnectState && reconnectState.timer) clearTimeout(reconnectState.timer);
+  reconnectState = null;
+  hideReconnectBanner();
+}
+function tryReconnect(){
+  if(!reconnectState) return;
+  reconnectState.attempt++;
+  // ~10 tries at a 3s spacing - long enough to ride out a real reconnect or
+  // a dev-server restart, short enough not to leave the banner up forever
+  // against a genuinely dead server.
+  if(reconnectState.attempt > 10){
+    var roomCode = reconnectState.roomCode;
+    stopReconnecting();
+    myRoomCode = null; myPlayerId = null;
+    clearActiveSession();
+    renderMpEntryScreen();
+    switchPanel('mpentry');
+    var mpErrEl = document.getElementById('mpentry-error');
+    if(mpErrEl){ mpErrEl.textContent = "Couldn't reconnect to Hollow Creek. Your game may still be running - try rejoining with room code "+roomCode+"."; mpErrEl.style.display = 'block'; }
+    return;
+  }
+  showReconnectBanner('Reconnecting to Hollow Creek…');
+  whenConnected(function(){
+    if(!reconnectState) return; // gave up, or a later attempt already got back in
+    sendWS({type:'rejoin', roomCode: reconnectState.roomCode, playerId: reconnectState.playerId, name: CURRENT_PROFILE.username||'Player', avatarKey: CURRENT_PROFILE.avatarKey, gameIconKey: CURRENT_PROFILE.gameIconKey, color: CURRENT_PROFILE.color});
+  });
+  reconnectState.timer = setTimeout(tryReconnect, 3000);
 }
 
 function whenConnected(fn){
@@ -3199,9 +3257,12 @@ function handleServerMessage(msg){
     // phase update, so there's no separate "resume" logic to duplicate.
     myPlayerId = msg.playerId; myRoomCode = msg.roomCode;
     saveActiveSession();
+    stopReconnecting();
     var rejoinCodeEl = document.getElementById('mp-room-code');
     if(rejoinCodeEl) rejoinCodeEl.textContent = '· '+myRoomCode;
   } else if(msg.type==='rejoinFailed'){
+    stopReconnecting();
+    myRoomCode = null; myPlayerId = null;
     clearActiveSession();
     renderMpEntryScreen();
     switchPanel('mpentry');
@@ -8537,6 +8598,7 @@ document.getElementById('mpentry-edit-profile-btn').addEventListener('click', fu
 // socket, and wipes every piece of client-side state tied to that room so a
 // stray late gameState/roster push can't silently pull the player back in.
 function leaveCurrentRoom(){
+  stopReconnecting();
   sendWS({type:'leave'});
   clearActiveSession();
   if(ws) ws.close();

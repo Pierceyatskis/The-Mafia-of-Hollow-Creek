@@ -212,9 +212,24 @@ function removePlayer(socket) {
   }
 
   if (room.players.length === 0) {
-    clearPhaseTimer(room);
-    delete rooms[code];
-    console.log(`Room ${code} closed (empty)`);
+    // Pre-start, an empty room really is abandoned - nobody's seat holds any
+    // real state yet, so there's nothing to come back to. Once started,
+    // though, zero CONNECTED players doesn't mean zero real players: in a
+    // solo game (the only real player, everyone else a placeholder) this is
+    // the ONLY path a refresh or a momentary drop ever takes, since there's
+    // no other human left in room.players to keep the room around while
+    // they reconnect. Deleting it here used to strand that lone player mid-
+    // game - room.timer would still be running toward the next phase, but
+    // the 'rejoin' handler's `rooms[code]` lookup would already be gone by
+    // the time their client tried to step back in, so their game just
+    // vanished instead of resuming. Leave a started room alive - the seat
+    // is already marked disconnected above, same as any other drop - and
+    // let it keep resolving on its placeholder-driven timers same as usual.
+    if (!room.started) {
+      clearPhaseTimer(room);
+      delete rooms[code];
+      console.log(`Room ${code} closed (empty)`);
+    }
     return;
   }
   if (wasHost) room.hostId = room.players[0].id;

@@ -538,6 +538,48 @@ async function testGhostChatScoping() {
   players.forEach(p => { try { p.ws.close(); } catch (e) {} });
 }
 
+// ============================================================
+// A solo game (1 real player, the rest placeholders) has no other real
+// player in room.players to keep the room alive while the lone human's
+// socket is down - closing it (a refresh, a network blip, a dev-server
+// restart) used to hit room.players.length===0 and delete the room
+// outright, so a subsequent rejoin found nothing there and failed. A
+// STARTED room must survive that and let the same seat rejoin, exactly
+// like a disconnect in a room that still has other real players in it.
+// ============================================================
+async function testSoloDisconnectSurvivesRoom() {
+  const host = await createRoom('Solo1');
+  const roles = { Godfather: false, DoubleAgent: false, Detective: false, Doctor: false, Miller: false, BountyHunter: false, CrazyGranny: false, Coward: false, Farmer: false, NavySeal: false };
+  const started = once(host.ws, m => m.type === 'gameState');
+  send(host.ws, { type: 'start', playerCount: 6, mafiaCount: 1, roles });
+  await started;
+
+  send(host.ws, { type: 'nightAction', action: {} });
+  await once(host.ws, m => m.type === 'gameState' && m.view.phase === 'day-discuss', 8000);
+
+  host.ws.close();
+  await new Promise(r => setTimeout(r, 200)); // let the server's close handler actually run first
+
+  const room = require('./server.js').rooms[host.roomCode];
+  assert(!!room, 'a solo started room is NOT deleted just because its one real player disconnected');
+
+  const ws2 = await connect();
+  // Both listeners attached before sending - 'rejoined' and the gameState
+  // it triggers are sent back-to-back server-side and can arrive in the
+  // same batch, so waiting for them one at a time risks the second
+  // `once()` attaching its listener after that message already fired.
+  const rejoinedPromise = once(ws2, m => m.type === 'rejoined' || m.type === 'rejoinFailed', 3000);
+  const gsPromise = once(ws2, m => m.type === 'gameState', 3000);
+  send(ws2, { type: 'rejoin', roomCode: host.roomCode, playerId: host.playerId, name: 'Solo1' });
+  const rejoinMsg = await rejoinedPromise;
+  assert(rejoinMsg.type === 'rejoined', 'the same seat can rejoin the still-alive room after the drop, instead of getting "room no longer exists"');
+
+  const gs = await gsPromise;
+  assert(gs.view.phase === 'day-discuss', 'the rejoined player sees the game exactly where it was (still day-discuss), not a reset game');
+
+  try { ws2.close(); } catch (e) {}
+}
+
 async function main() {
   await testUndercapacityStartRejected();
   await testCustomRolesEnabled();
@@ -553,6 +595,7 @@ async function main() {
   await testRoundScoreBreakdown();
   await testPlayAgainSameLobby();
   await testGhostChatScoping();
+  await testSoloDisconnectSurvivesRoom();
 
   console.log('\n' + (failures === 0 ? 'All server.js integration checks passed.' : failures + ' CHECK(S) FAILED.'));
   process.exit(failures === 0 ? 0 : 1);
