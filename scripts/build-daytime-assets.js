@@ -946,6 +946,40 @@ async function main() {
     { width: 700, decheckerFn: decheckerWhite, quality: 90 }
   ));
 
+  // Vote-reveal modal (day-reveal phase) - all four of these already ship
+  // with real, clean alpha (hasAlpha:true, no baked-in checker, verified
+  // transparent corners), so passthroughAlpha + a straight resize is all
+  // they need, no dechecker pass.
+  entries.push(await cropSingle(
+    path.join(ASSETS_DIR, '19e330fa-c778-4266-997a-d2b6811125a8.png'), 'voteRevealBg',
+    { left: 0, top: 0, w: 1671, h: 941 }, { width: 1200, decheckerFn: passthroughAlpha, quality: 90 }
+  ));
+  entries.push(await cropSingle(
+    path.join(ASSETS_DIR, '5792e905-5337-434f-bfdf-0a83d60c385e.png'), 'voteRevealFrame',
+    { left: 0, top: 0, w: 1254, h: 1254 }, { width: 500, decheckerFn: passthroughAlpha, quality: 90 }
+  ));
+  entries.push(await cropSingle(
+    path.join(ASSETS_DIR, 'b27a1d84-9653-401c-8ad0-49f5976e77df.png'), 'voteRevealStamp',
+    { left: 0, top: 0, w: 1254, h: 1254 }, { width: 300, decheckerFn: passthroughAlpha, quality: 90 }
+  ));
+  // Parchment size tiers for the "voted for X" cards, cropped from
+  // 6e217f05's sheet of pre-drawn torn-paper shapes (regions found via a
+  // flood-fill connected-component scan, not a fixed grid - the shapes
+  // aren't evenly spaced) - small/near-square, a medium rectangle, and a
+  // tall rectangle, picked at render time by voter count.
+  entries.push(await cropSingle(
+    path.join(ASSETS_DIR, '6e217f05-a79b-4b4c-8adb-fa69551ff887.png'), 'voteRevealParchmentSmall',
+    { left: 44, top: 77, w: 268, h: 264 }, { width: 400, decheckerFn: passthroughAlpha, quality: 90 }
+  ));
+  entries.push(await cropSingle(
+    path.join(ASSETS_DIR, '6e217f05-a79b-4b4c-8adb-fa69551ff887.png'), 'voteRevealParchmentMedium',
+    { left: 700, top: 369, w: 435, h: 276 }, { width: 400, decheckerFn: passthroughAlpha, quality: 90 }
+  ));
+  entries.push(await cropSingle(
+    path.join(ASSETS_DIR, '6e217f05-a79b-4b4c-8adb-fa69551ff887.png'), 'voteRevealParchmentLarge',
+    { left: 367, top: 22, w: 275, h: 451 }, { width: 400, decheckerFn: passthroughAlpha, quality: 90 }
+  ));
+
   let html = fs.readFileSync(GAME_FILE, 'utf8');
   const marker = 'var DAYTIME_IMG = {';
   let startIdx = html.indexOf(marker);
