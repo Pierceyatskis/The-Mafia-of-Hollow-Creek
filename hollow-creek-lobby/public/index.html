@@ -5750,6 +5750,19 @@ function sendHostConfigUpdate(){
 function renderSetupScreen(){
   var todaysModifier = getDailyModifier();
   document.getElementById('daily-modifier-banner').innerHTML = '<span class="dmb-label">Today\'s Case</span><span>'+todaysModifier.name+' — '+todaysModifier.desc+'</span>';
+  // The banner above claims a timer change ("timers run 30% longer
+  // today") but nothing ever actually multiplied discussSeconds/
+  // voteSeconds - the real countdown just used the raw stepper value,
+  // silently ignoring the case. Applied once (guarded so the later re-
+  // renders every +/- click triggers don't compound it) directly onto
+  // the stepper's own base value, so what the host sees in the field IS
+  // what gets sent to the server - no separate multiply-at-send-time
+  // step to fall out of sync with the display again.
+  if(!GAME_CONFIG.timerMultApplied){
+    GAME_CONFIG.discussSeconds = Math.round(GAME_CONFIG.discussSeconds * todaysModifier.timerMult);
+    GAME_CONFIG.voteSeconds = Math.round(GAME_CONFIG.voteSeconds * todaysModifier.timerMult);
+    GAME_CONFIG.timerMultApplied = true;
+  }
   if(GAME_CONFIG.playerCount>MAX_PLAYERS) GAME_CONFIG.playerCount = MAX_PLAYERS;
   if(GAME_CONFIG.playerCount<MIN_PLAYERS) GAME_CONFIG.playerCount = MIN_PLAYERS;
   if(GAME_CONFIG.mafiaCount>MAX_MAFIA_COUNT) GAME_CONFIG.mafiaCount = MAX_MAFIA_COUNT;
