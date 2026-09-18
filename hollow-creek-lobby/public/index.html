@@ -1127,9 +1127,16 @@ body.force-reduced-motion .notebook-view.notebook-page-turn{animation:none;}
 #vote-reveal-role-name.align-neutral{color:var(--align-neutral);}
 #vote-reveal-role-name.align-cult{color:var(--align-cult);}
 #vote-reveal-center{flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:0.35vw; padding:0 1%;}
-#vote-reveal-outcome{font-family:var(--font-display); font-weight:700; font-size:clamp(15px,2vw,28px); color:#8B1414; letter-spacing:1px; text-transform:uppercase; text-shadow:0 2px 3px rgba(0,0,0,0.3);}
+#vote-reveal-outcome{font-family:var(--font-display); font-weight:700; font-size:clamp(15px,2vw,28px); color:#8B1414; letter-spacing:1px; text-transform:uppercase; text-shadow:0 2px 3px rgba(0,0,0,0.3); display:flex; align-items:center; justify-content:center; gap:12px;}
 #vote-reveal-center-stamp{width:clamp(28px,3.8vw,54px); height:auto; margin:0.2vw 0;}
-#vote-reveal-role-revealed{font-family:var(--font-type); font-weight:700; font-size:clamp(10px,1.25vw,17px); letter-spacing:1px; text-transform:uppercase; color:#3a2a18;}
+#vote-reveal-role-revealed{font-family:var(--font-type); font-weight:700; font-size:clamp(10px,1.25vw,17px); letter-spacing:1px; text-transform:uppercase; color:#3a2a18; display:flex; align-items:center; justify-content:center; gap:8px;}
+/* Same fading-line motif as the stage's own #daylayout-stage-rule divider -
+   flanks the outcome/role-revealed text instead of leaving it bare, matching
+   the mockup's ornamental dividers either side of both lines. */
+#vote-reveal-outcome::before, #vote-reveal-outcome::after{content:''; height:1px; width:clamp(16px,2.6vw,38px); flex:0 0 auto;}
+#vote-reveal-outcome::before{background:linear-gradient(90deg, transparent, #8B1414);}
+#vote-reveal-outcome::after{background:linear-gradient(90deg, #8B1414, transparent);}
+#vote-reveal-role-revealed::before, #vote-reveal-role-revealed::after{content:''; height:1px; width:clamp(10px,1.6vw,22px); flex:0 0 auto; background:var(--gold-dim);}
 #vote-reveal-flavor{font-family:var(--font-body); font-style:italic; font-size:clamp(9px,0.9vw,12.5px); color:#5a4a36; max-width:96%; line-height:1.3;}
 /* Wood band - one card per vote target (plus an "abstained" card when
    relevant), each a parchment cutout sized to how many names it holds.
@@ -1137,17 +1144,16 @@ body.force-reduced-motion .notebook-view.notebook-page-turn{animation:none;}
    when the actual cards (short lists, few groups) only needed a
    fraction of it, leaving a lot of visibly empty wood underneath. */
 #vote-reveal-groups{position:absolute; left:6%; top:45.8%; width:88%; max-height:49%; z-index:2; display:flex; align-items:flex-start; justify-content:center; flex-wrap:wrap; gap:1.6% 1.2%; overflow-y:auto; overflow-x:hidden;}
-/* No fixed width here anymore - renderVoteRevealModal sets each card's
-   width itself (from its own content-driven height x its tier's real
-   aspect ratio) right after building this markup, so background-size:
-   100% 100% below paints that tier's art undistorted instead of
-   stretching every tier into one fixed box regardless of its own shape.
-   min-width is just a sane floor before that JS pass runs.
+/* Uniform card size (matches the mockup - every group card is the same
+   box regardless of vote count, only the voter list inside grows/shrinks),
+   grown/shrunk via flex to divide the full row width evenly instead of
+   packing left and leaving the rest of the wood band empty. max-width
+   keeps a lone group (or just two) from stretching into one giant card.
    Fixed px padding, not %: percentage padding on a flex item resolves
    against its flex CONTAINER's width, not its own - that inflated the
    padding hugely and squeezed .vote-reveal-group-voters to 0 width
    (voter names invisible despite rendering with real text content). */
-.vote-reveal-group{position:relative; min-width:132px; flex:0 0 auto; background-size:100% 100%; background-repeat:no-repeat; padding:16px 13px 10px; box-sizing:border-box; display:flex; flex-direction:column; align-items:center;}
+.vote-reveal-group{position:relative; min-width:132px; max-width:260px; flex:1 1 150px; background-repeat:no-repeat; padding:16px 13px 10px; box-sizing:border-box; display:flex; flex-direction:column; align-items:center;}
 /* Richer, more saturated red than --danger (which reads closer to salmon
    at this size) - matches the wax stamp's own dark red instead of
    clashing with it. Extra top padding clears the stamp badge (fixed
@@ -6523,23 +6529,21 @@ var VOTE_REVEAL_FLAVOR = {
   neutral: "Their own game, cut short by the noose.",
   cult: "One voice silenced from the circle's chorus."
 };
-// Native crop dimensions (before the pipeline's own resize, which doesn't
-// change aspect ratio) of each parchment tier - see build-daytime-assets.js's
-// vote-reveal section. Used to size each card to the tier's own true shape
-// (a near-square small note, a wide short one, a tall narrow one) instead of
-// stretching every tier into the same fixed box and warping whichever one
-// doesn't happen to match that box's own aspect ratio.
-var VOTE_REVEAL_PARCHMENT_TIERS = [
-  { max: 2, key: 'voteRevealParchmentSmall', ratio: 268 / 264 },
-  { max: 4, key: 'voteRevealParchmentMedium', ratio: 435 / 276 },
-  { max: Infinity, key: 'voteRevealParchmentLarge', ratio: 275 / 451 }
-];
-function voteRevealParchmentTier(count){
-  for(var i=0; i<VOTE_REVEAL_PARCHMENT_TIERS.length; i++){
-    if(count<=VOTE_REVEAL_PARCHMENT_TIERS[i].max) return VOTE_REVEAL_PARCHMENT_TIERS[i];
-  }
-  return VOTE_REVEAL_PARCHMENT_TIERS[VOTE_REVEAL_PARCHMENT_TIERS.length-1];
-}
+// The mockup keeps every group card the same uniform size regardless of
+// vote count - only the voter list inside grows/shrinks - so these 3
+// parchment crops are just rotated by position for visual variety (each
+// card a different piece of the sheet), not picked by how many voters
+// are in that group.
+var VOTE_REVEAL_PARCHMENT_KEYS = ['voteRevealParchmentSmall', 'voteRevealParchmentMedium', 'voteRevealParchmentLarge'];
+// Small brass rivet in each corner, same gold as the frame/plaque hardware
+// used everywhere else on this modal - drawn as extra background layers
+// rather than new DOM nodes or a cropped asset.
+var VOTE_REVEAL_RIVET_LAYERS = [
+  'radial-gradient(circle 3.5px at 9px 9px, var(--gold-bright) 0%, var(--gold-dim) 75%, transparent 78%)',
+  'radial-gradient(circle 3.5px at calc(100% - 9px) 9px, var(--gold-bright) 0%, var(--gold-dim) 75%, transparent 78%)',
+  'radial-gradient(circle 3.5px at 9px calc(100% - 9px), var(--gold-bright) 0%, var(--gold-dim) 75%, transparent 78%)',
+  'radial-gradient(circle 3.5px at calc(100% - 9px) calc(100% - 9px), var(--gold-bright) 0%, var(--gold-dim) 75%, transparent 78%)'
+].join(', ');
 function renderVoteRevealModal(view){
   var lead = findLynchedFromHistory(view);
   if(!lead) return;
@@ -6582,35 +6586,22 @@ function renderVoteRevealModal(view){
     return b.voters.length - a.voters.length;
   });
   var groupsEl = document.getElementById('vote-reveal-groups');
-  groupsEl.innerHTML = groupList.map(function(g){
+  groupsEl.innerHTML = groupList.map(function(g, i){
     var isTarget = !!(g.targetId && g.targetId===lead.id);
-    var tier = voteRevealParchmentTier(g.voters.length);
+    var artKey = VOTE_REVEAL_PARCHMENT_KEYS[i % VOTE_REVEAL_PARCHMENT_KEYS.length];
     var headerText = g.key==='abstain' ? ('Abstained \u2014 '+g.voters.length) : ('Voted for '+g.label+' \u2014 '+g.voters.length);
     var votersHTML = g.voters.map(function(v){
       var voterPlayer = view.players.find(function(p){ return p.id===v.voterId; });
       return '<div class="vote-reveal-voter"><img class="vote-reveal-voter-icon" src="'+portraitImgFor(voterPlayer)+'" alt=""><span class="vote-reveal-voter-name">'+escapeHtmlMp(v.name)+'</span></div>';
     }).join('');
-    return '<div class="vote-reveal-group'+(isTarget?' vote-reveal-group-target':'')+'" data-ratio="'+tier.ratio+'" style="background-image:url('+DAYTIME_IMG[tier.key]+')">'+
+    var bgImage = VOTE_REVEAL_RIVET_LAYERS+', url('+DAYTIME_IMG[artKey]+')';
+    return '<div class="vote-reveal-group'+(isTarget?' vote-reveal-group-target':'')+'" style="background-image:'+bgImage+'; background-size:100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%;">'+
       (isTarget ? '<img class="vote-reveal-group-stamp" src="'+DAYTIME_IMG.voteRevealStamp+'" alt="">' : '')+
       '<div class="vote-reveal-group-header">'+escapeHtmlMp(headerText)+'</div>'+
       '<div class="vote-reveal-group-voters">'+votersHTML+'</div>'+
     '</div>';
   }).join('');
-  // Modal has to actually be visible (display:flex, not none) before any
-  // getBoundingClientRect() below means anything - every rect on a
-  // display:none subtree reads as 0, which would silently skip every
-  // card's width fix (the h && ratio guard just never firing).
   document.getElementById('vote-reveal-modal').style.display = 'flex';
-  // Width is derived from each card's own content-driven height (however
-  // tall its voter list naturally made it) times its tier's real aspect
-  // ratio - the only way to get background-size:100% 100% to paint that
-  // tier's art at true proportions instead of stretching every tier into
-  // one fixed width regardless of its own shape.
-  Array.prototype.forEach.call(groupsEl.querySelectorAll('.vote-reveal-group'), function(el){
-    var ratio = parseFloat(el.getAttribute('data-ratio'));
-    var h = el.getBoundingClientRect().height;
-    if(h && ratio) el.style.width = Math.round(h * ratio) + 'px';
-  });
 }
 document.getElementById('vote-reveal-close-btn').addEventListener('click', function(){
   document.getElementById('vote-reveal-modal').style.display = 'none';
