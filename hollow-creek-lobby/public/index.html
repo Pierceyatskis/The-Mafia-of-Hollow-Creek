@@ -6661,6 +6661,25 @@ var BULLETIN_PHASE_TEXT = {
   'day-reveal': "The town holds its breath as the verdict comes in.",
   'farmer-revenge': "One last stand. Choose who goes down with you."
 };
+// The cabinet's bulletin notes (#daylayout-note1/2-body) are pinned to a
+// fixed height measured off the cabinet art, but their text is dynamic
+// (phase copy, the overnight report) - both the day-discuss and day-vote
+// phase strings ran past the box's real height at the default 12.5px
+// (overflow:hidden then just silently cut the tail off instead of
+// visibly spilling, but the effect is the same complaint: text that
+// doesn't fit). Shrinks the font a half-px at a time until the content
+// actually fits, rather than guessing a single smaller size that might
+// still overflow a longer overnight-report line another night.
+function fitNoteBodyText(el){
+  if(!el) return;
+  el.style.fontSize = '';
+  var minSize = 9;
+  var size = parseFloat(getComputedStyle(el).fontSize);
+  while(el.scrollHeight > el.clientHeight + 0.5 && size > minSize){
+    size -= 0.5;
+    el.style.fontSize = size + 'px';
+  }
+}
 // TEMP day-layout-rebuild - tracks the living count across NIGHTS (not
 // renders - renderDayPanel fires repeatedly within the same day, e.g. on
 // every chat message, so re-baselining on every call always compared the
@@ -6767,6 +6786,8 @@ function renderDayPanel(){
   // every case correctly - single death, doctor save, multiple deaths).
   document.getElementById('daylayout-note1-body').innerHTML = view.cachedOvernightReport || '';
   document.getElementById('daylayout-note2-body').textContent = phaseInstructions;
+  fitNoteBodyText(document.getElementById('daylayout-note1-body'));
+  fitNoteBodyText(document.getElementById('daylayout-note2-body'));
   document.getElementById('daylayout-note3-count').innerHTML = livingCount+(livingCount===1 ? ' PLAYER<br>REMAINS' : ' PLAYERS<br>REMAIN');
   if(daylayoutSubtitleNight !== view.night){
     // Day 1 has no prior render to compare against yet - fall back to the
