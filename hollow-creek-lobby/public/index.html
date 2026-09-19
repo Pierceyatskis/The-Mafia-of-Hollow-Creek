@@ -3586,20 +3586,33 @@ var SoundFX = (function(){
     osc.connect(gain); gain.connect(c.destination);
     osc.start(start); osc.stop(start + dur + 0.03);
   }
-  // Short filtered-noise burst (paper rustle) - no sample file needed.
-  function noise(c, start, dur, freq, q, peak){
+  // Filtered noise with a soft attack; the filter can sweep (f -> fEnd),
+  // which is what turns plain hiss into a page/card swish instead of a
+  // drum-like burst.
+  function noiseBurst(c, start, dur, type, f, fEnd, q, peak, attack){
     var len = Math.max(1, Math.floor(c.sampleRate * dur));
     var buf = c.createBuffer(1, len, c.sampleRate);
     var d = buf.getChannelData(0);
     for(var i=0;i<len;i++) d[i] = Math.random()*2-1;
     var src = c.createBufferSource(); src.buffer = buf;
-    var filt = c.createBiquadFilter(); filt.type = 'bandpass'; filt.frequency.value = freq; filt.Q.value = q;
+    var filt = c.createBiquadFilter(); filt.type = type; filt.Q.value = q;
+    filt.frequency.setValueAtTime(f, start);
+    if(fEnd) filt.frequency.exponentialRampToValueAtTime(fEnd, start + dur);
     var gain = c.createGain();
+    var att = attack || 0.012;
     gain.gain.setValueAtTime(0.0001, start);
-    gain.gain.exponentialRampToValueAtTime(Math.max(peak * sfxVolume, 0.0001), start + 0.012);
+    gain.gain.exponentialRampToValueAtTime(Math.max(peak * sfxVolume, 0.0001), start + att);
     gain.gain.exponentialRampToValueAtTime(0.0001, start + dur);
     src.connect(filt); filt.connect(gain); gain.connect(c.destination);
     src.start(start); src.stop(start + dur + 0.02);
+  }
+  // Paper crackle: lots of tiny, randomly timed/leveled high-passed grains.
+  function crinkle(c, start, dur, peak){
+    var grains = Math.max(3, Math.round(dur * 70));
+    for(var i=0;i<grains;i++){
+      var t = start + Math.random() * dur;
+      noiseBurst(c, t, 0.006 + Math.random()*0.008, 'highpass', 3500 + Math.random()*3500, 0, 0.7, peak * (0.35 + Math.random()*0.65), 0.002);
+    }
   }
   function jitter(f){ return f * (1 + (Math.random()*2-1) * 0.04); }
   function safe(fn){
@@ -3678,32 +3691,74 @@ var SoundFX = (function(){
     click: function(){
       safe(function(c){ tone(c, 640, c.currentTime, 0.055, 'triangle', 0.10); });
     },
-    // Day-page button set - all synthesized like click(), each a little
-    // different so tabs, page-opens, stage controls and votes don't all
-    // sound identical. Slight random pitch so repeats don't sound robotic.
-    tap: function(){
-      safe(function(c){ tone(c, jitter(470), c.currentTime, 0.04, 'sine', 0.11, 340); });
-    },
-    thock: function(){
+    // Day-page button set - all synthesized like click(), and chosen to
+    // match what's being touched: paper for cards/pages/newspaper, a soft
+    // thump for the notebook, a rubber-stamp press for votes and marks, cog
+    // ticks for the gear, small mechanical ticks for the stage. Slight random
+    // pitch/timing so repeats don't sound identical.
+    paper: function(){ // a card / photo picked up
       safe(function(c){
-        tone(c, jitter(210), c.currentTime, 0.11, 'triangle', 0.24, 85);
-        tone(c, jitter(340), c.currentTime, 0.04, 'sine', 0.08, 200);
+        var t = c.currentTime;
+        noiseBurst(c, t, 0.12, 'bandpass', jitter(1500), 3600, 0.8, 0.05, 0.03);
+        crinkle(c, t + 0.01, 0.09, 0.035);
       });
     },
-    paper: function(){
+    paperBig: function(){ // newspaper / case file - longer, more rustle
       safe(function(c){
-        noise(c, c.currentTime, 0.13, jitter(2600), 0.7, 0.16);
-        tone(c, jitter(300), c.currentTime, 0.05, 'sine', 0.05, 220);
+        var t = c.currentTime;
+        noiseBurst(c, t, 0.22, 'bandpass', jitter(900), 3200, 0.7, 0.06, 0.05);
+        crinkle(c, t + 0.02, 0.2, 0.05);
       });
     },
-    latch: function(){
+    flick: function(){ // envelope sliding
       safe(function(c){
-        tone(c, jitter(1500), c.currentTime, 0.03, 'square', 0.045, 1200);
-        tone(c, jitter(980), c.currentTime + 0.05, 0.04, 'square', 0.05, 760);
+        var t = c.currentTime;
+        noiseBurst(c, t, 0.15, 'bandpass', jitter(3200), 1400, 0.8, 0.05, 0.03);
+        crinkle(c, t + 0.03, 0.07, 0.03);
       });
     },
-    close: function(){
-      safe(function(c){ tone(c, jitter(540), c.currentTime, 0.07, 'triangle', 0.10, 330); });
+    book: function(){ // leather notebook: soft thump, then the page
+      safe(function(c){
+        var t = c.currentTime;
+        noiseBurst(c, t, 0.08, 'lowpass', 500, 0, 0.7, 0.13, 0.006);
+        noiseBurst(c, t + 0.05, 0.13, 'bandpass', jitter(1600), 3400, 0.8, 0.045, 0.03);
+        crinkle(c, t + 0.06, 0.08, 0.03);
+      });
+    },
+    stamp: function(){ // votes and judgment marks - a soft rubber-stamp press, no pitch drop
+      safe(function(c){
+        var t = c.currentTime;
+        noiseBurst(c, t, 0.07, 'lowpass', 700, 0, 0.7, 0.13, 0.004);
+        tone(c, jitter(135), t, 0.07, 'sine', 0.09);
+      });
+    },
+    ratchet: function(){ // settings gear: cog ticks
+      safe(function(c){
+        var t = c.currentTime;
+        for(var i=0;i<3;i++){
+          noiseBurst(c, t + i*0.035, 0.014, 'bandpass', jitter(4200), 0, 4, 0.08, 0.002);
+          tone(c, jitter(2100), t + i*0.035, 0.012, 'sine', 0.025);
+        }
+      });
+    },
+    tap: function(){ // tabs and small buttons: a light tick
+      safe(function(c){
+        var t = c.currentTime;
+        noiseBurst(c, t, 0.022, 'bandpass', jitter(3000), 0, 2, 0.06, 0.002);
+        tone(c, jitter(1100), t, 0.014, 'sine', 0.02);
+      });
+    },
+    latch: function(){ // stage controls: a two-part switch click
+      safe(function(c){
+        var t = c.currentTime;
+        noiseBurst(c, t, 0.014, 'bandpass', jitter(3200), 0, 3, 0.07, 0.002);
+        noiseBurst(c, t + 0.05, 0.016, 'bandpass', jitter(2300), 0, 3, 0.06, 0.002);
+      });
+    },
+    close: function(){ // closing a page - a short soft swish
+      safe(function(c){
+        noiseBurst(c, c.currentTime, 0.1, 'bandpass', jitter(3000), 1300, 0.8, 0.04, 0.02);
+      });
     },
     chatBlip: function(){
       safe(function(c){ tone(c, 880, c.currentTime, 0.035, 'sine', 0.045); });
@@ -3849,16 +3904,19 @@ function screenShake(target){
 }
 var CONFIRM_BTN_IDS = {'night-confirm-btn':1,'player-action-vote-btn':1,'farmer-revenge-confirm-btn':1,'start-btn':1,'continue-to-night-btn':1,'night-continue-btn':1,'setup-start-btn':1,'resume-btn':1};
 var VOTE_LOCK_BTN_IDS = {'day-confirm-btn':1,'night-confirm-btn':1,'player-action-vote-btn':1,'farmer-revenge-confirm-btn':1};
-// Day-page buttons get their own click sound by kind (see SoundFX.tap/thock/
+// Day-page buttons get their own click sound by kind (see SoundFX.paper/paperBig/flick/book/stamp/
 // paper/latch/close). Registered before the generic .btn delegate below,
 // which skips anything this one already handled so nothing double-plays.
 function dayButtonSoundFor(el){
   var id = el.id || '';
   if(id==='day-confirm-btn') return 'confirm';
-  if(el.classList.contains('notebook-vote-btn') || el.classList.contains('case-log-vote-btn') || id==='player-action-vote-btn') return 'thock';
+  if(el.classList.contains('notebook-vote-btn') || el.classList.contains('case-log-vote-btn') || id==='player-action-vote-btn' || el.classList.contains('notebook-judgment-btn')) return 'stamp';
   if(el.classList.contains('notebook-close-btn') || el.classList.contains('notebook-return-btn') || el.getAttribute('aria-label')==='Close' || /close/i.test(id)) return 'close';
-  if(id==='role-envelope' || /^daylayout-desk-(newspaper|casefile|notebook)-wrap$/.test(id) || el.classList.contains('daylayout-roster-tile') || el.classList.contains('notebook-directory-card')) return 'paper';
-  if(id==='daylayout-desk-gear-wrap') return 'thock';
+  if(id==='role-envelope') return 'flick';
+  if(id==='daylayout-desk-notebook-wrap') return 'book';
+  if(id==='daylayout-desk-newspaper-wrap' || id==='daylayout-desk-casefile-wrap') return 'paperBig';
+  if(el.classList.contains('daylayout-roster-tile') || el.classList.contains('notebook-directory-card')) return 'paper';
+  if(id==='daylayout-desk-gear-wrap') return 'ratchet';
   if(/^(daylayout-stage-|stage-)/.test(id) || el.classList.contains('stage-reaction-btn')) return 'latch';
   return 'tap';
 }
