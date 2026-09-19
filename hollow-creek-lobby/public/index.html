@@ -3586,6 +3586,22 @@ var SoundFX = (function(){
     osc.connect(gain); gain.connect(c.destination);
     osc.start(start); osc.stop(start + dur + 0.03);
   }
+  // Short filtered-noise burst (paper rustle) - no sample file needed.
+  function noise(c, start, dur, freq, q, peak){
+    var len = Math.max(1, Math.floor(c.sampleRate * dur));
+    var buf = c.createBuffer(1, len, c.sampleRate);
+    var d = buf.getChannelData(0);
+    for(var i=0;i<len;i++) d[i] = Math.random()*2-1;
+    var src = c.createBufferSource(); src.buffer = buf;
+    var filt = c.createBiquadFilter(); filt.type = 'bandpass'; filt.frequency.value = freq; filt.Q.value = q;
+    var gain = c.createGain();
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(Math.max(peak * sfxVolume, 0.0001), start + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+    src.connect(filt); filt.connect(gain); gain.connect(c.destination);
+    src.start(start); src.stop(start + dur + 0.02);
+  }
+  function jitter(f){ return f * (1 + (Math.random()*2-1) * 0.04); }
   function safe(fn){
     if(muted) return;
     var c = getCtx();
@@ -3661,6 +3677,33 @@ var SoundFX = (function(){
     },
     click: function(){
       safe(function(c){ tone(c, 640, c.currentTime, 0.055, 'triangle', 0.10); });
+    },
+    // Day-page button set - all synthesized like click(), each a little
+    // different so tabs, page-opens, stage controls and votes don't all
+    // sound identical. Slight random pitch so repeats don't sound robotic.
+    tap: function(){
+      safe(function(c){ tone(c, jitter(470), c.currentTime, 0.04, 'sine', 0.11, 340); });
+    },
+    thock: function(){
+      safe(function(c){
+        tone(c, jitter(210), c.currentTime, 0.11, 'triangle', 0.24, 85);
+        tone(c, jitter(340), c.currentTime, 0.04, 'sine', 0.08, 200);
+      });
+    },
+    paper: function(){
+      safe(function(c){
+        noise(c, c.currentTime, 0.13, jitter(2600), 0.7, 0.16);
+        tone(c, jitter(300), c.currentTime, 0.05, 'sine', 0.05, 220);
+      });
+    },
+    latch: function(){
+      safe(function(c){
+        tone(c, jitter(1500), c.currentTime, 0.03, 'square', 0.045, 1200);
+        tone(c, jitter(980), c.currentTime + 0.05, 0.04, 'square', 0.05, 760);
+      });
+    },
+    close: function(){
+      safe(function(c){ tone(c, jitter(540), c.currentTime, 0.07, 'triangle', 0.10, 330); });
     },
     chatBlip: function(){
       safe(function(c){ tone(c, 880, c.currentTime, 0.035, 'sine', 0.045); });
@@ -3806,7 +3849,32 @@ function screenShake(target){
 }
 var CONFIRM_BTN_IDS = {'night-confirm-btn':1,'player-action-vote-btn':1,'farmer-revenge-confirm-btn':1,'start-btn':1,'continue-to-night-btn':1,'night-continue-btn':1,'setup-start-btn':1,'resume-btn':1};
 var VOTE_LOCK_BTN_IDS = {'day-confirm-btn':1,'night-confirm-btn':1,'player-action-vote-btn':1,'farmer-revenge-confirm-btn':1};
+// Day-page buttons get their own click sound by kind (see SoundFX.tap/thock/
+// paper/latch/close). Registered before the generic .btn delegate below,
+// which skips anything this one already handled so nothing double-plays.
+function dayButtonSoundFor(el){
+  var id = el.id || '';
+  if(id==='day-confirm-btn') return 'confirm';
+  if(el.classList.contains('notebook-vote-btn') || el.classList.contains('case-log-vote-btn') || id==='player-action-vote-btn') return 'thock';
+  if(el.classList.contains('notebook-close-btn') || el.classList.contains('notebook-return-btn') || el.getAttribute('aria-label')==='Close' || /close/i.test(id)) return 'close';
+  if(id==='role-envelope' || /^daylayout-desk-(newspaper|casefile|notebook)-wrap$/.test(id) || el.classList.contains('daylayout-roster-tile') || el.classList.contains('notebook-directory-card')) return 'paper';
+  if(id==='daylayout-desk-gear-wrap') return 'thock';
+  if(/^(daylayout-stage-|stage-)/.test(id) || el.classList.contains('stage-reaction-btn')) return 'latch';
+  return 'tap';
+}
 document.addEventListener('click', function(e){
+  var canvas = document.getElementById('design-canvas');
+  if(!canvas || !canvas.classList.contains('bg-day')) return;
+  var el = e.target.closest('button, [role="button"], .daylayout-btn-fx, #role-envelope');
+  if(!el || !canvas.contains(el)) return;
+  e.__hcSoundHandled = true;
+  if(el.disabled || el.getAttribute('aria-disabled')==='true') return;
+  var kind = dayButtonSoundFor(el);
+  if(SoundFX[kind]) SoundFX[kind]();
+  if(VOTE_LOCK_BTN_IDS[el.id]) vibrate(15);
+}, true);
+document.addEventListener('click', function(e){
+  if(e.__hcSoundHandled) return;
   var btn = e.target.closest('.btn');
   if(!btn) return;
   if(CONFIRM_BTN_IDS[btn.id]) SoundFX.confirm();
@@ -7034,7 +7102,6 @@ document.getElementById('daylayout-roster-grid').addEventListener('click', funct
   if(!tile) return;
   var id = tile.getAttribute('data-id');
   if(id===myPlayerId){ openRoleCardModal(); return; }
-  SoundFX.click();
   openNotebookModalToPlayer(id);
 });
 document.getElementById('daylayout-roster-grid').addEventListener('keydown', function(e){
@@ -9343,7 +9410,6 @@ document.getElementById('notebook-dossier-vote-btn').addEventListener('click', f
   renderTownBoard();
   renderNotebookDossier(notebookOpenPlayerId);
   if(!alreadyChosen){
-    SoundFX.click();
     var votePlate = this;
     votePlate.classList.remove('pressing'); void votePlate.offsetWidth; votePlate.classList.add('pressing');
     setTimeout(function(){ votePlate.classList.remove('pressing'); }, 320);
