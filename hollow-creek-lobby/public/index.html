@@ -1062,7 +1062,13 @@ body.force-reduced-motion .notebook-view.notebook-page-turn{animation:none;}
    slight scale-up that covers the painted one) can be used; a lift/shrink would expose the duplicate. */
 .notebook-vote-btn{background-size:100% 100%; background-repeat:no-repeat; transition:filter .15s ease, transform .12s ease;}
 .notebook-vote-btn:not(:disabled):hover{color:#fff; filter:brightness(1.18) saturate(1.15) drop-shadow(0 0 8px rgba(227,177,85,0.55)); transform:scale(1.025);}
-.notebook-vote-btn:not(:disabled):active{filter:brightness(0.92); transform:scale(1.01);}
+.notebook-vote-btn:not(:disabled):active{filter:brightness(0.85); transform:none;}
+/* Pressed-in state once this player is the selected ballot. No scale/lift on purpose - the painted plate underneath would show as a ring
+   around a shrunk copy - so "pressed" is done with a darker plate, an inset shadow and the label sinking a few px. */
+.notebook-vote-btn{border-radius:5px; padding-top:0;}
+.notebook-vote-btn.selected, .notebook-vote-btn.selected:not(:disabled):hover, .notebook-vote-btn.selected:not(:disabled):active{filter:brightness(0.78) contrast(1.06); transform:none; box-shadow:inset 0 5px 12px rgba(0,0,0,0.7), inset 0 0 0 1px rgba(0,0,0,0.45), inset 0 -1px 0 rgba(255,255,255,0.1); padding-top:0.45cqw; color:#d8c69c; cursor:default;}
+.notebook-vote-btn.pressing{animation:notebookVotePress .28s ease-out;}
+@keyframes notebookVotePress{0%{filter:brightness(1.18); box-shadow:none; padding-top:0;} 45%{filter:brightness(0.66) contrast(1.1); box-shadow:inset 0 7px 14px rgba(0,0,0,0.8); padding-top:0.7cqw;} 100%{filter:brightness(0.78) contrast(1.06); box-shadow:inset 0 5px 12px rgba(0,0,0,0.7); padding-top:0.45cqw;}}
 .notebook-vote-btn:disabled{color:#8a7a68; cursor:default;}
 /* Whisper/More row - plain UI chrome (same rgba-parchment treatment as the
    judgment buttons above) rather than a painted button, since the art has
@@ -9154,7 +9160,9 @@ function renderNotebookDossier(playerId){
 
   var voteBtn = document.getElementById('notebook-dossier-vote-btn');
   var canVoteFor = latestView.phase==='day-vote' && p.alive && p.id!==myPlayerId;
-  voteBtn.textContent = 'Vote for '+p.name;
+  var voteChosen = canVoteFor && pendingDayVoteId === p.id;
+  voteBtn.classList.toggle('selected', voteChosen);
+  voteBtn.textContent = (voteChosen ? 'Voting for ' : 'Vote for ')+p.name;
   voteBtn.disabled = !canVoteFor;
   voteBtn.setAttribute('aria-label', canVoteFor ? 'Vote for '+p.name : 'Voting is not currently available');
 
@@ -9330,9 +9338,16 @@ document.getElementById('notebook-dossier-vote-btn').addEventListener('click', f
   // ballot paper before pressing Confirm Vote themselves. This used to
   // auto-click day-confirm-btn immediately, skipping that confirm step
   // entirely.
+  var alreadyChosen = pendingDayVoteId === notebookOpenPlayerId;
   pendingDayVoteId = notebookOpenPlayerId;
   renderTownBoard();
   renderNotebookDossier(notebookOpenPlayerId);
+  if(!alreadyChosen){
+    SoundFX.click();
+    var votePlate = this;
+    votePlate.classList.remove('pressing'); void votePlate.offsetWidth; votePlate.classList.add('pressing');
+    setTimeout(function(){ votePlate.classList.remove('pressing'); }, 320);
+  }
 });
 
 // ==================== Task 4 - small polish ====================
