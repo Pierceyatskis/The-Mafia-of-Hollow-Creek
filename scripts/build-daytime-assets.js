@@ -980,6 +980,11 @@ async function main() {
     { left: 367, top: 22, w: 275, h: 451 }, { width: 400, decheckerFn: passthroughAlpha, quality: 90 }
   ));
 
+  entries.push(await cropSingle(
+    path.join(ASSETS_DIR, '6e217f05-a79b-4b4c-8adb-fa69551ff887.png'), 'voteRevealParchmentWide',
+    { left: 699, top: 84, w: 792, h: 217 }, { width: 640, decheckerFn: passthroughAlpha, quality: 90 }
+  ));
+
   let html = fs.readFileSync(GAME_FILE, 'utf8');
   const marker = 'var DAYTIME_IMG = {';
   let startIdx = html.indexOf(marker);
