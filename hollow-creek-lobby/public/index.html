@@ -763,6 +763,18 @@ body.force-reduced-motion .ballot-box-seal.playing{animation:none !important; op
    space it doesn't need. Same reasoning keeps day untouched too, which
    positions everything itself. */
 #panel-night{padding-top:140px;}
+/* Night and end: the panels that hold the interactive content used to
+   re-paint their own copy of the scene (background-attachment:fixed +
+   cover), which inside the scaled design canvas never lines up with the
+   canvas's own copy of the same image - so the panel showed a visibly
+   shifted/rescaled patch of street inside a rectangle, with a seam at its
+   edge. They now paint no image of their own: the canvas's single
+   background shows straight through, and the panel is just a translucent
+   dark tint over it (for text legibility), so scene and panel always
+   register. */
+/* margin-right keeps the content clear of the fixed 'Your role' badge pinned to the canvas's right edge. */
+#design-canvas.bg-night #game-folder, #design-canvas.bg-end #game-folder{background:rgba(10,8,6,0.55); box-shadow:0 10px 30px rgba(0,0,0,0.35); margin-right:130px;}
+#design-canvas.bg-night #panel-night, #design-canvas.bg-end #panel-end{background:none;}
 .app-frame::before{content:''; position:absolute; inset:6px; border:1px solid var(--gold-dim); border-radius:4px; opacity:0.7;}
 .corner{position:absolute; width:44px; height:44px;}
 .corner-tl{top:-2px; left:-2px;}
