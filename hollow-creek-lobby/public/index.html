@@ -998,7 +998,18 @@ body.force-reduced-motion .notebook-view.notebook-page-turn{animation:none;}
 .notebook-filter-tab:hover{filter:brightness(1.15);}
 .notebook-filter-tab.active{color:var(--gold-bright); filter:drop-shadow(0 0 6px rgba(227,177,85,0.75)) brightness(1.2);}
 .notebook-filter-tab:focus-visible{outline:2px solid var(--gold-bright); outline-offset:2px;}
-.notebook-vote-banner{position:absolute; left:6%; top:13.8%; right:6%; margin:0; text-align:center; font-family:var(--font-type); font-size:13px; color:var(--gold-bright); letter-spacing:0.5px;}
+.notebook-vote-banner{position:absolute; left:6%; top:12.1%; right:6%; margin:0; display:flex; align-items:center; justify-content:center; gap:8px; font-family:var(--font-type); font-size:clamp(9px,0.88vw,12px); line-height:1.1; color:#f2d9a0; letter-spacing:0.2px; background:rgba(34,22,12,0.92); border:1px solid var(--gold-dim); border-radius:3px; padding:1px 8px; z-index:3; pointer-events:auto; white-space:nowrap;}
+.notebook-vote-banner[hidden]{display:none;}
+.notebook-vote-nav{background:none; border:1px solid var(--gold-dim); color:var(--gold-bright); border-radius:3px; cursor:pointer; font-size:8px; line-height:1; padding:2px 5px;}
+.notebook-vote-nav:hover:not(:disabled){background:rgba(227,177,85,0.2);}
+.notebook-vote-nav:disabled{opacity:0.3; cursor:default;}
+.notebook-vote-nav[hidden]{display:none;}
+.notebook-filter-tab{position:relative;}
+.notebook-tab-count{position:absolute; top:-6px; right:-3px; min-width:15px; height:15px; border-radius:8px; background:#8B1414; color:#fff; font-size:9px; line-height:15px; text-align:center; letter-spacing:0; box-shadow:0 1px 3px rgba(0,0,0,0.6); pointer-events:none;}
+.notebook-card.notebook-focus .notebook-card-portrait-wrap{filter:drop-shadow(0 0 6px rgba(227,177,85,0.95)) drop-shadow(0 0 2px rgba(227,177,85,1));}
+.notebook-card.notebook-voter .notebook-card-portrait-wrap{filter:drop-shadow(0 0 5px rgba(180,30,30,0.95)) drop-shadow(0 0 1px rgba(180,30,30,1));}
+.notebook-card.notebook-votes-mode .notebook-card-vote-line{font-style:normal; font-weight:700; color:#6b1a1a; font-size:clamp(8px,0.85vw,12px);}
+.notebook-card-tally{position:absolute; left:-8px; bottom:-6px; min-width:22px; height:22px; border-radius:50%; background:#8B1414; border:2px solid #e9d9b8; color:#fff; font-family:var(--font-type); font-weight:700; font-size:12px; line-height:18px; text-align:center; box-shadow:0 2px 4px rgba(0,0,0,0.6); z-index:3;}
 
 /* One flat absolutely-positioned collection instead of a CSS-grid auto-
    layout - the 16 card slots are NOT perfectly evenly spaced relative to
@@ -2192,7 +2203,7 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
         <button class="notebook-filter-tab" data-filter="notes" role="tab" aria-selected="false" aria-label="Filter to players with private notes">Notes</button>
         <button class="notebook-filter-tab" data-filter="votes" role="tab" aria-selected="false" aria-label="Inspect who is voting for whom">Votes</button>
       </div>
-      <p class="notebook-vote-banner" id="notebook-vote-banner" hidden></p>
+      <div class="notebook-vote-banner" id="notebook-vote-banner" hidden><button type="button" class="notebook-vote-nav" id="notebook-vote-prev" aria-label="Previous day votes">&#9664;</button><span id="notebook-vote-banner-text"></span><button type="button" class="notebook-vote-nav" id="notebook-vote-next" aria-label="Next day votes">&#9654;</button></div>
       <div class="notebook-directory-grid" id="notebook-directory-grid"></div>
     </div>
 
@@ -9130,6 +9141,14 @@ function notebookKnownEvents(p){
       add(v.night, 'day', 3, 'Voted for '+escapeHtmlMp(t?t.name:v.target)+'.');
     }
   });
+  var receivedByNight = {};
+  (latestView.voteHistory||[]).forEach(function(v){
+    if(v.targetId===p.id) (receivedByNight[v.night] = receivedByNight[v.night]||[]).push(v.name);
+  });
+  Object.keys(receivedByNight).forEach(function(n){
+    var who = receivedByNight[n];
+    add(Number(n), 'day', 3.5, 'Received '+who.length+' vote'+(who.length===1?'':'s')+' from '+who.map(escapeHtmlMp).join(', ')+'.');
+  });
   (latestView.accusationLog||[]).forEach(function(a){
     if(a.accuserId===p.id){
       var t=byId(a.targetId);
@@ -9174,14 +9193,46 @@ function notebookKnownEvents(p){
   return events;
 }
 
-// The player's most recent vote FOR THE CURRENT ROUND ONLY - voteHistory
-// accumulates every past round too, so this is filtered to latestView.night
-// to answer "who are they voting for right now," not "who did they ever
-// vote for."
-function notebookCurrentVote(playerId){
-  if(!latestView) return null;
-  var mine = (latestView.voteHistory||[]).filter(function(v){ return v.voterId===playerId && v.night===latestView.night && v.targetId; });
-  return mine.length ? mine[mine.length-1] : null;
+// Votes only exist in voteHistory once a day's vote has resolved (the server
+// never reveals them earlier), so "who voted for whom" is always about a
+// finished round. notebookVoteRound picks which one (null = the latest).
+var notebookVoteRound = null;
+function notebookVoteRounds(){
+  var seen = {};
+  (latestView && latestView.voteHistory || []).forEach(function(v){ seen[v.night] = true; });
+  return Object.keys(seen).map(Number).sort(function(a,b){ return a-b; });
+}
+function notebookActiveRound(){
+  var rounds = notebookVoteRounds();
+  if(!rounds.length) return null;
+  return (notebookVoteRound!==null && rounds.indexOf(notebookVoteRound)!==-1) ? notebookVoteRound : rounds[rounds.length-1];
+}
+// A player's ballot in one round: {targetId, abstained} or null if they cast none.
+function notebookVoteIn(playerId, night){
+  if(!latestView || night===null) return null;
+  var mine = (latestView.voteHistory||[]).filter(function(v){ return v.voterId===playerId && v.night===night; });
+  if(!mine.length) return null;
+  var v = mine[mine.length-1];
+  return v.targetId ? {targetId: v.targetId, abstained:false} : (v.silenced ? null : {targetId:null, abstained:true});
+}
+function notebookVotersFor(targetId, night){
+  return (latestView.players||[]).filter(function(p){ var v=notebookVoteIn(p.id, night); return v && v.targetId===targetId; });
+}
+function notebookVoteTally(night){
+  var tally = {};
+  (latestView.players||[]).forEach(function(p){ var v=notebookVoteIn(p.id, night); if(v && v.targetId) tally[v.targetId] = (tally[v.targetId]||0)+1; });
+  return tally;
+}
+// Who is "in focus" for the current filter, for dimming + ordering.
+function notebookVoteRelated(pid){
+  var night = notebookActiveRound();
+  var x = notebookVoteInspectId;
+  if(!x) return true;
+  if(pid===x) return true;
+  var mine = notebookVoteIn(pid, night);
+  if(mine && mine.targetId===x) return true;            // voted for the inspected player
+  var xv = notebookVoteIn(x, night);
+  return !!(xv && xv.targetId===pid);                    // the one the inspected player voted for
 }
 
 function notebookPortraitFor(p){ return portraitImgFor(p); }
@@ -9193,12 +9244,40 @@ function notebookCardMatchesFilter(p){
   if(notebookFilter==='suspicious') return notebookMarks[p.id]==='suspicious';
   if(notebookFilter==='trusted') return notebookMarks[p.id]==='trusted';
   if(notebookFilter==='notes') return !!notebookNotes[p.id];
-  if(notebookFilter==='votes'){
-    if(!notebookVoteInspectId) return true;
-    var v = notebookCurrentVote(p.id);
-    return !!(v && v.targetId===notebookVoteInspectId);
-  }
+  if(notebookFilter==='votes') return notebookVoteRelated(p.id);
   return true;
+}
+
+// Cards that match the active filter come first (so the filter actually
+// reorders the book instead of just greying out cards scattered through
+// it); Votes mode additionally orders by how many votes each player drew,
+// or - once a player is picked - puts them first, then their voters, then
+// whoever they voted for.
+function notebookSortedPlayers(){
+  var list = (latestView.players||[]).map(function(p, i){ return {p:p, i:i}; });
+  var night = notebookActiveRound();
+  var tally = notebookFilter==='votes' ? notebookVoteTally(night) : null;
+  var x = notebookFilter==='votes' ? notebookVoteInspectId : null;
+  function rank(e){
+    var p = e.p;
+    if(x){
+      if(p.id===x) return 0;
+      var v = notebookVoteIn(p.id, night);
+      if(v && v.targetId===x) return 1;
+      return notebookVoteRelated(p.id) ? 2 : 3;
+    }
+    return notebookCardMatchesFilter(p) ? 0 : 1;
+  }
+  list.sort(function(a,b){
+    var ra = rank(a), rb = rank(b);
+    if(ra!==rb) return ra-rb;
+    if(tally){
+      var ta = tally[a.p.id]||0, tb = tally[b.p.id]||0;
+      if(ta!==tb) return tb-ta;
+    }
+    return a.i-b.i;
+  });
+  return list.map(function(e){ return e.p; });
 }
 
 // Measured directly off notebookDirectoryBg's own printed card frames (a
@@ -9213,8 +9292,13 @@ function notebookCardHTML(p, index){
   var mark = notebookMarks[p.id] || 'unknown';
   var pinned = notebookPinned.indexOf(p.id) !== -1;
   var hasNotes = !!notebookNotes[p.id];
-  var vote = notebookCurrentVote(p.id);
-  var voteLine = !p.alive ? '\u2014' : (vote ? '\u2192 '+escapeHtmlMp((byId(vote.targetId)||{}).name || '') : '\u2014');
+  var night = notebookActiveRound();
+  var vote = notebookVoteIn(p.id, night);
+  var voteLine = !vote ? '\u2014' : (vote.abstained ? '\u2192 no one' : '\u2192 '+escapeHtmlMp((byId(vote.targetId)||{}).name || ''));
+  var votesMode = notebookFilter==='votes';
+  var received = votesMode ? (notebookVoteTally(night)[p.id]||0) : 0;
+  var focus = votesMode && notebookVoteInspectId===p.id;
+  var voter = votesMode && !!notebookVoteInspectId && !focus && !!vote && vote.targetId===notebookVoteInspectId;
   var matches = notebookCardMatchesFilter(p);
   var badges = '';
   if(pinned) badges += '<img src="'+DAYTIME_IMG.notebookPushpin+'" alt="Pinned">';
@@ -9223,12 +9307,13 @@ function notebookCardHTML(p, index){
   var statusLabel = p.alive ? 'Alive' : 'Eliminated';
   var left = NOTEBOOK_DIR_COLS_PCT[index % 4], top = NOTEBOOK_DIR_ROWS_PCT[Math.floor(index / 4)];
   var posStyle = ' style="left:'+left+'%; top:'+top+'%;"';
-  return '<button type="button" class="notebook-card'+(p.alive?'':' notebook-eliminated')+(matches?'':' notebook-dimmed')+'"'+posStyle+' data-player-id="'+p.id+'" aria-label="'+escapeHtmlMp(p.name)+', '+statusLabel+'. Open dossier.">'+
+  return '<button type="button" class="notebook-card'+(p.alive?'':' notebook-eliminated')+(matches?'':' notebook-dimmed')+(focus?' notebook-focus':'')+(voter?' notebook-voter':'')+(votesMode?' notebook-votes-mode':'')+'"'+posStyle+' data-player-id="'+p.id+'" aria-label="'+escapeHtmlMp(p.name)+', '+statusLabel+'. Open dossier.">'+
     '<span class="notebook-card-portrait-wrap">'+
       '<img class="notebook-card-portrait" src="'+notebookPortraitFor(p)+'" alt="">'+
       '<span class="notebook-card-ribbon"></span>'+
       '<img class="notebook-card-frame-overlay" src="'+DAYTIME_IMG.notebookPictureFrame+'" alt="" aria-hidden="true">'+
       (badges ? '<span class="notebook-card-badges">'+badges+'</span>' : '')+
+      (votesMode && received ? '<span class="notebook-card-tally" title="'+received+' vote'+(received===1?'':'s')+' received">'+received+'</span>' : '')+
     '</span>'+
     '<span class="notebook-card-info">'+
       '<span class="notebook-card-name">'+escapeHtmlMp(p.name)+(p.id===myPlayerId?' (you)':'')+'</span>'+
@@ -9239,24 +9324,76 @@ function notebookCardHTML(p, index){
   '</button>';
 }
 
+var notebookPrevCardPos = {};
+function notebookTabCounts(){
+  var players = latestView ? latestView.players : [];
+  return {
+    eliminated: players.filter(function(p){ return !p.alive; }).length,
+    suspicious: players.filter(function(p){ return notebookMarks[p.id]==='suspicious'; }).length,
+    trusted: players.filter(function(p){ return notebookMarks[p.id]==='trusted'; }).length,
+    notes: players.filter(function(p){ return !!notebookNotes[p.id]; }).length
+  };
+}
+function renderNotebookVoteBanner(){
+  var banner = document.getElementById('notebook-vote-banner');
+  var textEl = document.getElementById('notebook-vote-banner-text');
+  var prev = document.getElementById('notebook-vote-prev'), next = document.getElementById('notebook-vote-next');
+  if(notebookFilter!=='votes'){ banner.hidden = true; return; }
+  banner.hidden = false;
+  var rounds = notebookVoteRounds();
+  var night = notebookActiveRound();
+  if(night===null){
+    prev.hidden = next.hidden = true;
+    textEl.textContent = 'No votes revealed yet \u2014 each day\u2019s ballots show here once the vote ends.';
+    return;
+  }
+  var idx = rounds.indexOf(night);
+  prev.hidden = next.hidden = rounds.length<2;
+  prev.disabled = idx<=0; next.disabled = idx>=rounds.length-1;
+  var label = 'Day '+night;
+  var x = notebookVoteInspectId && byId(notebookVoteInspectId);
+  if(x){
+    var n = notebookVotersFor(x.id, night).length;
+    var xv = notebookVoteIn(x.id, night);
+    var theirs = xv ? (xv.abstained ? 'abstained' : 'voted for '+((byId(xv.targetId)||{}).name||'someone')) : 'cast no vote';
+    textEl.textContent = label+' \u00b7 '+x.name+': '+n+' vote'+(n===1?'':'s')+', '+theirs+' \u00b7 tap again to clear';
+  } else {
+    textEl.textContent = label+' \u00b7 most votes first \u00b7 tap a player to see who voted for them';
+  }
+}
 function renderNotebookDirectory(){
   var grid = document.getElementById('notebook-directory-grid');
-  var banner = document.getElementById('notebook-vote-banner');
   if(!latestView){ grid.innerHTML = ''; return; }
-  var players = latestView.players.slice(0, 16);
+  // remember where each card was so a re-sort can slide instead of snapping
+  var before = {};
+  Array.prototype.forEach.call(grid.querySelectorAll('.notebook-card'), function(c){ var r=c.getBoundingClientRect(); before[c.getAttribute('data-player-id')] = {x:r.left, y:r.top}; });
+  var players = notebookSortedPlayers().slice(0, 16);
   grid.innerHTML = players.map(function(p, i){ return notebookCardHTML(p, i); }).join('');
-  if(notebookFilter==='votes'){
-    banner.hidden = false;
-    if(notebookVoteInspectId){
-      var target = byId(notebookVoteInspectId);
-      var count = latestView.players.filter(function(p){ var v=notebookCurrentVote(p.id); return v && v.targetId===notebookVoteInspectId; }).length;
-      banner.textContent = count+' vote'+(count===1?'':'s')+' for '+(target?target.name:'\u2026')+' \u2014 click another player to inspect, or the tab again to clear.';
-    } else {
-      banner.textContent = 'Votes mode: click a player to see who is voting for them.';
+  var animate = !document.body.classList.contains('force-reduced-motion') && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(animate){
+    var moved = [];
+    Array.prototype.forEach.call(grid.querySelectorAll('.notebook-card'), function(c){
+      var b = before[c.getAttribute('data-player-id')]; if(!b) return;
+      var r = c.getBoundingClientRect(); var dx = b.x-r.left, dy = b.y-r.top;
+      if(Math.abs(dx)<1 && Math.abs(dy)<1) return;
+      c.style.transition = 'none'; c.style.transform = 'translate('+dx+'px,'+dy+'px)'; moved.push(c);
+    });
+    if(moved.length){
+      void grid.offsetWidth;
+      moved.forEach(function(c){ c.style.transition = 'transform .38s cubic-bezier(.2,.8,.25,1), opacity .2s ease, filter .2s ease'; c.style.transform = ''; });
     }
-  } else {
-    banner.hidden = true;
   }
+  renderNotebookVoteBanner();
+  var counts = notebookTabCounts();
+  document.querySelectorAll('.notebook-filter-tab').forEach(function(tab){
+    var f = tab.getAttribute('data-filter');
+    var n = counts[f];
+    var badge = tab.querySelector('.notebook-tab-count');
+    if(n){
+      if(!badge){ badge = document.createElement('span'); badge.className = 'notebook-tab-count'; tab.appendChild(badge); }
+      badge.textContent = n;
+    } else if(badge){ badge.remove(); }
+  });
 }
 
 function notebookRenderDossierEvents(p){
@@ -9363,6 +9500,7 @@ function openNotebookModal(){
   notebookHasUnseen = false;
   notebookFilter = 'all';
   notebookVoteInspectId = null;
+  notebookVoteRound = null;
   document.querySelectorAll('.notebook-filter-tab').forEach(function(btn){
     var active = btn.getAttribute('data-filter')==='all';
     btn.classList.toggle('active', active);
@@ -9412,6 +9550,8 @@ document.getElementById('notebook-filter-bar').addEventListener('click', functio
   if(filter==='votes' && notebookFilter==='votes'){
     // tapping Votes again while already in votes mode clears the pick
     notebookVoteInspectId = null;
+  } else if(filter!=='votes'){
+    notebookVoteInspectId = null;
   }
   notebookFilter = filter;
   document.querySelectorAll('.notebook-filter-tab').forEach(function(b){
@@ -9420,6 +9560,14 @@ document.getElementById('notebook-filter-bar').addEventListener('click', functio
     b.setAttribute('aria-selected', active ? 'true' : 'false');
   });
   renderNotebookDirectory();
+});
+document.getElementById('notebook-vote-prev').addEventListener('click', function(){
+  var rounds = notebookVoteRounds(), i = rounds.indexOf(notebookActiveRound());
+  if(i>0){ notebookVoteRound = rounds[i-1]; renderNotebookDirectory(); }
+});
+document.getElementById('notebook-vote-next').addEventListener('click', function(){
+  var rounds = notebookVoteRounds(), i = rounds.indexOf(notebookActiveRound());
+  if(i>=0 && i<rounds.length-1){ notebookVoteRound = rounds[i+1]; renderNotebookDirectory(); }
 });
 document.getElementById('notebook-directory-grid').addEventListener('click', notebookHandleCardClick);
 function notebookHandleCardClick(e){
