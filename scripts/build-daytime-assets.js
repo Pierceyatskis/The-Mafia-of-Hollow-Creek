@@ -951,7 +951,7 @@ async function main() {
   // transparent corners), so passthroughAlpha + a straight resize is all
   // they need, no dechecker pass.
   entries.push(await cropSingle(
-    path.join(ASSETS_DIR, '19e330fa-c778-4266-997a-d2b6811125a8.png'), 'voteRevealBg',
+    path.join(ASSETS_DIR, '86f83b44-f86b-4fd7-a67e-302c653a88f9.png'), 'voteRevealBg',
     { left: 0, top: 0, w: 1671, h: 941 }, { width: 1200, decheckerFn: passthroughAlpha, quality: 90 }
   ));
   entries.push(await cropSingle(
