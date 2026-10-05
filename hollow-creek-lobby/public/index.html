@@ -112,7 +112,7 @@ body.game-mode{height:100%; overflow:hidden;}
    shift (nested #daylayout-roster-cluster below), not the cabinet. */
 #daylayout-top-cluster{display:contents;}
 #design-canvas.bg-day #daylayout-top-cluster{display:block; position:absolute; inset:0; pointer-events:none;}
-#design-canvas.bg-day #daylayout-stage-mute-btn, #design-canvas.bg-day #daylayout-stage-request-btn{pointer-events:auto;}
+#design-canvas.bg-day #daylayout-stage-mute-btn, #design-canvas.bg-day #daylayout-stage-request-btn, #design-canvas.bg-day #daylayout-stage-give-time-btn{pointer-events:auto;}
 /* Roster cards are now real click targets (open that player's notebook
    page) - same override pattern as the chat sidebar below. */
 #design-canvas.bg-day #daylayout-roster-grid{pointer-events:auto;}
@@ -775,6 +775,11 @@ body.force-reduced-motion .ballot-box-seal.playing{animation:none !important; op
 /* margin-right keeps the content clear of the fixed 'Your role' badge pinned to the canvas's right edge. */
 #design-canvas.bg-night #game-folder, #design-canvas.bg-end #game-folder{background:rgba(10,8,6,0.55); box-shadow:0 10px 30px rgba(0,0,0,0.35); margin-right:130px;}
 #design-canvas.bg-night #panel-night, #design-canvas.bg-end #panel-end{background:none;}
+/* Night: the action panel sits in the middle of the scene instead of being
+   pinned under the title bar at the top (it only needed that 140px of
+   padding to clear the bar when it hugged the top edge). */
+#design-canvas.bg-night #game-folder{position:absolute; left:50%; top:52%; transform:translate(-50%,-50%); width:1500px; max-width:calc(100% - 380px); margin:0; max-height:calc(100% - 330px); overflow-y:auto;}
+#design-canvas.bg-night #panel-night{padding-top:22px;}
 .app-frame::before{content:''; position:absolute; inset:6px; border:1px solid var(--gold-dim); border-radius:4px; opacity:0.7;}
 .corner{position:absolute; width:44px; height:44px;}
 .corner-tl{top:-2px; left:-2px;}
@@ -3338,7 +3343,7 @@ function handleServerMessage(msg){
   } else if(msg.type==='chatMsg'){
     // Respect the live chat filter (Task 3) - a live top-up must not bypass
     // it the way a full renderChatLog() rebuild never would.
-    if(chatFilterMode !== 'system' && (chatFilterMode !== 'accusations' || msg.targetId)) appendChatLine(msg);
+    if(chatFilterMode !== 'system' && (chatFilterMode !== 'accusations' || msg.targetId || msg.category==='accusation')) appendChatLine(msg);
   } else if(msg.type==='typingIndicator'){
     if(typingPlayers[msg.playerId]) clearTimeout(typingPlayers[msg.playerId].timeout);
     typingPlayers[msg.playerId] = {
@@ -6970,7 +6975,9 @@ function appendChatLine(entry){
   if(clickable) div.dataset.id = entry.playerId;
   var p = byId(entry.playerId);
   var target = entry.targetId ? byId(entry.targetId) : null;
-  var tagHTML = target ? '<span class="accusation-tag"><img class="accusation-tag-icon" src="'+DAYTIME_IMG.accusationPointer+'" alt="">accusing '+escapeHtmlMp(target.name)+'</span>' : '';
+  var agreedWith = entry.agreedWithId ? byId(entry.agreedWithId) : null;
+  var tagLabel = target ? ((agreedWith ? 'agrees with '+agreedWith.name+' · ' : '')+'accusing '+target.name) : (entry.category==='accusation' ? 'accusation' : '');
+  var tagHTML = tagLabel ? '<span class="accusation-tag"><img class="accusation-tag-icon" src="'+DAYTIME_IMG.accusationPointer+'" alt="">'+escapeHtmlMp(tagLabel)+'</span>' : '';
   var replyHTML = entry.replyTo ? '<div class="chatline-reply-quote">↩ <b>'+escapeHtmlMp(entry.replyTo.name)+'</b>: "'+escapeHtmlMp(entry.replyTo.text)+'"</div>' : '';
   div.innerHTML = avatarHTML(p||{name:entry.name,color:'#B0A588'},22)+'<span class="who">'+escapeHtmlMp(entry.name)+'</span>'+replyHTML+'<span class="line">"'+escapeHtmlMp(entry.text)+'"</span>'+tagHTML+
     '<button type="button" class="chatline-reply-btn">↩ Reply</button>'+
@@ -7047,9 +7054,9 @@ function renderChatLog(){
   if(!wasFollowing && scrollable > 0) prevRatio = log.scrollTop / scrollable;
   log.innerHTML = '';
   (latestView.chatLog||[]).forEach(function(m){
-    if(chatFilterMode === 'accusations' && !m.targetId) return;
+    if(chatFilterMode === 'accusations' && !m.targetId && m.category!=='accusation') return;
     if(m.kind==='whisperAnnounce') appendChatLine({kind:'whisperAnnounce', fromId:m.fromId, fromName:m.fromName, toId:m.toId, toName:m.toName, text:m.text});
-    else appendChatLine({playerId:m.playerId, name:m.name, text:m.text, targetId:m.targetId, replyTo:m.replyTo});
+    else appendChatLine({playerId:m.playerId, name:m.name, text:m.text, targetId:m.targetId, replyTo:m.replyTo, category:m.category, agreedWithId:m.agreedWithId});
   });
   if(!log.children.length){
     var emptyMsg = chatFilterMode==='accusations' ? 'No accusations yet.' : 'No one has spoken yet.';
@@ -10151,6 +10158,11 @@ var OBIT_ACCUSED = [
   'Town records show they had pointed the finger at {target}.',
   'They had last raised suspicion against {target}.'
 ];
+var OBIT_ACCUSED_QUOTE = [
+  'Not long before their death, they had publicly accused {target}, telling the town: “{text}.”',
+  'Town records show they had pointed the finger at {target}: “{text}.”',
+  'They had last raised suspicion against {target}, saying: “{text}.”'
+];
 var OBIT_VOTED = [
   'When the town last called for a vote, they cast theirs for {target}.',
   'Their final vote had been against {target}.',
@@ -10205,9 +10217,20 @@ function buildObituary(deadPlayer, view){
     return obitPick(OBIT_NODATA).replace(/\{name\}/g, name) + ' ' + obitPick(OBIT_INVESTIGATION) + ' ' + obitPick(OBIT_MEMORIAL);
   }
   var sentences = [obitPick(OBIT_INTROS).replace('{name}', name)];
-  if(lastChat && lastChat.text) sentences.push(obitPick(OBIT_LASTWORDS).replace('{text}', obitQuote(lastChat.text)));
+  var accusingChats = myChats.filter(function(m){ return m.category === 'accusation' && m.targetId; });
+  var lastAccusingChat = accusingChats.length ? accusingChats[accusingChats.length - 1] : null;
+  // If their very last line IS the accusation, it's quoted once below as the accusation rather than twice.
+  if(lastChat && lastChat.text && lastChat !== lastAccusingChat) sentences.push(obitPick(OBIT_LASTWORDS).replace('{text}', obitQuote(lastChat.text)));
   if(lastRoleClaim && lastRoleClaim.text) sentences.push(obitPick(OBIT_ROLECLAIM).replace('{text}', obitQuote(lastRoleClaim.text)));
-  if(lastAccusation){
+  // Prefer the actual accusing line (every chat line the server read as an
+  // accusation, plus agreements with one, carries its target) - quoted - over
+  // the bare "they accused X" fallback.
+  if(lastAccusingChat){
+    var quotedTarget = (view.players || []).find(function(p){ return p.id === lastAccusingChat.targetId; });
+    if(quotedTarget && lastAccusingChat.text) sentences.push(obitPick(OBIT_ACCUSED_QUOTE).replace('{target}', quotedTarget.name).replace('{text}', obitQuote(lastAccusingChat.text)));
+    else lastAccusingChat = null;
+  }
+  if(!lastAccusingChat && lastAccusation){
     var accTarget = (view.players || []).find(function(p){ return p.id === lastAccusation.targetId; });
     if(accTarget) sentences.push(obitPick(OBIT_ACCUSED).replace('{target}', accTarget.name));
   }

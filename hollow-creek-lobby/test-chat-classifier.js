@@ -240,5 +240,53 @@ transcript.forEach((row, i) => {
 });
 assert(transcript.length >= 55, 'C-final: the simulated transcript itself has 55+ messages, as requested');
 
+// ============================================================
+// SECTION D - broader accusation phrasing resolves a TARGET, and short
+// agreements adopt the accusation they answer
+// ============================================================
+function analyze(text, context){ return G.analyzeChatMessage(text, NAMES, context); }
+[
+  ['I think Corky did it', 'Corky Wade'],
+  ['its corky', 'Corky Wade'],
+  ['it was Silas for sure', 'Silas Crane'],
+  ['Corky killed him', 'Corky Wade'],
+  ['I am voting Corky', 'Corky Wade'],
+  ['lets lynch Otis', 'Otis Redwood'],
+  ['we should kill Tom', 'Big Tom Yarrow'],
+  ['my money is on Dot', 'Dot Higgins'],
+  ['Silas looks guilty', 'Silas Crane'],
+  ['Walt framed me', 'Walt Pemberton'],
+  ['I voted for Walt', 'Walt Pemberton'],
+  ['i accuse mabel', 'Mabel Finch'],
+  ['Silas is definitely the killer', 'Silas Crane']
+].forEach(([text, who], i) => {
+  const r = analyze(text);
+  assert(r.category === 'accusation' && r.target === who, 'D'+(i+1)+': "'+text+'" -> accusation naming '+who+' (got '+r.category+' / '+r.target+')');
+});
+[
+  'Corky is not the mafia', 'I would never vote for Corky', 'Mabel did not do it', 'nice weather today', 'who is the doctor?'
+].forEach((text, i) => {
+  assert(analyze(text).category !== 'accusation', 'D-neg'+(i+1)+': "'+text+'" is NOT filed as an accusation');
+});
+assert(analyze('he is the mafia', { recentTexts: ['I wonder about Corky'] }).target === 'Corky Wade', 'D-pron: "he is the mafia" resolves to whoever was last named');
+['I agree', 'same', 'me too', 'agreed!', 'I second that', 'yeah exactly', '100%'].forEach((t, i) => {
+  assert(G.isAgreement(t), 'D-agree'+(i+1)+': "'+t+'" reads as agreement');
+});
+['I disagree', 'yeah but not sure', 'do you agree?', 'no', 'I agree but I think it is Silas'].forEach((t, i) => {
+  assert(!G.isAgreement(t), 'D-noagree'+(i+1)+': "'+t+'" does NOT read as agreement');
+});
+{
+  const state = { players: [{id:'a',alive:true},{id:'b',alive:true},{id:'c',alive:true}],
+    chatLog: [ { playerId:'a', name:'Ann', text:'I think its Corky', targetId:'c', category:'accusation', ts: Date.now() }, { playerId:'c', name:'Cy', text:'hello', targetId:null, category:'no_gameplay_meaning', ts: Date.now() } ] };
+  const viaReply = G.detectAgreementTarget(state, 'I agree', { name:'Ann', text:'I think its Corky' }, 'b');
+  assert(viaReply && viaReply.targetId === 'c' && viaReply.agreedWithId === 'a', 'D-reply: replying "I agree" to an accusation files the replier against the same target');
+  assert(G.detectAgreementTarget(state, 'I agree', { name:'Cy', text:'hello' }, 'b') === null, 'D-reply2: agreeing with a message that is not an accusation files nothing');
+  const implicit = G.detectAgreementTarget(state, 'same', null, 'b');
+  assert(implicit && implicit.targetId === 'c', 'D-implicit: a bare "same" right after an accusation (no Reply) files the sender too');
+  assert(G.detectAgreementTarget(state, 'I agree', { name:'Ann', text:'I think its Corky' }, 'a') === null, 'D-self: you cannot agree with your own accusation into a second one');
+  state.players[2].alive = false;
+  assert(G.detectAgreementTarget(state, 'I agree', { name:'Ann', text:'I think its Corky' }, 'b') === null, 'D-dead: an accusation of someone since eliminated is not carried over by agreement');
+}
+
 console.log('\n'+total+' checks run, '+(total-failed)+' passed, '+failed+' failed.');
 if (failed > 0) { console.error('\n'+failed+' FAILED.'); } else { console.log('\nAll classifyChatMessage checks passed.'); }

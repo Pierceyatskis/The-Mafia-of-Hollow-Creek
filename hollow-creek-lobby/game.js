@@ -813,8 +813,8 @@ function startNextNight(state){
 // Task 18 - purely mechanical "who said it first" tracking. No LLM, no
 // judgment of message content: a message either was tagged to a target
 // player id when sent, or it wasn't.
-function recordAccusation(state, accuserId, targetId){
-  state.accusationLog.push({ night: state.night, accuserId, targetId, ts: Date.now() });
+function recordAccusation(state, accuserId, targetId, extra){
+  state.accusationLog.push(Object.assign({ night: state.night, accuserId, targetId, ts: Date.now() }, extra || {}));
 }
 
 // Simple rule-based day-chat message classifier - deliberately NOT the
@@ -873,9 +873,14 @@ function nameTokensFor(full){
   return String(full).trim().split(/\s+/).filter(w => w && !NAME_TOKEN_STOPWORDS.has(w.toLowerCase()));
 }
 
-function classifyChatMessage(text, playerNames, context){
+function analyzeChatMessage(text, playerNames, context){
+  // Every exit is {category, target}: target is the full name of whoever an
+  // accusation names (null for anything else, or an accusation that names no
+  // one the room can resolve). classifyChatMessage() below is the old
+  // string-only view of the same result.
+  const R = (category, target) => ({ category, target: target || null });
   const t = String(text || '').toLowerCase().trim();
-  if (!t) return 'no_gameplay_meaning';
+  if (!t) return R('no_gameplay_meaning');
   const names = (playerNames || []).filter(Boolean);
   // Every real (non-title) word in each player's name is a candidate a
   // player might actually type - first name, last name, or (for the
@@ -943,7 +948,7 @@ function classifyChatMessage(text, playerNames, context){
   // correctly excluded from ever reaching the role word, while "I'm
   // definitely the mafia" still reaches it fine.
   const roleClaimRe = new RegExp('\\bi(?:\'m| am)\\b(?:(?!\\bnot\\b)[^.!?])*\\b(?:' + CHAT_ROLE_WORDS_PATTERN + ')\\b');
-  if (roleClaimRe.test(t) || /\bmy role is\b/.test(t)) return 'role_claim';
+  if (roleClaimRe.test(t) || /\bmy role is\b/.test(t)) return R('role_claim');
 
   // Context upgrade: "I am"/"that's me" alone carries no role word of its
   // own, so it only reads as a role claim when it's actually answering a
@@ -952,35 +957,137 @@ function classifyChatMessage(text, playerNames, context){
   if (/^(?:i'?m|i am|me|that'?s me|it'?s me)[.!]*$/.test(t)) {
     const roleQuestionRe = new RegExp('\\bwho\\b[^.!?]*\\b(?:' + CHAT_ROLE_WORDS_PATTERN + ')\\b');
     const askedAbout = roleQuestionRe.test(replyToText) || recentTexts.some(line => roleQuestionRe.test(line.toLowerCase()));
-    if (askedAbout) return 'role_claim';
+    if (askedAbout) return R('role_claim');
   }
 
-  if (/\bi accuse\b/.test(t)) return 'accusation';
-  const thinkItsMatch = t.match(/\b(?:i think|i believe|i bet|i'?m sure|pretty sure|i reckon|i know)\b[^.!?]*\b(?:it'?s|it is)\s+(\w+)/);
-  if (thinkItsMatch) {
-    const cap = thinkItsMatch[1];
-    if (findName(cap) || (PRONOUN_RE.test(cap) && mostRecentlyMentioned())) return 'accusation';
+  // Resolve whoever a stretch of text names: a real name first, otherwise a
+  // bare pronoun answered from the surrounding thread.
+  function targetIn(str){
+    const n = findName(str);
+    if (n) return n;
+    if (PRONOUN_RE.test(str)) return mostRecentlyMentioned();
+    return null;
   }
+  // Negation sitting between a name and its accusation word ("Corky is not
+  // the mafia", "he never killed anyone") flips the meaning - skip those.
+  const NEG_RE = /\b(?:not|never|isn'?t|wasn'?t|didn'?t|doesn'?t|hasn'?t|no)\b|n't\b/;
+
+  const accuseM = t.match(/\bi accuse\b(.*)$/);
+  if (accuseM) return R('accusation', targetIn(accuseM[1]) || targetIn(t));
+
+  const thinkItsMatch = t.match(/\b(?:i think|i believe|i bet|i'?m sure|pretty sure|i reckon|i know)\b[^.!?]*\b(?:it'?s|it is)\s+([^.!?]+)/);
+  if (thinkItsMatch) {
+    // First few words after "it's", not just the first one - a titled name
+    // ("Sister Agatha Pruitt", "Big Tom Yarrow") starts with a stopword that
+    // never matches on its own.
+    const capWords = thinkItsMatch[1].trim().split(/\s+/);
+    const cap = capWords.slice(0, 4).join(' ');
+    const named = findName(cap) || (PRONOUN_RE.test(capWords[0]) ? mostRecentlyMentioned() : null);
+    if (named) return R('accusation', named);
+  }
+  // "it was Corky", "it's Corky", "it has to be Corky" - the whole message
+  // is basically the name, with no other verb to lean on.
+  const bareItsM = t.match(/^(?:so |well |honestly |yeah |no,? )*(?:it'?s|its|it was|it is|it has to be|it must be|has to be|must be|gotta be|got to be)\s+(?:the |a )?([^.!?]+)/);
+  if (bareItsM) {
+    const named = findName(bareItsM[1].trim().split(/\s+/).slice(0, 4).join(' '));
+    if (named) return R('accusation', named);
+  }
+
   // "sus"/"suspicious" deliberately excluded here - those belong to the
   // dedicated suspicion category below, not accusation (a bug caught by
   // testing "Corky is acting really suspicious", which this pattern used
   // to swallow before suspicion ever got a turn).
   // "'s" covers the contraction ("he's the mafia") as well as the literal
   // word - just as common in real chat as spelling "is" out.
-  if (subjectPresent(t) && /\b(?:is|was|'s)\b[^.!?]*\b(?:the )?(?:mafia|killer|guilty|lying|a liar|murderer|traitor)\b/.test(t)) return 'accusation';
-  if (/\bvote (?:for )?\w+/.test(t) && subjectPresent(t)) return 'accusation';
+  const GUILT_WORDS = '(?:the |a |our |one of the )?(?:mafia|maf|killer|guilty|lying|liar|murderer|traitor|culprit|the one|behind (?:this|it|all this|the killings?)|responsible|a wolf|working with the mafia|cult(?:ist)?)';
+  const isGuiltRe = new RegExp("\\b(?:is|was|'s|has been|must be|has to be|looks|seems)\\b([^.!?]*)\\b" + GUILT_WORDS + '\\b');
+  if (subjectPresent(t)) {
+    const gm = t.match(isGuiltRe);
+    if (gm) {
+      const before = t.slice(0, gm.index);
+      const between = gm[1] || '';
+      if (!NEG_RE.test(between) && !NEG_RE.test(t.slice(gm.index, gm.index + gm[0].length).replace(gm[1], ''))) {
+        return R('accusation', targetIn(before) || targetIn(t));
+      }
+    }
+    // "Corky did it", "Silas killed him", "Otis framed me", "Dot lied"
+    const didM = t.match(/\b(?:did it|killed|murdered|is behind|framed|lied to|has been lying|was lying|lied)\b/);
+    if (didM) {
+      const before = t.slice(0, didM.index);
+      const nameBefore = findName(before);
+      if (nameBefore && !NEG_RE.test(before.slice(before.toLowerCase().indexOf(nameBefore.toLowerCase().split(' ')[0])))) {
+        return R('accusation', nameBefore);
+      }
+    }
+  }
+  // Calling for a vote/execution of someone ("vote for Corky", "voting Tom",
+  // "let's lynch Otis", "I'm going with Dot"). The old rule only matched the
+  // literal "vote <word>" - "I'm voting Corky" or "lynch Corky" slipped past.
+  const callM = t.match(/\b(?:vote(?: out| for)?|voting(?: for| out)?|voted(?: for| out)?|lynch|hang|execute|banish|eliminate|kill|ban|get rid of|going (?:with|for|after)|my (?:vote|money|bet) (?:is |goes )?(?:on|to|for)|my money'?s on)\b(.*)$/);
+  if (callM) {
+    const before = t.slice(0, callM.index);
+    const named = targetIn(callM[1]) || (subjectPresent(t) ? targetIn(t) : null);
+    if (named && !NEG_RE.test(before.slice(-30))) return R('accusation', named);
+  }
 
-  if (/\bi defend\b/.test(t)) return 'defense';
-  if (/\b(?:i'?m not|i am not|i didn'?t|i did not|that'?s not (?:true|fair)|i swear|you'?re wrong about me|i can prove)\b/.test(t)) return 'defense';
 
-  if (/\b(?:suspicious|sus|acting (?:weird|strange|off)|something'?s off|something is off|seems (?:off|weird|fishy)|why (?:did|would|were) you)\b/.test(t)) return 'suspicion';
+  if (/\bi defend\b/.test(t)) return R('defense');
+  if (/\b(?:i'?m not|i am not|i didn'?t|i did not|that'?s not (?:true|fair)|i swear|you'?re wrong about me|i can prove)\b/.test(t)) return R('defense');
 
-  if (/\bi trust\b/.test(t)) return 'trust_statement';
-  if (subjectPresent(t) && /\b(?:is|seems|'s)\b[^.!?]*\b(?:innocent|clean|trustworthy|telling the truth|on our side)\b/.test(t)) return 'trust_statement';
+  if (/\b(?:suspicious|sus|acting (?:weird|strange|off)|something'?s off|something is off|seems (?:off|weird|fishy)|why (?:did|would|were) you)\b/.test(t)) return R('suspicion');
 
-  if (/\?\s*$/.test(t) || /^(?:who|what|why|where|when|how|did|do|does|are|is|can|could|would)\b/.test(t)) return 'question';
+  if (/\bi trust\b/.test(t)) return R('trust_statement');
+  if (subjectPresent(t) && /\b(?:is|seems|'s)\b[^.!?]*\b(?:innocent|clean|trustworthy|telling the truth|on our side)\b/.test(t)) return R('trust_statement');
 
-  return 'no_gameplay_meaning';
+  if (/\?\s*$/.test(t) || /^(?:who|what|why|where|when|how|did|do|does|are|is|can|could|would)\b/.test(t)) return R('question');
+
+  return R('no_gameplay_meaning');
+}
+
+function classifyChatMessage(text, playerNames, context){
+  return analyzeChatMessage(text, playerNames, context).category;
+}
+
+// "I agree" / "same" / "me too" - a short reply that adopts the accusation
+// it's answering. Deliberately conservative: anything hedged, disagreeing, or
+// phrased as a question isn't an endorsement.
+const AGREE_RE = /(?:\b(?:i agree|agreed|i second|seconded|seconding|second that|same here|me too|i concur|ditto|likewise|exactly|totally|definitely|absolutely|for sure|facts|couldn'?t agree more|thinking the same|that'?s what i (?:think|thought)|i'?m with (?:you|him|her|them)|i'?m on board|you'?re right|u right|good point|so true)\b|^(?:yes|yep|yeah|yup|true|right|correct|same|this|agree|word)\b|^100%|\+1|^\^+$)/;
+const DISAGREE_RE = /\b(?:disagree|don'?t agree|do not agree|not (?:sure|convinced|so sure)|doubt|nope|nah|no way|wrong|i don'?t think so|not really|can'?t agree|but|however|unless)\b|^no\b|\?\s*$/;
+function isAgreement(text){
+  const t = String(text || '').toLowerCase().trim();
+  if (!t || t.length > 120) return false;
+  return AGREE_RE.test(t) && !DISAGREE_RE.test(t);
+}
+
+// If this message is a bare agreement with an earlier accusation, returns
+// {targetId, agreedWithId} so the sender can be filed as accusing that same
+// player. An explicit Reply wins (matched back to the real chat line by name
+// + text, newest first); with no Reply it falls back to the most recent
+// accusation by someone else in the last few lines (and last ~90s).
+function detectAgreementTarget(state, text, replyTo, senderId){
+  if (!isAgreement(text)) return null;
+  const log = (state.chatLog || []).filter(e => e && e.kind !== 'whisperAnnounce');
+  function usable(e){
+    if (!e || !e.targetId || e.playerId === senderId) return false;
+    const tp = (state.players || []).find(p => p.id === e.targetId);
+    return !!(tp && tp.alive && tp.id !== senderId);
+  }
+  if (replyTo && replyTo.name) {
+    for (let i = log.length - 1; i >= 0; i--) {
+      const e = log[i];
+      if (e.name === replyTo.name && String(e.text || '').slice(0, 120) === String(replyTo.text || '')) {
+        return usable(e) ? { targetId: e.targetId, agreedWithId: e.playerId } : null;
+      }
+    }
+    return null;
+  }
+  const now = Date.now();
+  for (let i = log.length - 1, seen = 0; i >= 0 && seen < 5; i--, seen++) {
+    const e = log[i];
+    if (e.ts && now - e.ts > 90000) break;
+    if (usable(e)) return { targetId: e.targetId, agreedWithId: e.playerId };
+  }
+  return null;
 }
 
 // Who first publicly accused targetId (optionally scoped to a single round),
@@ -1101,5 +1208,5 @@ module.exports = {
   detectiveRead, investigateAndRead, resolveNight, resolveDayVote, resolveFarmerRevenge, startNextNight,
   getPlayerView, log, specialRoleCount, validateSeatCapacity,
   recordDayVoteSubmission, recordMayorReveal, recordLivingCountSnapshot, recordAccusation, firstAccuserOf,
-  recordSpotlight, spotlightCounts, classifyChatMessage
+  recordSpotlight, spotlightCounts, classifyChatMessage, analyzeChatMessage, isAgreement, detectAgreementTarget
 };

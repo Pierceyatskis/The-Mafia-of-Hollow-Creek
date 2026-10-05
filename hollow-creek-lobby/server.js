@@ -1051,17 +1051,37 @@ wss.on('connection', (socket) => {
       // lines before it - so a bare "I am" answering an earlier "who's the
       // doctor?" still resolves to a role claim.
       const recentTexts = room.state.chatLog.slice(-6).map(e => e.text);
-      const category = G.classifyChatMessage(text, room.state.players.map(p => p.name), {
+      const analysis = G.analyzeChatMessage(text, room.state.players.map(p => p.name), {
         replyToText: replyTo ? replyTo.text : null,
         recentTexts
       });
+      let category = analysis.category;
+      // Who this message accuses: the sender's own dropdown tag if they set
+      // one, otherwise whoever the classifier read the message as naming
+      // ("I think it's Corky"), otherwise - for a bare "I agree"/"same" -
+      // whoever the accusation they're answering named, so both the original
+      // accuser AND the agreeing player end up filed as accusing that target.
+      // Resolved before this entry is pushed so agreement detection only ever
+      // sees earlier lines.
+      let accusedId = targetId;
+      let inferred = false, agreedWithId = null;
+      if (!accusedId && category === 'accusation' && analysis.target) {
+        const named = room.state.players.filter(p => p.name === analysis.target && p.alive && p.id !== player.id)[0];
+        if (named) { accusedId = named.id; inferred = true; }
+      }
+      if (!accusedId && category !== 'defense' && category !== 'role_claim') {
+        const agreed = G.detectAgreementTarget(room.state, text, replyTo, player.id);
+        if (agreed) { accusedId = agreed.targetId; agreedWithId = agreed.agreedWithId; category = 'accusation'; inferred = true; }
+      }
       // night: same round number voteHistory/accusationLog already stamp
       // their own entries with, so the Case File can sort/group a chat-
       // derived event (a role claim, a defense) alongside those without
       // having to reverse-engineer a round from a raw timestamp.
-      const entry = { playerId: player.id, name: sp.name, text, ts: Date.now(), targetId, replyTo, category, night: room.state.night };
+      const entry = { playerId: player.id, name: sp.name, text, ts: Date.now(), targetId: accusedId, replyTo, category, night: room.state.night };
+      if (inferred) entry.inferred = true;
+      if (agreedWithId) entry.agreedWithId = agreedWithId;
       room.state.chatLog.push(entry);
-      if (targetId) G.recordAccusation(room.state, player.id, targetId);
+      if (accusedId) G.recordAccusation(room.state, player.id, accusedId, inferred ? { inferred: true, agreedWithId } : undefined);
       room.players.forEach(rp => {
         if (rp.socket.readyState === WebSocket.OPEN) rp.socket.send(JSON.stringify(Object.assign({ type: 'chatMsg' }, entry)));
       });

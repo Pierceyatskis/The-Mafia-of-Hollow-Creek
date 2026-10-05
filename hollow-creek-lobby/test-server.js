@@ -580,6 +580,50 @@ async function testSoloDisconnectSurvivesRoom() {
   try { ws2.close(); } catch (e) {}
 }
 
+// ============================================================
+// Day chat: the server files accusations from what people actually TYPE
+// (no dropdown tag needed), and a short "I agree" reply to someone's
+// accusation files the replier against the same target - both end up in
+// accusationLog, and the chat entries carry the target for the
+// Accusations tab.
+// ============================================================
+async function testDayChatInferredAccusationAndAgreement() {
+  const host = await createRoom('Zed Quill');
+  const p2 = await joinRoom(host.roomCode, 'Nan Rowe');
+  const players = [host, p2];
+  const roles = { Godfather: false, DoubleAgent: false, Detective: false, Doctor: false, Miller: false, BountyHunter: false, CrazyGranny: false, Coward: false, Farmer: false, NavySeal: false };
+  const startedPromise = once(host.ws, m => m.type === 'gameState');
+  send(host.ws, { type: 'start', playerCount: 6, mafiaCount: 0, roles });
+  const gs = await startedPromise;
+  const target = gs.view.players.find(p => p.id !== host.playerId && p.id !== p2.playerId);
+
+  const resolvedPromise = Promise.all(players.map(p => once(p.ws, m => m.type === 'gameState' && m.view.phase === 'day-discuss', 8000)));
+  players.forEach(p => send(p.ws, { type: 'nightAction', action: {} }));
+  await resolvedPromise;
+
+  const accusation = "I think it's " + target.name;
+  const p2SeesAccusation = once(p2.ws, m => m.type === 'chatMsg' && m.text === accusation);
+  send(host.ws, { type: 'dayChat', text: accusation });
+  const seen = await p2SeesAccusation;
+  assert(seen.category === 'accusation' && seen.targetId === target.id && seen.inferred === true, 'a typed "I think it\'s <name>" with no dropdown tag is filed as an accusation naming that player');
+
+  const hostSeesAgree = once(host.ws, m => m.type === 'chatMsg' && m.text === 'I agree');
+  send(p2.ws, { type: 'dayChat', text: 'I agree', replyTo: { name: 'Zed Quill', text: accusation } });
+  const agree = await hostSeesAgree;
+  assert(agree.category === 'accusation' && agree.targetId === target.id && agree.agreedWithId === host.playerId, 'replying "I agree" to that accusation files the replier as accusing the same player too');
+
+  const room = require('./server.js').rooms[host.roomCode];
+  const accusers = room.state.accusationLog.filter(a => a.targetId === target.id).map(a => a.accuserId).sort();
+  assert(accusers.length === 2 && accusers.join() === [host.playerId, p2.playerId].sort().join(), 'both the original accuser and the agreeing player appear in accusationLog against that target');
+
+  const hostSeesNoise = once(host.ws, m => m.type === 'chatMsg' && m.text === 'nice weather');
+  send(p2.ws, { type: 'dayChat', text: 'nice weather' });
+  const noise = await hostSeesNoise;
+  assert(!noise.targetId && noise.category !== 'accusation', 'an ordinary line files nothing');
+
+  players.forEach(p => { try { p.ws.close(); } catch (e) {} });
+}
+
 async function main() {
   await testUndercapacityStartRejected();
   await testCustomRolesEnabled();
@@ -596,6 +640,7 @@ async function main() {
   await testPlayAgainSameLobby();
   await testGhostChatScoping();
   await testSoloDisconnectSurvivesRoom();
+  await testDayChatInferredAccusationAndAgreement();
 
   console.log('\n' + (failures === 0 ? 'All server.js integration checks passed.' : failures + ' CHECK(S) FAILED.'));
   process.exit(failures === 0 ? 0 : 1);
