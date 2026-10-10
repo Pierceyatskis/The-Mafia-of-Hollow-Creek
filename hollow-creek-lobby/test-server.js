@@ -732,6 +732,36 @@ async function createRoomAs(name, ownerKey) {
   return { ws, roomCode: created.roomCode, playerId: created.playerId };
 }
 
+// ============================================================
+// Name length cap (what fits on a player-grid tile) and the owner-only
+// profile picture.
+// ============================================================
+async function testNameCapAndOwnerAvatar() {
+  async function roomAs(name, ownerKey, avatarKey) {
+    const ws = await connect();
+    send(ws, { type: 'create', name, ownerKey, avatarKey });
+    const roster = await once(ws, m => m.type === 'roster');
+    ws.close();
+    await new Promise(r => setTimeout(r, 30));
+    return roster.players[0];
+  }
+  const long = await roomAs('A very very long name indeed', '', null);
+  assert(long.name.length <= 14, 'a long name is cut to the 14-character cap (got "' + long.name + '", ' + long.name.length + ')');
+  assert((await roomAs('Walt Pemberton', '', null)).name === 'Walt Pemberton', 'a normal 14-character name still fits uncut');
+
+  process.env.OWNER_KEY = 'avatar-key';
+  try {
+    const owner = await roomAs('Pierce', 'avatar-key', 'avatarOwner1');
+    assert(owner.avatarKey === 'avatarOwner1', 'the verified owner can use the owner-only profile picture');
+    const faker = await roomAs('Pierce', 'wrong', 'avatarOwner1');
+    assert(faker.avatarKey === null, 'a faker without the code cannot use the owner-only profile picture');
+    const normal = await roomAs('Zed', '', 'avatarOwner1');
+    assert(normal.avatarKey === null, 'an ordinary player asking for the owner-only picture gets no picture');
+    const regular = await roomAs('Zed', '', 'avatar3');
+    assert(regular.avatarKey === 'avatar3', 'ordinary profile pictures are unaffected');
+  } finally { delete process.env.OWNER_KEY; }
+}
+
 async function main() {
   await testUndercapacityStartRejected();
   await testCustomRolesEnabled();
@@ -745,6 +775,7 @@ async function main() {
   await testNightProgressHidden();
   await testNamesAndBadges();
   await testOwnerCanShame();
+  await testNameCapAndOwnerAvatar();
   await testStageTimerOnPromotedSpeaker();
   await testDayChatAccusationTag();
   await testRoundScoreBreakdown();

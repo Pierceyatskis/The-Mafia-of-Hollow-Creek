@@ -103,6 +103,13 @@ function makePlayerId() {
 // Names that would read as a pronoun or a stand-in inside chat, vote lines and
 // "you" labels ("I think it's you", "he voted for me") - letters-only compare,
 // so "You!", "he" and "No One" are all caught.
+// Longest player name. The name strip on a player-grid tile is 98px of usable
+// width (106px box minus 4px padding each side) in 11px bold uppercase Special
+// Elite, which measures 6.4px per character on average and 7.4px for the
+// widest letters (W). 14 characters is the most that keeps ordinary names
+// ("Walt Pemberton", 95px) fully readable instead of cut off with an ellipsis,
+// and even 13 W's in a row (96px) still fit. Client mirrors this.
+const MAX_NAME_LENGTH = 14;
 const CONFUSING_NAMES = new Set([
   'you', 'your', 'yours', 'yourself', 'me', 'my', 'mine', 'myself', 'i', 'im', 'ill', 'we', 'us', 'our', 'ours', 'ourselves',
   'he', 'him', 'his', 'himself', 'she', 'her', 'hers', 'herself', 'they', 'them', 'their', 'theirs', 'themselves',
@@ -131,7 +138,7 @@ function shameLabel(room, id) {
 // SHAME_LABELS key for why this one was replaced/stripped.
 function checkName(raw, ownerKey) {
   let name = String(raw || '').replace(/[\u0000-\u001f]/g, '').trim();
-  const stripped = name.replace(/[\[(<{]?\b(?:host|owner|admin|moderator)\b[\])>}]?/gi, ' ').replace(/\s+/g, ' ').trim().slice(0, 20).trim();
+  const stripped = name.replace(/[\[(<{]?\b(?:host|owner|admin|moderator)\b[\])>}]?/gi, ' ').replace(/\s+/g, ' ').trim().slice(0, MAX_NAME_LENGTH).trim();
   const triedBadge = /\b(?:host|owner|admin|moderator)\b/i.test(name);
   name = stripped;
   if (!name) return { name: 'Player ' + (100 + Math.floor(Math.random() * 900)), shame: triedBadge ? 'poser' : null };
@@ -150,6 +157,7 @@ function sanitizeName(raw, ownerKey) {
 function nameForSocket(socket, raw) {
   const r = checkName(raw, socket.ownerKey);
   socket.pendingShame = r.shame;
+  socket.ownerVerified = isOwnerIdentity(r.name, socket.ownerKey);
   return r.name;
 }
 
@@ -175,8 +183,13 @@ function sanitizeColor(raw) {
   const s = String(raw || '');
   return /^#[0-9a-fA-F]{3,8}$/.test(s) ? s : null;
 }
-function sanitizeAvatarKey(raw) {
+// avatarOwner1 is the owner-only profile picture: accepted only for a verified
+// owner (socket.ownerVerified, set when their name/key were checked), dropped
+// to "no picture" for anyone else who asks for it.
+const OWNER_AVATAR_KEYS = new Set(['avatarOwner1']);
+function sanitizeAvatarKey(raw, ownerVerified) {
   const s = String(raw || '');
+  if (OWNER_AVATAR_KEYS.has(s)) return ownerVerified ? s : null;
   return /^avatar[0-9]{1,3}$/.test(s) ? s : null;
 }
 
@@ -239,7 +252,7 @@ function joinRoom(socket, code, name, avatarKey, color, gameIconKey) {
   // chat and vote lines - the later arrival gets a number.
   const baseName = name;
   let suffix = 2;
-  while (room.players.some(p => p.name.toLowerCase() === name.toLowerCase())) name = baseName.slice(0, 17) + ' ' + (suffix++);
+  while (room.players.some(p => p.name.toLowerCase() === name.toLowerCase())) name = baseName.slice(0, MAX_NAME_LENGTH - 3) + ' ' + (suffix++);
   room.players.push({ id, name, socket, avatarKey, color, gameIconKey });
   if (isOwnerIdentity(baseName, socket.ownerKey)) room.ownerIds.add(id);
   if (socket.pendingShame) room.shame.set(id, socket.pendingShame);
@@ -703,7 +716,7 @@ wss.on('connection', (socket) => {
 
     if (msg.type === 'create') {
       const name = nameForSocket(socket, msg.name);
-      const code = createRoom(socket, name, msg.isPublic, sanitizeAvatarKey(msg.avatarKey), sanitizeColor(msg.color), undefined, sanitizeAvatarKey(msg.gameIconKey));
+      const code = createRoom(socket, name, msg.isPublic, sanitizeAvatarKey(msg.avatarKey, socket.ownerVerified), sanitizeColor(msg.color), undefined, sanitizeAvatarKey(msg.gameIconKey));
       console.log(`Room ${code} created by ${name}${msg.isPublic ? ' (public)' : ''}`);
     }
 
@@ -723,13 +736,13 @@ wss.on('connection', (socket) => {
         return;
       }
       const name = nameForSocket(socket, msg.name);
-      joinRoom(socket, code, name, sanitizeAvatarKey(msg.avatarKey), sanitizeColor(msg.color), sanitizeAvatarKey(msg.gameIconKey));
+      joinRoom(socket, code, name, sanitizeAvatarKey(msg.avatarKey, socket.ownerVerified), sanitizeColor(msg.color), sanitizeAvatarKey(msg.gameIconKey));
       console.log(`${name} joined room ${code}`);
     }
 
     else if (msg.type === 'quick_match') {
       const name = nameForSocket(socket, msg.name);
-      const avatarKey = sanitizeAvatarKey(msg.avatarKey);
+      const avatarKey = sanitizeAvatarKey(msg.avatarKey, socket.ownerVerified);
       const color = sanitizeColor(msg.color);
       const gameIconKey = sanitizeAvatarKey(msg.gameIconKey);
       // A searcher who didn't state a preference is treated as "without mic"
@@ -789,7 +802,7 @@ wss.on('connection', (socket) => {
         return;
       }
       const name = nameForSocket(socket, msg.name);
-      const avatarKey = sanitizeAvatarKey(msg.avatarKey);
+      const avatarKey = sanitizeAvatarKey(msg.avatarKey, socket.ownerVerified);
       const color = sanitizeColor(msg.color);
       const gameIconKey = sanitizeAvatarKey(msg.gameIconKey);
 
