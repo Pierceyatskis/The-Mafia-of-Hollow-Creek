@@ -115,15 +115,42 @@ function isConfusingName(name) {
 // "Host"/"Owner" are real badges the server hands out (see roster/gameState
 // isHost/isOwner) - a player typing them into their own name must not be able
 // to dress up as one, so those words (bare or bracketed) are stripped.
-function sanitizeName(raw, ownerKey) {
+// The Tag of Shame: a visible red badge on a player's name. Handed out
+// automatically when someone tries a banned name, and by the verified owner on
+// request. The label says what they did.
+const SHAME_LABELS = {
+  confusing: 'Nameless',   // tried a pronoun / stand-in name (You, me, he, No One...)
+  poser: 'Poser',          // tried to dress their name up as Host/Owner/Admin
+  impostor: 'Impostor',    // tried to be the owner without the code
+  owner: 'Scoundrel'       // applied by the owner
+};
+function shameLabel(room, id) {
+  return SHAME_LABELS[room.shame && room.shame.get(id)] || null;
+}
+// Returns { name, shame } - shame is null for an ordinary name, otherwise the
+// SHAME_LABELS key for why this one was replaced/stripped.
+function checkName(raw, ownerKey) {
   let name = String(raw || '').replace(/[\u0000-\u001f]/g, '').trim();
-  name = name.replace(/[\[(<{]?\b(?:host|owner|admin|moderator)\b[\])>}]?/gi, ' ').replace(/\s+/g, ' ').trim().slice(0, 20).trim();
-  if (!name || isConfusingName(name)) return 'Player ' + (100 + Math.floor(Math.random() * 900));
+  const stripped = name.replace(/[\[(<{]?\b(?:host|owner|admin|moderator)\b[\])>}]?/gi, ' ').replace(/\s+/g, ' ').trim().slice(0, 20).trim();
+  const triedBadge = /\b(?:host|owner|admin|moderator)\b/i.test(name);
+  name = stripped;
+  if (!name) return { name: 'Player ' + (100 + Math.floor(Math.random() * 900)), shame: triedBadge ? 'poser' : null };
+  if (isConfusingName(name)) return { name: 'Player ' + (100 + Math.floor(Math.random() * 900)), shame: 'confusing' };
   // With OWNER_KEY configured the owner's name is reserved: anyone typing it
   // without the matching code gets a visibly different name instead of a
-  // lookalike of the real one.
-  if (name.toLowerCase() === OWNER_NAME && process.env.OWNER_KEY && !isOwnerIdentity(name, ownerKey)) return name + ' 2';
-  return name;
+  // lookalike of the real one - and the Tag of Shame.
+  if (name.toLowerCase() === OWNER_NAME && process.env.OWNER_KEY && !isOwnerIdentity(name, ownerKey)) return { name: name + ' 2', shame: 'impostor' };
+  return { name, shame: triedBadge ? 'poser' : null };
+}
+function sanitizeName(raw, ownerKey) {
+  return checkName(raw, ownerKey).name;
+}
+// Used by every way into a room: sanitizes, and parks the shame reason on the
+// socket for createRoom/joinRoom to attach to the new player's id.
+function nameForSocket(socket, raw) {
+  const r = checkName(raw, socket.ownerKey);
+  socket.pendingShame = r.shame;
+  return r.name;
 }
 
 // The Owner badge is for the game's owner, who plays as "Pierce". A username
@@ -192,10 +219,12 @@ function createRoom(socket, name, isPublic, avatarKey, color, initialVoiceEnable
   // first real edit.
   rooms[code] = {
     players: [{ id, name, socket, avatarKey, color, gameIconKey }], hostId: id, started: false, state: null, timer: null,
-    phaseEndsAt: null, isPublic: !!isPublic, ownerIds: new Set(),
+    phaseEndsAt: null, isPublic: !!isPublic, ownerIds: new Set(), shame: new Map(),
     draftConfig: typeof initialVoiceEnabled === 'boolean' ? { voiceEnabled: initialVoiceEnabled } : null
   };
   if (isOwnerIdentity(name, socket.ownerKey)) rooms[code].ownerIds.add(id);
+  if (socket.pendingShame) rooms[code].shame.set(id, socket.pendingShame);
+  socket.pendingShame = null;
   socket.roomCode = code;
   socket.playerId = id;
   socket.send(JSON.stringify({ type: 'created', roomCode: code, playerId: id }));
@@ -213,6 +242,8 @@ function joinRoom(socket, code, name, avatarKey, color, gameIconKey) {
   while (room.players.some(p => p.name.toLowerCase() === name.toLowerCase())) name = baseName.slice(0, 17) + ' ' + (suffix++);
   room.players.push({ id, name, socket, avatarKey, color, gameIconKey });
   if (isOwnerIdentity(baseName, socket.ownerKey)) room.ownerIds.add(id);
+  if (socket.pendingShame) room.shame.set(id, socket.pendingShame);
+  socket.pendingShame = null;
   socket.roomCode = code;
   socket.playerId = id;
   socket.send(JSON.stringify({ type: 'joined', roomCode: code, playerId: id }));
@@ -227,8 +258,8 @@ function joinRoom(socket, code, name, avatarKey, color, gameIconKey) {
 function broadcastRoster(code) {
   const room = rooms[code];
   if (!room) return;
-  const roster = room.players.map(p => ({ id: p.id, name: p.name, isHost: p.id === room.hostId, isOwner: room.ownerIds.has(p.id), avatarKey: p.avatarKey || null, color: p.color || null }));
-  const msg = JSON.stringify({ type: 'roster', roomCode: code, players: roster, started: room.started, isPublic: !!room.isPublic });
+  const roster = room.players.map(p => ({ id: p.id, name: p.name, isHost: p.id === room.hostId, isOwner: room.ownerIds.has(p.id), shame: shameLabel(room, p.id), avatarKey: p.avatarKey || null, color: p.color || null }));
+  const msg = JSON.stringify({ type: 'roster', roomCode: code, players: roster, started: room.started, isPublic: !!room.isPublic, ownerPowers: !!process.env.OWNER_KEY });
   room.players.forEach(p => {
     if (p.socket.readyState === WebSocket.OPEN) p.socket.send(msg);
   });
@@ -313,8 +344,9 @@ function sendGameState(room) {
     view.players.forEach(p => {
       p.isHost = p.id === room.hostId;
       p.isOwner = room.ownerIds.has(p.id);
+      p.shame = shameLabel(room, p.id);
     });
-    rp.socket.send(JSON.stringify({ type: 'gameState', view, phaseEndsAt: room.phaseEndsAt }));
+    rp.socket.send(JSON.stringify({ type: 'gameState', view, phaseEndsAt: room.phaseEndsAt, ownerPowers: !!process.env.OWNER_KEY }));
   });
 }
 
@@ -670,7 +702,7 @@ wss.on('connection', (socket) => {
     if (msg.type === 'create' || msg.type === 'join' || msg.type === 'quick_match' || msg.type === 'rejoin') socket.ownerKey = readOwnerKey(msg.ownerKey);
 
     if (msg.type === 'create') {
-      const name = sanitizeName(msg.name, socket.ownerKey);
+      const name = nameForSocket(socket, msg.name);
       const code = createRoom(socket, name, msg.isPublic, sanitizeAvatarKey(msg.avatarKey), sanitizeColor(msg.color), undefined, sanitizeAvatarKey(msg.gameIconKey));
       console.log(`Room ${code} created by ${name}${msg.isPublic ? ' (public)' : ''}`);
     }
@@ -690,13 +722,13 @@ wss.on('connection', (socket) => {
         socket.send(JSON.stringify({ type: 'error', message: 'That room is full.' }));
         return;
       }
-      const name = sanitizeName(msg.name, socket.ownerKey);
+      const name = nameForSocket(socket, msg.name);
       joinRoom(socket, code, name, sanitizeAvatarKey(msg.avatarKey), sanitizeColor(msg.color), sanitizeAvatarKey(msg.gameIconKey));
       console.log(`${name} joined room ${code}`);
     }
 
     else if (msg.type === 'quick_match') {
-      const name = sanitizeName(msg.name, socket.ownerKey);
+      const name = nameForSocket(socket, msg.name);
       const avatarKey = sanitizeAvatarKey(msg.avatarKey);
       const color = sanitizeColor(msg.color);
       const gameIconKey = sanitizeAvatarKey(msg.gameIconKey);
@@ -722,6 +754,24 @@ wss.on('connection', (socket) => {
       removePlayer(socket);
     }
 
+    else if (msg.type === 'shame') {
+      // The verified owner can hang (or lift) the Tag of Shame on anyone in
+      // their room. Owner powers need OWNER_KEY configured: a moderation
+      // action must not be grantable by just typing a name.
+      const { room, player } = getRoomAndPlayer(socket);
+      if (!room || !player) return;
+      if (!process.env.OWNER_KEY || !room.ownerIds.has(player.id)) {
+        socket.send(JSON.stringify({ type: 'error', message: 'Only the verified owner can do that.' }));
+        return;
+      }
+      const targetId = String(msg.targetId || '');
+      if (!targetId || targetId === player.id || room.ownerIds.has(targetId)) return;
+      const inRoom = room.players.some(p => p.id === targetId) || (room.started && room.state && G.byId(room.state, targetId) && G.byId(room.state, targetId).isHuman);
+      if (!inRoom) return;
+      if (msg.on === false) room.shame.delete(targetId); else room.shame.set(targetId, 'owner');
+      if (room.started) sendGameState(room); else broadcastRoster(socket.roomCode);
+    }
+
     else if (msg.type === 'rejoin') {
       // A refreshed/reloaded tab trying to step back into the exact seat it
       // had a moment ago - see the client's ACTIVE_SESSION_KEY/loadActiveSession.
@@ -738,7 +788,7 @@ wss.on('connection', (socket) => {
         socket.send(JSON.stringify({ type: 'rejoinFailed', message: 'That room no longer exists.' }));
         return;
       }
-      const name = sanitizeName(msg.name, socket.ownerKey);
+      const name = nameForSocket(socket, msg.name);
       const avatarKey = sanitizeAvatarKey(msg.avatarKey);
       const color = sanitizeColor(msg.color);
       const gameIconKey = sanitizeAvatarKey(msg.gameIconKey);
@@ -763,6 +813,7 @@ wss.on('connection', (socket) => {
       if (existingEntry) { existingEntry.socket = socket; }
       else { room.players.push({ id: playerId, name: sp.name, socket, avatarKey, color, gameIconKey }); }
       if (isOwnerIdentity(sp.name, socket.ownerKey)) room.ownerIds.add(playerId);
+      socket.pendingShame = null;
       socket.roomCode = code;
       socket.playerId = playerId;
       socket.send(JSON.stringify({ type: 'rejoined', roomCode: code, playerId, started: true }));

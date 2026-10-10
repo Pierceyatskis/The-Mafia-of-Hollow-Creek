@@ -638,7 +638,11 @@ async function testNamesAndBadges() {
   assert(/^Player \d{3}$/.test((await nameAs('You')).name), 'the name "You" is replaced, not allowed');
   assert(/^Player \d{3}$/.test((await nameAs('he')).name), 'the name "he" is replaced');
   assert(/^Player \d{3}$/.test((await nameAs('No One')).name), 'the name "No One" is replaced');
-  assert((await nameAs('Alice')).name === 'Alice', 'an ordinary name is untouched');
+  assert((await nameAs('You')).shame === 'Nameless', 'trying a banned pronoun name earns the "Nameless" Tag of Shame');
+  assert((await nameAs('Bob Host')).shame === 'Poser', 'trying to fake a Host/Owner badge in a name earns the "Poser" tag');
+  const ghost = await nameAs('Ghost');
+  assert(ghost.name === 'Ghost' && ghost.shame === null, 'a name merely CONTAINING the letters "host" ("Ghost") is fine - no change, no shame');
+  assert((await nameAs('Alice')).name === 'Alice' && (await nameAs('Alice')).shame === null, 'an ordinary name is untouched and earns no tag');
   assert((await nameAs('Bob Host')).name === 'Bob', 'typing "Host" after a name strips it so nobody can pose as the host');
   assert((await nameAs('[HOST] Zed')).name === 'Zed', 'a bracketed [HOST] tag in a name is stripped');
   const pierce = await nameAs('Pierce');
@@ -651,6 +655,7 @@ async function testNamesAndBadges() {
   delete process.env.OWNER_KEY;
   assert(fake.isOwner === false, 'with OWNER_KEY set on the server, typing the name Pierce alone does not earn the Owner badge');
   assert(real.isOwner === true && real.name === 'Pierce', 'with OWNER_KEY set, Pierce presenting the right key does, under the real name');
+  assert(fake.shame === 'Impostor', 'with OWNER_KEY set, copying the owner\'s name earns the "Impostor" tag');
   assert(fake.name === 'Pierce 2', 'with OWNER_KEY set, the owner\'s name is reserved: a copy without the code is visibly different ("Pierce 2")');
 }
 
@@ -685,6 +690,48 @@ async function testStageTimerOnPromotedSpeaker() {
   players.forEach(p => { try { p.ws.close(); } catch (e) {} });
 }
 
+// ============================================================
+// The owner (verified by OWNER_KEY) can hang / lift the Tag of Shame on others.
+// ============================================================
+async function testOwnerCanShame() {
+  process.env.OWNER_KEY = 'shame-key';
+  try {
+    const owner = await createRoomAs('Pierce', 'shame-key');
+    const zed = await joinRoom(owner.roomCode, 'Zed');
+    function rosterWith(ws, pred) { return once(ws, m => m.type === 'roster' && pred(m), 3000); }
+    const shamed = rosterWith(zed.ws, m => m.players.some(p => p.name === 'Zed' && p.shame === 'Scoundrel'));
+    send(owner.ws, { type: 'shame', targetId: zed.playerId });
+    const r1 = await shamed;
+    assert(r1.players.find(p => p.name === 'Zed').shame === 'Scoundrel', 'the verified owner can apply the Tag of Shame to another player in the lobby');
+    assert(r1.ownerPowers === true, 'the roster tells clients owner powers are active (OWNER_KEY configured)');
+
+    const errPromise = once(zed.ws, m => m.type === 'error', 2000);
+    send(zed.ws, { type: 'shame', targetId: owner.playerId });
+    const err = await errPromise;
+    assert(/verified owner/i.test(err.message), 'an ordinary player cannot apply the tag - they are told only the owner can');
+
+    const pardoned = rosterWith(owner.ws, m => m.players.some(p => p.name === 'Zed' && p.shame === null));
+    send(owner.ws, { type: 'shame', targetId: zed.playerId, on: false });
+    await pardoned;
+    assert(true, 'the owner can lift the tag again');
+    owner.ws.close(); zed.ws.close();
+  } finally { delete process.env.OWNER_KEY; }
+
+  // Without OWNER_KEY the name "Pierce" alone must NOT grant moderation power.
+  const nameOnly = await createRoomAs('Pierce', '');
+  const bob = await joinRoom(nameOnly.roomCode, 'Bob');
+  const refused = once(nameOnly.ws, m => m.type === 'error', 2000);
+  send(nameOnly.ws, { type: 'shame', targetId: bob.playerId });
+  assert(/verified owner/i.test((await refused).message), 'with no OWNER_KEY configured, typing the name Pierce does not unlock owner powers');
+  nameOnly.ws.close(); bob.ws.close();
+}
+async function createRoomAs(name, ownerKey) {
+  const ws = await connect();
+  send(ws, { type: 'create', name, ownerKey });
+  const created = await once(ws, m => m.type === 'created');
+  return { ws, roomCode: created.roomCode, playerId: created.playerId };
+}
+
 async function main() {
   await testUndercapacityStartRejected();
   await testCustomRolesEnabled();
@@ -697,6 +744,7 @@ async function main() {
   await testMafiaChatScoping();
   await testNightProgressHidden();
   await testNamesAndBadges();
+  await testOwnerCanShame();
   await testStageTimerOnPromotedSpeaker();
   await testDayChatAccusationTag();
   await testRoundScoreBreakdown();

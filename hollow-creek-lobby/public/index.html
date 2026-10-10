@@ -1008,6 +1008,7 @@ body.force-reduced-motion .notebook-view.notebook-page-turn{animation:none;}
 .name-tag{display:inline-block; margin-left:6px; padding:1px 6px; border-radius:3px; border:1.5px solid; font-family:var(--font-type); font-size:0.72em; font-weight:700; letter-spacing:1px; text-transform:uppercase; line-height:1.4; vertical-align:middle; white-space:nowrap;}
 .name-tag-host{color:#8fe0b0; border-color:#3f9a68; background:rgba(63,154,104,0.2);}
 .name-tag-owner{color:#ffe08a; border-color:#d9a441; background:linear-gradient(180deg, rgba(217,164,65,0.4), rgba(139,20,20,0.4)); box-shadow:0 0 6px rgba(217,164,65,0.55);}
+.name-tag-shame{color:#ffb3a8; border-color:#c0392b; background:repeating-linear-gradient(135deg, rgba(120,20,20,0.75) 0 6px, rgba(60,10,10,0.75) 6px 12px); transform:rotate(-2deg); text-shadow:0 1px 1px rgba(0,0,0,0.8); box-shadow:0 0 0 1px rgba(0,0,0,0.5);}
 .chat-tab-badge{display:inline-block; min-width:14px; height:14px; margin-left:5px; padding:0 3px; border-radius:7px; background:#8B1414; color:#fff; font-size:9px; line-height:14px; text-align:center; vertical-align:middle;}
 #chat-dead-note{display:none; margin:12px 0; padding:9px 12px; border:1px solid var(--gold-dim); border-left:3px solid #8B1414; border-radius:5px; background:rgba(20,14,10,0.7); color:var(--parchment-dim); font-size:12px; line-height:1.35;}
 #chat-dead-note b{color:var(--parchment);}
@@ -2460,9 +2461,12 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
     <div id="player-action-moderate-panel" class="player-action-panel" style="display:none;">
       <p style="font-size:13px; color:var(--parchment-dim); margin:0 0 10px;">Host tools.</p>
       <div style="display:flex; flex-direction:column; align-items:flex-start; gap:8px;">
-        <button class="btn ghost" id="player-action-mute-btn">Mute</button>
-        <button class="btn ghost" id="player-action-unmute-btn">Unmute (host)</button>
-        <button class="btn danger" id="player-action-kick-btn">Remove from game</button>
+        <div id="player-action-host-tools" style="display:flex; flex-direction:column; align-items:flex-start; gap:8px;">
+          <button class="btn ghost" id="player-action-mute-btn">Mute</button>
+          <button class="btn ghost" id="player-action-unmute-btn">Unmute (host)</button>
+          <button class="btn danger" id="player-action-kick-btn">Remove from game</button>
+        </div>
+        <button class="btn ghost" id="player-action-shame-btn" style="display:none;">Hang the Tag of Shame</button>
       </div>
     </div>
   </div>
@@ -3348,6 +3352,7 @@ function handleServerMessage(msg){
     var mpErrEl = document.getElementById('mpentry-error');
     if(mpErrEl){ mpErrEl.textContent = msg.message || "Couldn't rejoin that game."; mpErrEl.style.display = 'block'; }
   } else if(msg.type==='roster'){
+    ownerPowers = !!msg.ownerPowers;
     renderMpRoster(msg.players);
   } else if(msg.type==='configUpdate'){
     // The host's own setup-screen choices, live - only meaningful for a
@@ -3375,6 +3380,7 @@ function handleServerMessage(msg){
     switchPanel('lobby');
   } else if(msg.type==='gameState'){
     phaseEndsAt = msg.phaseEndsAt;
+    ownerPowers = !!msg.ownerPowers;
     renderFromServerView(msg.view);
   } else if(msg.type==='roundScore'){
     latestRoundScore = msg;
@@ -3453,15 +3459,24 @@ function handleServerMessage(msg){
 // "host"/"owner" from names): Owner for the game's owner, Host for whoever
 // currently hosts the lobby.
 function nameTagsHTML(p){
-  return (p && p.isOwner ? '<span class="name-tag name-tag-owner">Owner</span>' : '') + (p && p.isHost ? '<span class="name-tag name-tag-host">Host</span>' : '');
+  return (p && p.isOwner ? '<span class="name-tag name-tag-owner">Owner</span>' : '') + (p && p.isHost ? '<span class="name-tag name-tag-host">Host</span>' : '') +
+    (p && p.shame ? '<span class="name-tag name-tag-shame" title="Tag of Shame">'+escapeHtmlMp(p.shame)+'</span>' : '');
 }
+// Owner powers (hanging the Tag of Shame on someone) exist only while the
+// server has OWNER_KEY configured - it says so in every roster/gameState.
+var ownerPowers = false, amOwner = false;
+function canShame(p){ return !!(ownerPowers && amOwner && p && !p.isOwner && p.id !== myPlayerId); }
 function renderMpRoster(players){
-  players.forEach(function(p){ if(p.id===myPlayerId) amHost = p.isHost; });
+  players.forEach(function(p){ if(p.id===myPlayerId){ amHost = p.isHost; amOwner = !!p.isOwner; } });
   document.getElementById('mp-roster').innerHTML = players.map(function(p){
     var tags = (p.id===myPlayerId ? ' (you)' : '') + nameTagsHTML(p);
+    var shameBtn = canShame(p) ? '<button class="btn ghost mp-shame-btn" data-shame-id="'+p.id+'" data-shame-on="'+(p.shame?'0':'1')+'" style="padding:3px 10px; font-size:12px; margin-left:8px;">'+(p.shame?'Pardon':'Tag of Shame')+'</button>' : '';
     var kickBtn = (amHost && p.id !== myPlayerId) ? '<button class="btn ghost mp-kick-btn" data-kick-id="'+p.id+'" style="padding:3px 10px; font-size:12px; margin-left:8px;">Remove</button>' : '';
-    return '<div class="roster-row" style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--line);"><span style="display:flex; align-items:center; gap:8px;">'+avatarHTML(p,26)+escapeHtmlMp(p.name)+tags+'</span>'+kickBtn+'</div>';
+    return '<div class="roster-row" style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--line);"><span style="display:flex; align-items:center; gap:8px;">'+avatarHTML(p,26)+escapeHtmlMp(p.name)+tags+'</span><span>'+shameBtn+kickBtn+'</span></div>';
   }).join('');
+  document.querySelectorAll('.mp-shame-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){ sendWS({type:'shame', targetId: btn.getAttribute('data-shame-id'), on: btn.getAttribute('data-shame-on')==='1'}); });
+  });
   document.querySelectorAll('.mp-kick-btn').forEach(function(btn){
     btn.addEventListener('click', function(){ openReasonPickerModal('kick', btn.getAttribute('data-kick-id')); });
   });
@@ -6406,30 +6421,30 @@ function updateProfilePreview(){
 }
 function renderProfileScreen(){
   document.getElementById('profile-owner-code').value = getOwnerKey();
-  document.getElementById('profile-username-input').value = (CURRENT_PROFILE.username==='Player' || isConfusingName(CURRENT_PROFILE.username)) ? '' : CURRENT_PROFILE.username;
+  document.getElementById('profile-username-input').value = CURRENT_PROFILE.username==='Player' ? '' : CURRENT_PROFILE.username;
   renderProfileSwatches(CURRENT_PROFILE.color);
   renderAvatarPicker(CURRENT_PROFILE.avatarKey);
   renderGameIconPicker(CURRENT_PROFILE.gameIconKey);
   updateProfilePreview();
+  updateProfileNameWarning();
   renderProfileScoreStats();
   document.getElementById('profile-saved-msg').style.display = 'none';
 }
-document.getElementById('profile-username-input').addEventListener('input', updateProfilePreview);
+function updateProfileNameWarning(){
+  var v = document.getElementById('profile-username-input').value.trim();
+  var stripped = stripBadgeWords(v);
+  var bad = !!v && (isConfusingName(v) || stripped !== v || isConfusingName(stripped));
+  var el = document.getElementById('profile-name-error');
+  el.textContent = bad ? 'That name isn\u2019t allowed here. If you enter a room with it you\u2019ll be given a random name and a Tag of Shame for everyone to see.' : '';
+  el.style.display = bad ? 'block' : 'none';
+}
+document.getElementById('profile-username-input').addEventListener('input', function(){ updateProfilePreview(); updateProfileNameWarning(); });
 document.getElementById('profile-btn').addEventListener('click', function(){
   renderProfileScreen();
   switchPanel('profile');
 });
 document.getElementById('profile-save-btn').addEventListener('click', function(){
-  var typedName = document.getElementById('profile-username-input').value.trim();
-  var name = stripBadgeWords(typedName) || (typedName ? '' : 'Player');
-  var nameErr = document.getElementById('profile-name-error');
-  if(!name || isConfusingName(name)){
-    nameErr.textContent = 'Pick a name that can\u2019t be mistaken for a pronoun or a title \u2014 not You, Me, I, He, She, Him, Her, Host, Owner and the like.';
-    nameErr.style.display = 'block';
-    document.getElementById('profile-saved-msg').style.display = 'none';
-    return;
-  }
-  nameErr.style.display = 'none';
+  var name = document.getElementById('profile-username-input').value.trim() || 'Player';
   setOwnerKey(document.getElementById('profile-owner-code').value.trim());
   var selectedSwatch = document.querySelector('#profile-swatches .profile-swatch.selected');
   var color = selectedSwatch ? selectedSwatch.dataset.color : CURRENT_PROFILE.color;
@@ -6437,7 +6452,7 @@ document.getElementById('profile-save-btn').addEventListener('click', function()
   var avatarKey = selectedAvatar ? (selectedAvatar.dataset.key || null) : null;
   var selectedGameIcon = document.querySelector('#game-icon-picker .avatar-picker-item.selected');
   var gameIconKey = selectedGameIcon ? (selectedGameIcon.dataset.key || null) : null;
-  CURRENT_PROFILE = {username:name, color:color, avatarKey:avatarKey, gameIconKey:gameIconKey};
+  CURRENT_PROFILE = {username:name, color:color, avatarKey:avatarKey, gameIconKey:gameIconKey, v:2};
   saveProfile(CURRENT_PROFILE);
   document.getElementById('profile-saved-msg').style.display = 'block';
 });
@@ -7478,6 +7493,7 @@ function renderFromServerView(view){
   var prevMe = prev ? meFromView(prev) : null;
   latestView = view;
   var me = meFromView(view);
+  amOwner = !!(me && me.isOwner);
   // Advance the bookkeeping immediately, not inside finish() below - finish()
   // is deferred behind user-dismissed modals (death screen, night-kill
   // reveal, silence notice), and if another gameState arrives before the
@@ -7960,7 +7976,11 @@ function openPlayerActionModal(id){
   voteBtn.disabled = !voteOk;
   whisperBtn.disabled = !whisperOk;
   spotlightBtn.disabled = !spotlightOk;
-  moderateBtn.style.display = amHost ? 'flex' : 'none';
+  moderateBtn.style.display = (amHost || canShame(p)) ? 'flex' : 'none';
+  document.getElementById('player-action-host-tools').style.display = amHost ? 'flex' : 'none';
+  var shameActionBtn = document.getElementById('player-action-shame-btn');
+  shameActionBtn.style.display = canShame(p) ? '' : 'none';
+  shameActionBtn.textContent = p.shame ? 'Pardon (lift the Tag of Shame)' : 'Hang the Tag of Shame';
 
   document.getElementById('player-action-vote-error').style.display = 'none';
   renderNotePanel(); // refresh the note textarea for THIS target - otherwise it keeps showing whatever was last typed for a previous player
@@ -7976,6 +7996,12 @@ function renderSpotlightPanel(){
   btn.textContent = mine ? 'Remove the spotlight' : 'Put the spotlight on them';
   btn.classList.toggle('ghost', mine);
 }
+document.getElementById('player-action-shame-btn').addEventListener('click', function(){
+  var target = byId(actionModalTargetId);
+  if(!target || !canShame(target)) return;
+  sendWS({type:'shame', targetId: target.id, on: !target.shame});
+  closePlayerActionModal();
+});
 document.getElementById('player-action-spotlight-btn').addEventListener('click', function(){
   if(!actionModalTargetId) return;
   var mine = latestView && latestView.mySpotlightTarget === actionModalTargetId;
@@ -8883,7 +8909,8 @@ async function initGame(){
     var savedProfile = await loadProfile();
     if(savedProfile && savedProfile.username){
       CURRENT_PROFILE = savedProfile;
-      if(isConfusingName(CURRENT_PROFILE.username)) CURRENT_PROFILE.username = 'Player';
+      // Only the OLD built-in default ("You", from before profiles were versioned) is reset; a name typed on purpose is kept.
+      if(!CURRENT_PROFILE.v && CURRENT_PROFILE.username==='You') CURRENT_PROFILE.username = 'Player';
     }
   }catch(e){ /* use defaults */ }
   try{
