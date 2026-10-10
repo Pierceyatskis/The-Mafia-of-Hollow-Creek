@@ -2552,10 +2552,14 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
 <div class="folder" id="profile-folder" style="display:none;">
   <div id="panel-profile">
     <h2 class="sec">Your profile</h2>
-    <p style="font-size:13px; color:var(--parchment-dim); line-height:1.6; margin:0 0 16px;">This is how you'll show up to yourself in the roster, chat, and votes \u2014 other players never see this, since it's your own local view of the game.</p>
+    <p style="font-size:13px; color:var(--parchment-dim); line-height:1.6; margin:0 0 16px;">This is how you'll show up to yourself in the roster, chat, and votes &mdash; other players never see this, since it's your own local view of the game.</p>
 
     <p style="font-family:var(--font-type); font-size:12px; letter-spacing:1px; text-transform:uppercase; color:var(--gold); margin:0 0 6px;">Display name</p>
-    <input type="text" id="profile-username-input" maxlength="20" placeholder="Your name" style="width:100%; max-width:320px; background:var(--panel-2); border:1px solid var(--gold-dim); border-radius:5px; padding:9px 11px; font-family:var(--font-body); font-size:14px; color:var(--parchment); margin-bottom:20px;">
+    <input type="text" id="profile-username-input" maxlength="20" placeholder="Your name" style="width:100%; max-width:320px; background:var(--panel-2); border:1px solid var(--gold-dim); border-radius:5px; padding:9px 11px; font-family:var(--font-body); font-size:14px; color:var(--parchment); margin-bottom:12px;">
+
+    <p style="font-family:var(--font-type); font-size:12px; letter-spacing:1px; text-transform:uppercase; color:var(--gold); margin:0 0 6px;">Special name code <span style="color:var(--parchment-dim); text-transform:none; letter-spacing:0;">(optional)</span></p>
+    <input type="password" id="profile-owner-code" maxlength="128" autocomplete="off" placeholder="Code for a reserved name" style="width:100%; max-width:320px; background:var(--panel-2); border:1px solid var(--gold-dim); border-radius:5px; padding:9px 11px; font-family:var(--font-body); font-size:14px; color:var(--parchment); margin-bottom:4px;">
+    <p style="font-size:12px; color:var(--parchment-dim); line-height:1.5; margin:0 0 20px; max-width:320px;">Only needed for a reserved name, like the owner's. Saved on this device only; leave it blank otherwise.</p>
 
     <p style="font-family:var(--font-type); font-size:12px; letter-spacing:1px; text-transform:uppercase; color:var(--gold); margin:0 0 8px;">Avatar color</p>
     <div class="profile-swatches" id="profile-swatches"></div>
@@ -3097,6 +3101,7 @@ function stripBadgeWords(name){ return String(name||'').replace(/[\[(<{]?\b(?:ho
 // The owner's browser remembers a key (set once via ?ownerKey=... in the URL)
 // that the server can require before it hands out the Owner badge.
 function getOwnerKey(){ try{ return localStorage.getItem('hc-owner-key') || ''; }catch(e){ return ''; } }
+function setOwnerKey(v){ try{ if(v) localStorage.setItem('hc-owner-key', v); else localStorage.removeItem('hc-owner-key'); }catch(e){} }
 (function captureOwnerKey(){
   try{
     var params = new URLSearchParams(location.search);
@@ -6400,6 +6405,7 @@ function updateProfilePreview(){
     '<span class="who">'+escapeHtmlMp(name)+' (you)</span><span class="line">"glad we\'re finally getting somewhere with this case."</span>';
 }
 function renderProfileScreen(){
+  document.getElementById('profile-owner-code').value = getOwnerKey();
   document.getElementById('profile-username-input').value = (CURRENT_PROFILE.username==='Player' || isConfusingName(CURRENT_PROFILE.username)) ? '' : CURRENT_PROFILE.username;
   renderProfileSwatches(CURRENT_PROFILE.color);
   renderAvatarPicker(CURRENT_PROFILE.avatarKey);
@@ -6424,6 +6430,7 @@ document.getElementById('profile-save-btn').addEventListener('click', function()
     return;
   }
   nameErr.style.display = 'none';
+  setOwnerKey(document.getElementById('profile-owner-code').value.trim());
   var selectedSwatch = document.querySelector('#profile-swatches .profile-swatch.selected');
   var color = selectedSwatch ? selectedSwatch.dataset.color : CURRENT_PROFILE.color;
   var selectedAvatar = document.querySelector('#avatar-picker .avatar-picker-item.selected');

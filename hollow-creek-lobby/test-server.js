@@ -650,7 +650,8 @@ async function testNamesAndBadges() {
   const real = await nameAs('Pierce', 'secret-key');
   delete process.env.OWNER_KEY;
   assert(fake.isOwner === false, 'with OWNER_KEY set on the server, typing the name Pierce alone does not earn the Owner badge');
-  assert(real.isOwner === true, 'with OWNER_KEY set, Pierce presenting the right key does');
+  assert(real.isOwner === true && real.name === 'Pierce', 'with OWNER_KEY set, Pierce presenting the right key does, under the real name');
+  assert(fake.name === 'Pierce 2', 'with OWNER_KEY set, the owner\'s name is reserved: a copy without the code is visibly different ("Pierce 2")');
 }
 
 // ============================================================

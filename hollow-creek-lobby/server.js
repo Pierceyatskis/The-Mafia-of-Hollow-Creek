@@ -115,10 +115,14 @@ function isConfusingName(name) {
 // "Host"/"Owner" are real badges the server hands out (see roster/gameState
 // isHost/isOwner) - a player typing them into their own name must not be able
 // to dress up as one, so those words (bare or bracketed) are stripped.
-function sanitizeName(raw) {
+function sanitizeName(raw, ownerKey) {
   let name = String(raw || '').replace(/[\u0000-\u001f]/g, '').trim();
   name = name.replace(/[\[(<{]?\b(?:host|owner|admin|moderator)\b[\])>}]?/gi, ' ').replace(/\s+/g, ' ').trim().slice(0, 20).trim();
   if (!name || isConfusingName(name)) return 'Player ' + (100 + Math.floor(Math.random() * 900));
+  // With OWNER_KEY configured the owner's name is reserved: anyone typing it
+  // without the matching code gets a visibly different name instead of a
+  // lookalike of the real one.
+  if (name.toLowerCase() === OWNER_NAME && process.env.OWNER_KEY && !isOwnerIdentity(name, ownerKey)) return name + ' 2';
   return name;
 }
 
@@ -666,7 +670,7 @@ wss.on('connection', (socket) => {
     if (msg.type === 'create' || msg.type === 'join' || msg.type === 'quick_match' || msg.type === 'rejoin') socket.ownerKey = readOwnerKey(msg.ownerKey);
 
     if (msg.type === 'create') {
-      const name = sanitizeName(msg.name);
+      const name = sanitizeName(msg.name, socket.ownerKey);
       const code = createRoom(socket, name, msg.isPublic, sanitizeAvatarKey(msg.avatarKey), sanitizeColor(msg.color), undefined, sanitizeAvatarKey(msg.gameIconKey));
       console.log(`Room ${code} created by ${name}${msg.isPublic ? ' (public)' : ''}`);
     }
@@ -686,13 +690,13 @@ wss.on('connection', (socket) => {
         socket.send(JSON.stringify({ type: 'error', message: 'That room is full.' }));
         return;
       }
-      const name = sanitizeName(msg.name);
+      const name = sanitizeName(msg.name, socket.ownerKey);
       joinRoom(socket, code, name, sanitizeAvatarKey(msg.avatarKey), sanitizeColor(msg.color), sanitizeAvatarKey(msg.gameIconKey));
       console.log(`${name} joined room ${code}`);
     }
 
     else if (msg.type === 'quick_match') {
-      const name = sanitizeName(msg.name);
+      const name = sanitizeName(msg.name, socket.ownerKey);
       const avatarKey = sanitizeAvatarKey(msg.avatarKey);
       const color = sanitizeColor(msg.color);
       const gameIconKey = sanitizeAvatarKey(msg.gameIconKey);
@@ -734,7 +738,7 @@ wss.on('connection', (socket) => {
         socket.send(JSON.stringify({ type: 'rejoinFailed', message: 'That room no longer exists.' }));
         return;
       }
-      const name = sanitizeName(msg.name);
+      const name = sanitizeName(msg.name, socket.ownerKey);
       const avatarKey = sanitizeAvatarKey(msg.avatarKey);
       const color = sanitizeColor(msg.color);
       const gameIconKey = sanitizeAvatarKey(msg.gameIconKey);
