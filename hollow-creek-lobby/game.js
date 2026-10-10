@@ -665,17 +665,17 @@ function resolveNight(state){
 function resolveDayVote(state, timedOutFallbackId){
   const tally = {};
   living(state).forEach(p => { tally[p.id] = 0; });
+  const livingAtStart = new Set(living(state).map(p => p.id)); // before the vote can eliminate anyone
 
   living(state).forEach(p => {
     // Silenced blocks speaking only - every living player still votes and
     // is counted in the tally, silenced or not.
     let target = state.pendingDayVotes[p.id];
     const alreadySubmitted = target !== undefined && target !== null;
-    if(!target && (p.isPlaceholder || p.connected === false)){
-      const options = living(state).filter(q => q.id !== p.id);
-      target = options.length ? options[Math.floor(Math.random()*options.length)].id : null;
-    }
-    if(!target && timedOutFallbackId && p.id === timedOutFallbackId){
+    // Only the game's own AI seats get a generated ballot. A real player who
+    // didn't vote - timed out, left it blank, or dropped - simply abstains;
+    // they are never given a random vote they didn't choose.
+    if(!target && p.isPlaceholder){
       const options = living(state).filter(q => q.id !== p.id);
       target = options.length ? options[Math.floor(Math.random()*options.length)].id : null;
     }
@@ -697,7 +697,11 @@ function resolveDayVote(state, timedOutFallbackId){
   });
 
   const maxV = Math.max(...Object.values(tally));
-  const leaders = Object.keys(tally).filter(k => tally[k]===maxV);
+  // Nobody cast a single vote for anyone (everyone abstained / no ballots):
+  // nobody is voted out. Previously every living player tied at 0 and one was
+  // picked at random - exactly the "random vote" this is meant to avoid.
+  const noVotes = maxV <= 0;
+  const leaders = noVotes ? [] : Object.keys(tally).filter(k => tally[k]===maxV);
   let leadId;
   // Mayor Ability 2: passive, always active, never requires revealing -
   // whenever the vote resolves in a tie, whichever candidate the Mayor
@@ -719,10 +723,14 @@ function resolveDayVote(state, timedOutFallbackId){
   } else {
     leadId = leaders[0];
   }
-  const lead = byId(state, leadId);
-  lead.alive = false;
-  log(state, lead.name+' ('+lead.role+') was voted out by the town.');
-  checkBountyHit(state, lead);
+  const lead = noVotes ? null : byId(state, leadId);
+  if(lead){
+    lead.alive = false;
+    log(state, lead.name+' ('+lead.role+') was voted out by the town.');
+    checkBountyHit(state, lead);
+  } else {
+    log(state, 'Nobody was voted out by the town.');
+  }
 
   // Silenced players still vote and appear with their real target here too -
   // silenced only means they couldn't speak, not that they didn't vote.
@@ -737,6 +745,10 @@ function resolveDayVote(state, timedOutFallbackId){
       voteBreakdown.push({name:p.name, target: targetP ? targetP.name : 'no one', targetId: targetP ? targetP.id : null, silenced: !!p.silencedToday, voterId:p.id});
     } else if(p.silencedToday){
       voteBreakdown.push({name:p.name, target:null, targetId:null, silenced:true, voterId:p.id});
+    } else if(p.alive || livingAtStart.has(p.id)){
+      // A living player who cast nothing: shown as abstaining on the vote
+      // results instead of silently missing from them.
+      voteBreakdown.push({name:p.name, target:'no one', targetId:null, silenced:false, voterId:p.id});
     }
   });
   state.voteLog = voteBreakdown;
@@ -758,7 +770,7 @@ function resolveDayVote(state, timedOutFallbackId){
   // restriction here is the actual cost of being cut out of the mafia's
   // coordination. resolveFarmerRevenge below already only excludes self, so
   // reusing it as-is already satisfies "no restriction enforced."
-  if(lead.role==='Farmer' || lead.role==='Hitman'){
+  if(lead && (lead.role==='Farmer' || lead.role==='Hitman')){
     // A disconnected human has no socket left to ever answer, so treat them
     // like a placeholder here too - same fallback pattern as resolveNight's
     // and resolveDayVote's own tally fill-in for a disconnected player.

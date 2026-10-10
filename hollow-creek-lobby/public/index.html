@@ -1005,6 +1005,14 @@ body.force-reduced-motion .notebook-view.notebook-page-turn{animation:none;}
 .notebook-filter-tab:focus-visible{outline:2px solid var(--gold-bright); outline-offset:2px;}
 .notebook-vote-banner{position:absolute; left:6%; top:12.1%; right:6%; margin:0; display:flex; align-items:center; justify-content:center; gap:8px; font-family:var(--font-type); font-size:clamp(9px,0.88vw,12px); line-height:1.1; color:#f2d9a0; letter-spacing:0.2px; background:rgba(34,22,12,0.92); border:1px solid var(--gold-dim); border-radius:3px; padding:1px 8px; z-index:3; pointer-events:auto; white-space:nowrap;}
 .notebook-vote-banner[hidden]{display:none;}
+.name-tag{display:inline-block; margin-left:6px; padding:1px 6px; border-radius:3px; border:1.5px solid; font-family:var(--font-type); font-size:0.72em; font-weight:700; letter-spacing:1px; text-transform:uppercase; line-height:1.4; vertical-align:middle; white-space:nowrap;}
+.name-tag-host{color:#8fe0b0; border-color:#3f9a68; background:rgba(63,154,104,0.2);}
+.name-tag-owner{color:#ffe08a; border-color:#d9a441; background:linear-gradient(180deg, rgba(217,164,65,0.4), rgba(139,20,20,0.4)); box-shadow:0 0 6px rgba(217,164,65,0.55);}
+.chat-tab-badge{display:inline-block; min-width:14px; height:14px; margin-left:5px; padding:0 3px; border-radius:7px; background:#8B1414; color:#fff; font-size:9px; line-height:14px; text-align:center; vertical-align:middle;}
+#chat-dead-note{display:none; margin:12px 0; padding:9px 12px; border:1px solid var(--gold-dim); border-left:3px solid #8B1414; border-radius:5px; background:rgba(20,14,10,0.7); color:var(--parchment-dim); font-size:12px; line-height:1.35;}
+#chat-dead-note b{color:var(--parchment);}
+#ghost-inline-row{display:none; gap:8px; margin:12px 0; align-items:center;}
+#death-continue-btn{display:none !important;}
 .notebook-vote-nav{background:none; border:1px solid var(--gold-dim); color:var(--gold-bright); border-radius:3px; cursor:pointer; font-size:8px; line-height:1; padding:2px 5px;}
 .notebook-vote-nav:hover:not(:disabled){background:rgba(227,177,85,0.2);}
 .notebook-vote-nav:disabled{opacity:0.3; cursor:default;}
@@ -2001,7 +2009,7 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
   <div class="status-notice danger">
     <img class="status-notice-stamp" id="dead-notice-stamp" src="" alt="">
     <p class="msg err">You've been eliminated. You can keep watching, but can no longer speak or vote.</p>
-    <button class="btn" id="dead-continue-btn">Watch the town decide</button>
+    <button class="btn" id="dead-continue-btn" style="display:none;">Watch the town decide</button>
   </div>
 </div>
 <div id="vote-decide-spinner" class="voting-content spinner" style="display:none;">the town is making up its mind...</div>
@@ -2022,7 +2030,7 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
   <div class="chat-filter-tabs" id="chat-filter-tabs">
     <button class="case-log-tab active" data-filter="all">All</button>
     <button class="case-log-tab" data-filter="accusations"><img class="case-log-tab-icon" id="chat-tab-icon-accusations" alt="">Accusations</button>
-    <button class="case-log-tab" data-filter="system"><img class="case-log-tab-icon" id="chat-tab-icon-system" alt="">System</button>
+    <button class="case-log-tab" data-filter="ghost" id="chat-tab-ghost" style="display:none;">Ghost Chat</button>
   </div>
   <div class="discussion-wrap">
     <div id="discussion"></div>
@@ -2053,6 +2061,11 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
       <option value="">No tag</option>
     </select>
     <button class="btn" id="chat-send-btn" style="padding:9px 16px;">Send</button>
+  </div>
+  <p id="chat-dead-note"><b>You've been eliminated.</b> Only living players can speak in Town Talk. Open <b>Ghost Chat</b> to talk with the other eliminated players.</p>
+  <div id="ghost-inline-row">
+    <input type="text" id="ghost-inline-input" maxlength="300" placeholder="Say something to the other ghosts..." style="flex:1; background:var(--panel-2); border:1px solid var(--line); border-radius:5px; padding:9px 11px; font-family:var(--font-body); font-size:13px; color:var(--parchment);">
+    <button class="btn" id="ghost-inline-send" style="padding:9px 16px;">Send</button>
   </div>
   <!-- Silenced-during-day-vote notice - lives in the chat column's own flex
        flow, replacing #chat-input-row right where it sits, instead of the
@@ -2542,7 +2555,7 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
     <p style="font-size:13px; color:var(--parchment-dim); line-height:1.6; margin:0 0 16px;">This is how you'll show up to yourself in the roster, chat, and votes \u2014 other players never see this, since it's your own local view of the game.</p>
 
     <p style="font-family:var(--font-type); font-size:12px; letter-spacing:1px; text-transform:uppercase; color:var(--gold); margin:0 0 6px;">Display name</p>
-    <input type="text" id="profile-username-input" maxlength="20" placeholder="You" style="width:100%; max-width:320px; background:var(--panel-2); border:1px solid var(--gold-dim); border-radius:5px; padding:9px 11px; font-family:var(--font-body); font-size:14px; color:var(--parchment); margin-bottom:20px;">
+    <input type="text" id="profile-username-input" maxlength="20" placeholder="Your name" style="width:100%; max-width:320px; background:var(--panel-2); border:1px solid var(--gold-dim); border-radius:5px; padding:9px 11px; font-family:var(--font-body); font-size:14px; color:var(--parchment); margin-bottom:20px;">
 
     <p style="font-family:var(--font-type); font-size:12px; letter-spacing:1px; text-transform:uppercase; color:var(--gold); margin:0 0 8px;">Avatar color</p>
     <div class="profile-swatches" id="profile-swatches"></div>
@@ -2570,7 +2583,8 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
       <button class="btn" id="profile-save-btn">Save profile</button>
       <button class="btn ghost" id="profile-back-btn">Back to town</button>
     </div>
-    <p class="msg ok" id="profile-saved-msg" style="display:none;">Saved.</p>
+    <p class="msg err" id="profile-name-error" style="display:none;"></p>
+      <p class="msg ok" id="profile-saved-msg" style="display:none;">Saved.</p>
   </div>
 </div>
 
@@ -3072,7 +3086,29 @@ var AVATAR_CHOICES = ['avatar1','avatar2','avatar3','avatar4','avatar5','avatar6
 // hash-assignment approach for this field too and was reverted for
 // building the wrong feature, not for this fallback behavior being wrong.
 var GAME_ICON_CHOICES = ['avatar16','avatar17','avatar18','avatar19','avatar20','avatar21','avatar22','avatar23','avatar24','avatar25','avatar26','avatar27','avatar28','avatar29','avatar30','avatar31','avatar32','avatar33','avatar34','avatar35'];
-var DEFAULT_PROFILE = {username:'You', color:'#D9A441', avatarKey:null, gameIconKey:null};
+var DEFAULT_PROFILE = {username:'Player', color:'#D9A441', avatarKey:null, gameIconKey:null};
+// Mirrors the server's rules (server.js sanitizeName): a name that reads as a
+// pronoun or stand-in ("You", "me", "he", "No One") is ambiguous in chat and
+// vote lines, and "Host"/"Owner" can't be typed in to look like the real
+// badges.
+var CONFUSING_NAMES = ['you','your','yours','yourself','me','my','mine','myself','i','im','ill','we','us','our','ours','ourselves','he','him','his','himself','she','her','hers','herself','they','them','their','theirs','themselves','it','its','itself','self','noone','nobody','everyone','everybody','someone','somebody','anyone','anybody','all','none','unknown','host','owner','admin','moderator','mod','system','server'];
+function isConfusingName(name){ return CONFUSING_NAMES.indexOf(String(name||'').toLowerCase().replace(/[^a-z]/g,'')) !== -1; }
+function stripBadgeWords(name){ return String(name||'').replace(/[\[(<{]?\b(?:host|owner|admin|moderator)\b[\])>}]?/gi, ' ').replace(/\s+/g,' ').trim(); }
+// The owner's browser remembers a key (set once via ?ownerKey=... in the URL)
+// that the server can require before it hands out the Owner badge.
+function getOwnerKey(){ try{ return localStorage.getItem('hc-owner-key') || ''; }catch(e){ return ''; } }
+(function captureOwnerKey(){
+  try{
+    var params = new URLSearchParams(location.search);
+    var k = params.get('ownerKey');
+    if(k){
+      localStorage.setItem('hc-owner-key', k);
+      params.delete('ownerKey');
+      var qs = params.toString();
+      history.replaceState(null, '', location.pathname + (qs ? '?'+qs : '') + location.hash);
+    }
+  }catch(e){}
+})();
 function portraitImgFor(p){
   if(!p) return UNKNOWN_AVATAR_IMG;
   return (p.gameIconKey && IMG[p.gameIconKey]) || UNKNOWN_AVATAR_IMG;
@@ -3256,7 +3292,7 @@ function tryReconnect(){
   showReconnectBanner('Reconnecting to Hollow Creek…');
   whenConnected(function(){
     if(!reconnectState) return; // gave up, or a later attempt already got back in
-    sendWS({type:'rejoin', roomCode: reconnectState.roomCode, playerId: reconnectState.playerId, name: CURRENT_PROFILE.username||'Player', avatarKey: CURRENT_PROFILE.avatarKey, gameIconKey: CURRENT_PROFILE.gameIconKey, color: CURRENT_PROFILE.color});
+    sendWS({type:'rejoin', roomCode: reconnectState.roomCode, playerId: reconnectState.playerId, name: CURRENT_PROFILE.username||'Player', avatarKey: CURRENT_PROFILE.avatarKey, gameIconKey: CURRENT_PROFILE.gameIconKey, color: CURRENT_PROFILE.color, ownerKey: getOwnerKey()});
   });
   reconnectState.timer = setTimeout(tryReconnect, 3000);
 }
@@ -3343,7 +3379,7 @@ function handleServerMessage(msg){
   } else if(msg.type==='chatMsg'){
     // Respect the live chat filter (Task 3) - a live top-up must not bypass
     // it the way a full renderChatLog() rebuild never would.
-    if(chatFilterMode !== 'system' && (chatFilterMode !== 'accusations' || msg.targetId || msg.category==='accusation')) appendChatLine(msg);
+    if(chatFilterMode === 'all' || (chatFilterMode === 'accusations' && (msg.targetId || msg.category==='accusation'))) appendChatLine(msg);
   } else if(msg.type==='typingIndicator'){
     if(typingPlayers[msg.playerId]) clearTimeout(typingPlayers[msg.playerId].timeout);
     typingPlayers[msg.playerId] = {
@@ -3361,6 +3397,8 @@ function handleServerMessage(msg){
     // players (see server's ghostChat handler), so it's always safe to
     // append directly here.
     if(document.getElementById('ghost-chat-modal').style.display === 'flex') appendGhostChatLine(msg);
+    if(chatFilterMode === 'ghost') appendGhostInlineLine(msg);
+    else if(msg.playerId !== myPlayerId){ ghostChatUnread++; updateChatDeadUI(); }
   } else if(msg.type==='whisperMsg'){
     // Live top-up between full gameState resyncs - only ever delivered to
     // the sender and the target (see server's whisper handler), never
@@ -3406,10 +3444,16 @@ function handleServerMessage(msg){
   }
 }
 
+// Server-assigned badges (never derived from a typed name - the server strips
+// "host"/"owner" from names): Owner for the game's owner, Host for whoever
+// currently hosts the lobby.
+function nameTagsHTML(p){
+  return (p && p.isOwner ? '<span class="name-tag name-tag-owner">Owner</span>' : '') + (p && p.isHost ? '<span class="name-tag name-tag-host">Host</span>' : '');
+}
 function renderMpRoster(players){
   players.forEach(function(p){ if(p.id===myPlayerId) amHost = p.isHost; });
   document.getElementById('mp-roster').innerHTML = players.map(function(p){
-    var tags = (p.id===myPlayerId ? ' (you)' : '') + (p.isHost ? ' <span class="host-tag">host</span>' : '');
+    var tags = (p.id===myPlayerId ? ' (you)' : '') + nameTagsHTML(p);
     var kickBtn = (amHost && p.id !== myPlayerId) ? '<button class="btn ghost mp-kick-btn" data-kick-id="'+p.id+'" style="padding:3px 10px; font-size:12px; margin-left:8px;">Remove</button>' : '';
     return '<div class="roster-row" style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--line);"><span style="display:flex; align-items:center; gap:8px;">'+avatarHTML(p,26)+escapeHtmlMp(p.name)+tags+'</span>'+kickBtn+'</div>';
   }).join('');
@@ -3533,12 +3577,7 @@ function renderPhaseTimer(){
       var remainingMs = Math.max(0, phaseEndsAt - Date.now());
       var timeUrgency = 1 - (remainingMs / totalMs);
 
-      var subUrgency = 0;
-      if(latestNightProgress && latestNightProgress.total > 1){
-        var remainingVoters = latestNightProgress.total - latestNightProgress.submitted;
-        subUrgency = 1 - Math.max(0, remainingVoters - 1) / (latestNightProgress.total - 1);
-      }
-      var urgency = Math.max(0, Math.min(1, Math.max(timeUrgency, subUrgency)));
+      var urgency = Math.max(0, Math.min(1, timeUrgency));
 
       if(!tickStarted && urgency > 0.15){ tickStarted = true; SoundFX.startClockTick(); }
       if(tickStarted) SoundFX.setClockTickUrgency(urgency);
@@ -3546,7 +3585,7 @@ function renderPhaseTimer(){
       // 1 the instant only one voter is left even seconds into the phase in
       // a small real-player game) - the riser is a "time's almost up" sting,
       // it shouldn't fire the moment night starts just because few players are in the room.
-      if(!riserFired && urgency > 0.7 && timeUrgency > 0.25){ riserFired = true; SoundFX.playTensionRiser(); }
+      if(!riserFired && urgency > 0.7){ riserFired = true; SoundFX.playTensionRiser(); }
     }
   }
   tick();
@@ -4768,9 +4807,11 @@ async function beginMafiaVoteLock(){
 function renderNightProgress(){
   var el = document.getElementById('night-progress');
   if(!el) return;
-  if(!latestNightProgress || !latestView || latestView.phase!=='night'){ el.style.display='none'; return; }
-  var p = latestNightProgress;
-  el.textContent = p.submitted+' of '+p.total+' '+(p.total===1?'has':'have')+' decided...';
+  // No "N of M have decided" any more: that count showed how many players
+  // still had something to do tonight (i.e. how many important roles were
+  // left). All a player learns is that THEIR choice is in.
+  if(!mpNightSubmitted || !latestView || latestView.phase!=='night'){ el.style.display='none'; return; }
+  el.textContent = 'Your choice is locked in. Waiting for the others...';
   el.style.display='block';
 }
 
@@ -5724,9 +5765,16 @@ function showDeathScreen(kind, onContinue){
   }
   continueBtn.onclick = function(){
     clearTimeout(showDeathScreen._payoffTimer);
+    clearTimeout(showDeathScreen._autoTimer);
     document.getElementById('death-screen').style.display = 'none';
     onContinue();
   };
+  // Dying is the end of acting, not something to click through: let the
+  // moment land, then carry on automatically (the button is hidden).
+  clearTimeout(showDeathScreen._autoTimer);
+  showDeathScreen._autoTimer = setTimeout(function(){
+    if(document.getElementById('death-screen').style.display === 'block') continueBtn.onclick();
+  }, 6500);
 }
 function showSilenceScreen(onContinue){
   SoundFX.playShush();
@@ -5877,9 +5925,18 @@ function showVictoryScreen(outcome, onContinue){
   bgImgEl.style.animation = '';
   screen.style.display = 'block';
   document.getElementById('victory-continue-btn').onclick = function(){
+    clearTimeout(showVictoryScreen._autoTimer);
     screen.style.display = 'none';
     onContinue();
   };
+  // Eliminated players are watching, not playing - move them on by themselves.
+  clearTimeout(showVictoryScreen._autoTimer);
+  var victoryViewer = latestView ? meFromView(latestView) : null;
+  if(victoryViewer && !victoryViewer.alive){
+    showVictoryScreen._autoTimer = setTimeout(function(){
+      if(screen.style.display === 'block') document.getElementById('victory-continue-btn').onclick();
+    }, 7000);
+  }
 }
 function renderEndStats(){
   var el = document.getElementById('end-stats-grid');
@@ -6329,7 +6386,7 @@ function renderGameIconPicker(selectedKey){
   });
 }
 function updateProfilePreview(){
-  var name = document.getElementById('profile-username-input').value.trim() || 'You';
+  var name = document.getElementById('profile-username-input').value.trim() || 'Player';
   var selectedSwatch = document.querySelector('#profile-swatches .profile-swatch.selected');
   var color = selectedSwatch ? selectedSwatch.dataset.color : CURRENT_PROFILE.color;
   var selectedAvatar = document.querySelector('#avatar-picker .avatar-picker-item.selected');
@@ -6340,10 +6397,10 @@ function updateProfilePreview(){
     '<span class="avatar" style="width:22px;height:22px;font-size:9px;background:'+color+';">'+initials+'</span>';
   document.getElementById('profile-preview').innerHTML =
     avatarSpan+
-    '<span class="who">'+name+' (You)</span><span class="line">"glad we\'re finally getting somewhere with this case."</span>';
+    '<span class="who">'+escapeHtmlMp(name)+' (you)</span><span class="line">"glad we\'re finally getting somewhere with this case."</span>';
 }
 function renderProfileScreen(){
-  document.getElementById('profile-username-input').value = CURRENT_PROFILE.username==='You' ? '' : CURRENT_PROFILE.username;
+  document.getElementById('profile-username-input').value = (CURRENT_PROFILE.username==='Player' || isConfusingName(CURRENT_PROFILE.username)) ? '' : CURRENT_PROFILE.username;
   renderProfileSwatches(CURRENT_PROFILE.color);
   renderAvatarPicker(CURRENT_PROFILE.avatarKey);
   renderGameIconPicker(CURRENT_PROFILE.gameIconKey);
@@ -6357,7 +6414,16 @@ document.getElementById('profile-btn').addEventListener('click', function(){
   switchPanel('profile');
 });
 document.getElementById('profile-save-btn').addEventListener('click', function(){
-  var name = document.getElementById('profile-username-input').value.trim() || 'You';
+  var typedName = document.getElementById('profile-username-input').value.trim();
+  var name = stripBadgeWords(typedName) || (typedName ? '' : 'Player');
+  var nameErr = document.getElementById('profile-name-error');
+  if(!name || isConfusingName(name)){
+    nameErr.textContent = 'Pick a name that can\u2019t be mistaken for a pronoun or a title \u2014 not You, Me, I, He, She, Him, Her, Host, Owner and the like.';
+    nameErr.style.display = 'block';
+    document.getElementById('profile-saved-msg').style.display = 'none';
+    return;
+  }
+  nameErr.style.display = 'none';
   var selectedSwatch = document.querySelector('#profile-swatches .profile-swatch.selected');
   var color = selectedSwatch ? selectedSwatch.dataset.color : CURRENT_PROFILE.color;
   var selectedAvatar = document.querySelector('#avatar-picker .avatar-picker-item.selected');
@@ -6777,7 +6843,14 @@ function voteRevealParchmentFor(ratio){
 }
 function renderVoteRevealModal(view){
   var lead = findLynchedFromHistory(view);
-  if(!lead) return;
+  var noLynch = false;
+  if(!lead){
+    // Nobody voted for anyone: the server records "Nobody was voted out" and
+    // the results are still worth showing (everyone abstained).
+    noLynch = (view.history||[]).slice(-4).some(function(l){ return /Nobody was voted out by the town\.$/.test(l); }) && (view.voteLog||[]).length > 0;
+    if(!noLynch) return;
+    lead = {id:null, name:'No One', role:null, align:'town', alive:true};
+  }
   // Same re-entry guard as the legacy reveal - a second gameState for the
   // same lynch (round score arriving separately, a chat message ticking
   // in) must not re-open/re-animate an already-shown modal.
@@ -6790,14 +6863,17 @@ function renderVoteRevealModal(view){
   document.getElementById('vote-reveal-player-name').textContent = lead.name;
 
   var roleImgEl = document.getElementById('vote-reveal-role-img');
-  roleImgEl.src = portraitFor(lead) || '';
+  document.getElementById('vote-reveal-role-portrait').style.visibility = noLynch ? 'hidden' : '';
+  document.getElementById('vote-reveal-role-revealed').style.display = noLynch ? 'none' : '';
+  document.getElementById('vote-reveal-center-stamp').style.display = noLynch ? 'none' : '';
+  roleImgEl.src = noLynch ? '' : (portraitFor(lead) || '');
   var roleNameEl = document.getElementById('vote-reveal-role-name');
-  roleNameEl.textContent = ROLE_LABEL[lead.role] || lead.role;
+  roleNameEl.textContent = noLynch ? '' : (ROLE_LABEL[lead.role] || lead.role);
   roleNameEl.className = 'vote-reveal-portrait-name '+alignClass(lead);
 
   var voteCount = (view.voteLog||[]).filter(function(v){ return v.targetId && v.targetId===lead.id; }).length;
-  document.getElementById('vote-reveal-outcome').textContent = 'Voted Out \u2014 '+voteCount+(voteCount===1?' Vote':' Votes');
-  document.getElementById('vote-reveal-flavor').textContent = VOTE_REVEAL_FLAVOR[lead.align] || VOTE_REVEAL_FLAVOR.town;
+  document.getElementById('vote-reveal-outcome').textContent = noLynch ? 'Nobody Voted Out' : 'Voted Out \u2014 '+voteCount+(voteCount===1?' Vote':' Votes');
+  document.getElementById('vote-reveal-flavor').textContent = noLynch ? 'No one cast a vote, so the town sends no one to the noose today.' : (VOTE_REVEAL_FLAVOR[lead.align] || VOTE_REVEAL_FLAVOR.town);
 
   // Group every recorded ballot by who it names (or "abstained") - sorted
   // by size, not by who actually got eliminated (a Mayor tiebreak can
@@ -6979,7 +7055,7 @@ function appendChatLine(entry){
   var tagLabel = target ? ((agreedWith ? 'agrees with '+agreedWith.name+' · ' : '')+'accusing '+target.name) : (entry.category==='accusation' ? 'accusation' : '');
   var tagHTML = tagLabel ? '<span class="accusation-tag"><img class="accusation-tag-icon" src="'+DAYTIME_IMG.accusationPointer+'" alt="">'+escapeHtmlMp(tagLabel)+'</span>' : '';
   var replyHTML = entry.replyTo ? '<div class="chatline-reply-quote">↩ <b>'+escapeHtmlMp(entry.replyTo.name)+'</b>: "'+escapeHtmlMp(entry.replyTo.text)+'"</div>' : '';
-  div.innerHTML = avatarHTML(p||{name:entry.name,color:'#B0A588'},22)+'<span class="who">'+escapeHtmlMp(entry.name)+'</span>'+replyHTML+'<span class="line">"'+escapeHtmlMp(entry.text)+'"</span>'+tagHTML+
+  div.innerHTML = avatarHTML(p||{name:entry.name,color:'#B0A588'},22)+'<span class="who">'+escapeHtmlMp(entry.name)+nameTagsHTML(p)+'</span>'+replyHTML+'<span class="line">"'+escapeHtmlMp(entry.text)+'"</span>'+tagHTML+
     '<button type="button" class="chatline-reply-btn">↩ Reply</button>'+
     (clickable?'<span class="hint">select as vote</span>':'');
   log.appendChild(div);
@@ -7037,17 +7113,69 @@ function renderChatSystemList(){
     return '<div class="case-log-round"><p class="case-log-round-label">Round '+roundNum+'</p>'+items+'</div>';
   }).join('');
 }
+// Ghost chat shown inside the Town Talk panel's own tab (dead players only).
+var ghostChatUnread = 0;
+function appendGhostInlineLine(entry, quiet){
+  var log = document.getElementById('discussion');
+  if(!log) return;
+  var empty = log.querySelector('.chat-empty'); if(empty) empty.remove();
+  var div = document.createElement('div');
+  div.className = 'chatline'+(entry.playerId===myPlayerId ? ' chatline-you' : ' chatline-mafia');
+  var p = byId(entry.playerId);
+  div.innerHTML = avatarHTML(p||{name:entry.name,color:'#5C6B47'},22)+'<span class="who">'+escapeHtmlMp(entry.name)+'</span><span class="line">"'+escapeHtmlMp(entry.text)+'"</span>';
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+  if(!quiet) SoundFX.chatBlip();
+}
+// Which chat controls the viewer gets: the Ghost Chat tab only exists once
+// they're dead; a dead viewer can't type in Town Talk (and is told so), only
+// in Ghost Chat.
+function updateChatDeadUI(){
+  var me = latestView ? meFromView(latestView) : null;
+  var dead = !!(me && !me.alive);
+  var ghostTab = document.getElementById('chat-tab-ghost');
+  if(!ghostTab) return;
+  ghostTab.style.display = dead ? '' : 'none';
+  if(!dead && chatFilterMode==='ghost'){
+    chatFilterMode = 'all';
+    document.querySelectorAll('#chat-filter-tabs .case-log-tab').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-filter')==='all'); });
+    renderChatLog();
+  }
+  var badge = ghostTab.querySelector('.chat-tab-badge');
+  if(dead && ghostChatUnread>0 && chatFilterMode!=='ghost'){
+    if(!badge){ badge = document.createElement('span'); badge.className = 'chat-tab-badge'; ghostTab.appendChild(badge); }
+    badge.textContent = ghostChatUnread;
+  } else if(badge){ badge.remove(); }
+  document.getElementById('chat-dead-note').style.display = (dead && chatFilterMode!=='ghost') ? 'block' : 'none';
+  document.getElementById('ghost-inline-row').style.display = (dead && chatFilterMode==='ghost') ? 'flex' : 'none';
+  if(dead) document.getElementById('chat-input-row').style.display = 'none';
+}
+function sendGhostInline(){
+  var input = document.getElementById('ghost-inline-input');
+  var text = input.value.trim();
+  if(!text) return;
+  input.value = '';
+  sendWS({type:'ghostChat', text:text});
+}
+document.getElementById('ghost-inline-send').addEventListener('click', sendGhostInline);
+document.getElementById('ghost-inline-input').addEventListener('keydown', function(e){ if(e.key==='Enter') sendGhostInline(); });
 function renderChatLog(){
   var log = document.getElementById('discussion');
   var sysLog = document.getElementById('chat-system-list');
   if(!log || !latestView) return;
-  if(chatFilterMode === 'system'){
-    log.style.display = 'none';
-    if(sysLog){ sysLog.style.display = 'block'; renderChatSystemList(); }
-    return;
-  }
   if(sysLog) sysLog.style.display = 'none';
   log.style.display = '';
+  if(chatFilterMode === 'ghost'){
+    // Eliminated players only (the tab is never shown to anyone else, and the
+    // server only ever sends ghostChatLog to them). Same #discussion area, a
+    // different log.
+    log.innerHTML = '';
+    var ghostEntries = latestView.ghostChatLog || [];
+    ghostEntries.forEach(function(m){ appendGhostInlineLine(m, true); });
+    if(!ghostEntries.length) log.innerHTML = '<p class="chat-empty">Only eliminated players can see this chat. Nobody has spoken here yet.</p>';
+    log.scrollTop = log.scrollHeight;
+    return;
+  }
   var wasFollowing = chatAutoFollow;
   var prevRatio = 0;
   var scrollable = log.scrollHeight - log.clientHeight;
@@ -7282,14 +7410,14 @@ function renderDayPanel(){
   if(view.phase!=='day-vote') stopVoteTimer();
 
   if(view.phase==='day-discuss'){
-    if(!me || !me.alive){ if(!deadNoticeDismissed) deadNotice.style.display='block'; }
+    if(!me || !me.alive){ deadNotice.style.display='block'; }
     else if(me.silencedToday){ silencedNotice.style.display='block'; }
     else { chatInputRow.style.display='flex'; }
     stagePanel.classList.remove('stage-panel-fade-out');
     stagePanel.style.display = GAME_CONFIG.voiceEnabled ? 'block' : 'none';
     if(GAME_CONFIG.voiceEnabled) renderStagePanel();
   } else if(view.phase==='day-vote'){
-    if(!me || !me.alive){ if(!deadNoticeDismissed) deadNotice.style.display='block'; stopVoteTimer(); }
+    if(!me || !me.alive){ deadNotice.style.display='block'; stopVoteTimer(); }
     else {
       // Silenced blocks speaking only - the vote itself still goes through,
       // just with the chat input hidden instead of the whole vote section.
@@ -7335,6 +7463,7 @@ function renderDayPanel(){
     renderVoteRevealModal(view);
     renderRoundScore();
   }
+  updateChatDeadUI();
 }
 
 function renderFromServerView(view){
@@ -7449,7 +7578,9 @@ function renderFromServerView(view){
       var was = prev.players.find(function(q){return q.id===p.id;});
       return was && was.alive && !p.alive;
     });
-    if(overnightVictims.length){
+    // Someone already eliminated is a spectator - they get the news in the
+    // case log, not a full-screen reveal they have to click through.
+    if(overnightVictims.length && me && me.alive){
       showNightKillRevealScreen(overnightVictims, function(){
         if(me && me.silencedToday && !(prevMe && prevMe.silencedToday)) showSilenceScreen(finish);
         else finish();
@@ -8635,8 +8766,18 @@ function renderStagePanel(){
   joinBtn.disabled = !canJoinQueue;
   leaveQueueBtn.style.display = iAmQueued ? 'inline-block' : 'none';
 
+  // Eliminated players are spectators: no joining the queue, speaking,
+  // donating time, or reacting (the server refuses all of it too).
+  var deadStageViewer = !h || !h.alive;
+  var daylayoutRequestBtn = document.getElementById('daylayout-stage-request-btn');
+  daylayoutRequestBtn.style.display = deadStageViewer ? 'none' : '';
+  if(deadStageViewer){
+    giveTimeBtn.style.display = 'none';
+    document.getElementById('daylayout-stage-subtitle').textContent = 'Eliminated players can only listen.';
+    joinBtn.disabled = true;
+  }
   var micToggleBtn = document.getElementById('self-mic-toggle-btn');
-  if(h){
+  if(h && !deadStageViewer){
     micToggleBtn.style.display = 'inline-block';
     micToggleBtn.textContent = h.muted ? 'Unmute myself' : 'Mute myself';
   } else {
@@ -8657,7 +8798,7 @@ function renderStagePanel(){
     ['up','down','smile'].forEach(function(key){
       var btn = document.getElementById('stage-reaction-'+key);
       document.getElementById('stage-reaction-count-'+key).textContent = reactionCounts[key] || 0;
-      btn.disabled = iAmSpeaker;
+      btn.disabled = iAmSpeaker || deadStageViewer;
       btn.classList.toggle('active', !iAmSpeaker && s.you && s.you.reaction === key);
     });
   }
@@ -8733,7 +8874,10 @@ document.getElementById('player-action-kick-btn').addEventListener('click', func
 async function initGame(){
   try{
     var savedProfile = await loadProfile();
-    if(savedProfile && savedProfile.username){ CURRENT_PROFILE = savedProfile; }
+    if(savedProfile && savedProfile.username){
+      CURRENT_PROFILE = savedProfile;
+      if(isConfusingName(CURRENT_PROFILE.username)) CURRENT_PROFILE.username = 'Player';
+    }
   }catch(e){ /* use defaults */ }
   try{
     CURRENT_SETTINGS = await loadSettings();
@@ -8756,7 +8900,7 @@ async function initGame(){
       pendingRejoinResolve = resolve;
       setTimeout(resolve, 4000); // never hang the boot screen if the server never answers
       whenConnected(function(){
-        sendWS({type:'rejoin', roomCode: session.roomCode, playerId: session.playerId, name: CURRENT_PROFILE.username||'Player', avatarKey: CURRENT_PROFILE.avatarKey, gameIconKey: CURRENT_PROFILE.gameIconKey, color: CURRENT_PROFILE.color});
+        sendWS({type:'rejoin', roomCode: session.roomCode, playerId: session.playerId, name: CURRENT_PROFILE.username||'Player', avatarKey: CURRENT_PROFILE.avatarKey, gameIconKey: CURRENT_PROFILE.gameIconKey, color: CURRENT_PROFILE.color, ownerKey: getOwnerKey()});
       });
     });
     hideBoot();
@@ -8769,16 +8913,16 @@ async function initGame(){
 
 document.getElementById('mpentry-create-btn').addEventListener('click', function(){
   var isPublic = document.getElementById('mpentry-public-check').checked;
-  whenConnected(function(){ sendWS({type:'create', name: CURRENT_PROFILE.username||'Player', isPublic: isPublic, avatarKey: CURRENT_PROFILE.avatarKey, gameIconKey: CURRENT_PROFILE.gameIconKey, color: CURRENT_PROFILE.color}); });
+  whenConnected(function(){ sendWS({type:'create', name: CURRENT_PROFILE.username||'Player', isPublic: isPublic, avatarKey: CURRENT_PROFILE.avatarKey, gameIconKey: CURRENT_PROFILE.gameIconKey, color: CURRENT_PROFILE.color, ownerKey: getOwnerKey()}); });
 });
 document.getElementById('mpentry-quick-match-btn').addEventListener('click', function(){
   var micPreference = document.getElementById('mpentry-mic-pref-check').checked ? 'with' : 'without';
-  whenConnected(function(){ sendWS({type:'quick_match', name: CURRENT_PROFILE.username||'Player', avatarKey: CURRENT_PROFILE.avatarKey, gameIconKey: CURRENT_PROFILE.gameIconKey, color: CURRENT_PROFILE.color, micPreference: micPreference}); });
+  whenConnected(function(){ sendWS({type:'quick_match', name: CURRENT_PROFILE.username||'Player', avatarKey: CURRENT_PROFILE.avatarKey, gameIconKey: CURRENT_PROFILE.gameIconKey, color: CURRENT_PROFILE.color, ownerKey: getOwnerKey(), micPreference: micPreference}); });
 });
 document.getElementById('mpentry-join-btn').addEventListener('click', function(){
   var code = document.getElementById('mpentry-code-input').value.trim().toUpperCase();
   if(!code){ var e=document.getElementById('mpentry-error'); e.textContent='Enter a room code.'; e.style.display='block'; return; }
-  whenConnected(function(){ sendWS({type:'join', name: CURRENT_PROFILE.username||'Player', roomCode: code, avatarKey: CURRENT_PROFILE.avatarKey, gameIconKey: CURRENT_PROFILE.gameIconKey, color: CURRENT_PROFILE.color}); });
+  whenConnected(function(){ sendWS({type:'join', name: CURRENT_PROFILE.username||'Player', roomCode: code, avatarKey: CURRENT_PROFILE.avatarKey, gameIconKey: CURRENT_PROFILE.gameIconKey, color: CURRENT_PROFILE.color, ownerKey: getOwnerKey()}); });
 });
 document.getElementById('mp-leave-btn').addEventListener('click', function(){
   leaveCurrentRoom();
@@ -9692,7 +9836,9 @@ document.querySelectorAll('#chat-filter-tabs .case-log-tab').forEach(function(bt
     document.querySelectorAll('#chat-filter-tabs .case-log-tab').forEach(function(b){ b.classList.remove('active'); });
     btn.classList.add('active');
     chatFilterMode = btn.getAttribute('data-filter');
+    if(chatFilterMode==='ghost') ghostChatUnread = 0;
     renderChatLog();
+    updateChatDeadUI();
   });
 });
 // Quick-phrase buttons pre-fill the input for the player to edit and send

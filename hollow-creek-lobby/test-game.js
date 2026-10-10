@@ -847,4 +847,30 @@ const resCultF = G.resolveNight(stateCultF);
 assert(anotherTargetF.align !== 'cult', 'Phase2 Task5: no new conversions happen once the Cult Leader is dead, even with a stray pending vote');
 assert(resCultF.cultConvertedPlayer === null, 'Phase2 Task5: resolveNight confirms no conversion occurred with a dead Cult Leader');
 
+// --- Day vote: a real player who doesn't vote is NEVER given a random ballot ---
+{
+  const realSeats = [1,2,3,4,5,6].map(i => ({id:'v'+i, name:'Voter'+i}));
+  const stateNV = G.createGame(realSeats, {playerCount: 6, mafiaCount: 1, roles: Object.assign({}, G.DEFAULT_ROLES_CONFIG, {Godfather:false,DoubleAgent:false,Detective:false,Doctor:false,Miller:false,BountyHunter:false,CrazyGranny:false,Coward:false,Farmer:false,NavySeal:false})});
+  const [a, b, c, d, e, f] = stateNV.players;
+  // a..d vote for e; f does not vote at all; e does not vote.
+  [a, b, c, d].forEach(p => G.recordDayVoteSubmission(stateNV, p.id, e.id));
+  const resNV = G.resolveDayVote(stateNV);
+  assert(resNV.lead && resNV.lead.id === e.id, 'NoVote: the player with the most votes is the one voted out');
+  const fRow = resNV.voteBreakdown.find(v => v.voterId === f.id);
+  assert(fRow && fRow.targetId === null && fRow.target === 'no one', 'NoVote: a real player who never voted shows as abstaining on the results');
+  const eRow = resNV.voteBreakdown.find(v => v.voterId === e.id);
+  assert(eRow && eRow.targetId === null, 'NoVote: even the player who was voted out shows as having abstained, not as voting for someone');
+  assert(!stateNV.voteSubmissionOrder.some(v => v.playerId === f.id), 'NoVote: no ballot was ever generated for the non-voter');
+}
+{
+  const realSeats = [1,2,3,4,5,6].map(i => ({id:'w'+i, name:'Walker'+i}));
+  const stateZero = G.createGame(realSeats, {playerCount: 6, mafiaCount: 1, roles: Object.assign({}, G.DEFAULT_ROLES_CONFIG, {Godfather:false,DoubleAgent:false,Detective:false,Doctor:false,Miller:false,BountyHunter:false,CrazyGranny:false,Coward:false,Farmer:false,NavySeal:false})});
+  const aliveBefore = stateZero.players.filter(p => p.alive).length;
+  const resZero = G.resolveDayVote(stateZero);
+  assert(resZero.lead === null, 'NoVote: when nobody voted at all, nobody is voted out');
+  assert(stateZero.players.filter(p => p.alive).length === aliveBefore, 'NoVote: with no votes, nobody dies - no random victim is picked');
+  assert(resZero.voteBreakdown.length === aliveBefore && resZero.voteBreakdown.every(v => v.targetId === null), 'NoVote: every living player shows as abstaining');
+  assert(stateZero.history.some(l => /Nobody was voted out/.test(l)), 'NoVote: the case log records that nobody was voted out');
+}
+
 console.log('\nAll game.js checks completed.');

@@ -100,8 +100,40 @@ function makePlayerId() {
   return Math.random().toString(36).slice(2, 10);
 }
 
+// Names that would read as a pronoun or a stand-in inside chat, vote lines and
+// "you" labels ("I think it's you", "he voted for me") - letters-only compare,
+// so "You!", "he" and "No One" are all caught.
+const CONFUSING_NAMES = new Set([
+  'you', 'your', 'yours', 'yourself', 'me', 'my', 'mine', 'myself', 'i', 'im', 'ill', 'we', 'us', 'our', 'ours', 'ourselves',
+  'he', 'him', 'his', 'himself', 'she', 'her', 'hers', 'herself', 'they', 'them', 'their', 'theirs', 'themselves',
+  'it', 'its', 'itself', 'self', 'noone', 'nobody', 'everyone', 'everybody', 'someone', 'somebody', 'anyone', 'anybody',
+  'all', 'none', 'unknown', 'host', 'owner', 'admin', 'moderator', 'mod', 'system', 'server'
+]);
+function isConfusingName(name) {
+  return CONFUSING_NAMES.has(String(name || '').toLowerCase().replace(/[^a-z]/g, ''));
+}
+// "Host"/"Owner" are real badges the server hands out (see roster/gameState
+// isHost/isOwner) - a player typing them into their own name must not be able
+// to dress up as one, so those words (bare or bracketed) are stripped.
 function sanitizeName(raw) {
-  return String(raw || '').trim().slice(0, 20) || 'Player';
+  let name = String(raw || '').replace(/[\u0000-\u001f]/g, '').trim();
+  name = name.replace(/[\[(<{]?\b(?:host|owner|admin|moderator)\b[\])>}]?/gi, ' ').replace(/\s+/g, ' ').trim().slice(0, 20).trim();
+  if (!name || isConfusingName(name)) return 'Player ' + (100 + Math.floor(Math.random() * 900));
+  return name;
+}
+
+// The Owner badge is for the game's owner, who plays as "Pierce". A username
+// is something any client can type, so when OWNER_KEY is set on the server
+// the badge ALSO requires that key (the owner's browser sends it - see the
+// client's ownerKey handling); without OWNER_KEY set, the name alone earns it.
+const OWNER_NAME = 'pierce';
+function isOwnerIdentity(name, key) {
+  if (String(name || '').trim().toLowerCase() !== OWNER_NAME) return false;
+  const required = process.env.OWNER_KEY;
+  return !required || String(key || '') === required;
+}
+function readOwnerKey(raw) {
+  return typeof raw === 'string' ? raw.slice(0, 128) : '';
 }
 
 // Both values ride back out to every other client and land straight in an
@@ -156,9 +188,10 @@ function createRoom(socket, name, isPublic, avatarKey, color, initialVoiceEnable
   // first real edit.
   rooms[code] = {
     players: [{ id, name, socket, avatarKey, color, gameIconKey }], hostId: id, started: false, state: null, timer: null,
-    phaseEndsAt: null, isPublic: !!isPublic,
+    phaseEndsAt: null, isPublic: !!isPublic, ownerIds: new Set(),
     draftConfig: typeof initialVoiceEnabled === 'boolean' ? { voiceEnabled: initialVoiceEnabled } : null
   };
+  if (isOwnerIdentity(name, socket.ownerKey)) rooms[code].ownerIds.add(id);
   socket.roomCode = code;
   socket.playerId = id;
   socket.send(JSON.stringify({ type: 'created', roomCode: code, playerId: id }));
@@ -169,7 +202,13 @@ function createRoom(socket, name, isPublic, avatarKey, color, initialVoiceEnable
 function joinRoom(socket, code, name, avatarKey, color, gameIconKey) {
   const room = rooms[code];
   const id = makePlayerId();
+  // Two people in one lobby with the same name would be indistinguishable in
+  // chat and vote lines - the later arrival gets a number.
+  const baseName = name;
+  let suffix = 2;
+  while (room.players.some(p => p.name.toLowerCase() === name.toLowerCase())) name = baseName.slice(0, 17) + ' ' + (suffix++);
   room.players.push({ id, name, socket, avatarKey, color, gameIconKey });
+  if (isOwnerIdentity(baseName, socket.ownerKey)) room.ownerIds.add(id);
   socket.roomCode = code;
   socket.playerId = id;
   socket.send(JSON.stringify({ type: 'joined', roomCode: code, playerId: id }));
@@ -184,7 +223,7 @@ function joinRoom(socket, code, name, avatarKey, color, gameIconKey) {
 function broadcastRoster(code) {
   const room = rooms[code];
   if (!room) return;
-  const roster = room.players.map(p => ({ id: p.id, name: p.name, isHost: p.id === room.hostId, avatarKey: p.avatarKey || null, color: p.color || null }));
+  const roster = room.players.map(p => ({ id: p.id, name: p.name, isHost: p.id === room.hostId, isOwner: room.ownerIds.has(p.id), avatarKey: p.avatarKey || null, color: p.color || null }));
   const msg = JSON.stringify({ type: 'roster', roomCode: code, players: roster, started: room.started, isPublic: !!room.isPublic });
   room.players.forEach(p => {
     if (p.socket.readyState === WebSocket.OPEN) p.socket.send(msg);
@@ -234,7 +273,7 @@ function removePlayer(socket) {
   }
   if (wasHost) room.hostId = room.players[0].id;
   if (!room.started) broadcastRoster(code);
-  else maybeEarlyResolve(room);
+  else { if (wasHost) sendGameState(room); maybeEarlyResolve(room); }
 }
 
 function getRoomAndPlayer(socket) {
@@ -265,6 +304,12 @@ function sendGameState(room) {
         p.muted = room.stage.selfMuted.has(p.id) || room.stage.hostMuted.has(p.id);
       });
     }
+    // Badges are server-assigned only: whoever currently hosts the room, and
+    // the verified owner (kept in ownerIds so it survives a disconnect/rejoin).
+    view.players.forEach(p => {
+      p.isHost = p.id === room.hostId;
+      p.isOwner = room.ownerIds.has(p.id);
+    });
     rp.socket.send(JSON.stringify({ type: 'gameState', view, phaseEndsAt: room.phaseEndsAt }));
   });
 }
@@ -289,14 +334,12 @@ function broadcastSpotlightCounts(room) {
 // Live "N of M have decided" counter for the night phase - counts only,
 // never identities or choices, so it's safe to send to every player
 // including ones who haven't acted yet themselves.
-function broadcastNightProgress(room) {
-  const total = connectedLivingHumans(room).length;
-  const submitted = connectedLivingHumans(room).filter(p => room.nightSubmitted.has(p.id)).length;
-  const msg = JSON.stringify({ type: 'nightProgress', submitted, total });
-  room.players.forEach(rp => {
-    if (rp.socket.readyState === WebSocket.OPEN) rp.socket.send(msg);
-  });
-}
+// Deliberately a no-op now. This used to broadcast "N of M have decided",
+// which let anyone count how many players still had a night action to take -
+// i.e. how many important roles were left. Nothing about night progress is
+// revealed to clients any more; the phase simply ends once everyone has
+// decided (or the timer runs out).
+function broadcastNightProgress() {}
 
 // Live "who has voted" list for the day vote - unlike night, the fact that
 // someone has voted (not who they voted FOR) is meant to be public in real
@@ -374,6 +417,15 @@ function startSpeakerTurn(room, playerId) {
   resetStageTurnTallies(room);
   room.stage.speakerId = playerId;
   room.stage.turnStartedAt = Date.now();
+  // resetStageTurnTallies just cleared the clock. Anyone still waiting means
+  // this speaker is under the same 30s limit as the one before them - without
+  // this, only the very first speaker (who had to be joined by someone ELSE
+  // while on stage) ever got timed; everyone promoted from the queue after
+  // them kept the stage indefinitely.
+  if (room.stage.queue.length > 0) {
+    room.stage.turnDeadline = Date.now() + STAGE_TURN_SECONDS * 1000;
+    room.stage.turnTimer = setTimeout(() => endSpeakerTurn(room), STAGE_TURN_SECONDS * 1000);
+  }
   broadcastStageState(room);
 }
 
@@ -611,6 +663,8 @@ wss.on('connection', (socket) => {
       removePlayer(socket);
     }
 
+    if (msg.type === 'create' || msg.type === 'join' || msg.type === 'quick_match' || msg.type === 'rejoin') socket.ownerKey = readOwnerKey(msg.ownerKey);
+
     if (msg.type === 'create') {
       const name = sanitizeName(msg.name);
       const code = createRoom(socket, name, msg.isPublic, sanitizeAvatarKey(msg.avatarKey), sanitizeColor(msg.color), undefined, sanitizeAvatarKey(msg.gameIconKey));
@@ -704,6 +758,7 @@ wss.on('connection', (socket) => {
       const existingEntry = room.players.find(p => p.id === playerId);
       if (existingEntry) { existingEntry.socket = socket; }
       else { room.players.push({ id: playerId, name: sp.name, socket, avatarKey, color, gameIconKey }); }
+      if (isOwnerIdentity(sp.name, socket.ownerKey)) room.ownerIds.add(playerId);
       socket.roomCode = code;
       socket.playerId = playerId;
       socket.send(JSON.stringify({ type: 'rejoined', roomCode: code, playerId, started: true }));
@@ -812,10 +867,12 @@ wss.on('connection', (socket) => {
     }
 
     else if (msg.type === 'donateTime') {
-      // Confirmed: any player in the room can donate, not just those in the
-      // queue - deliberately no alive-check, unlike voteOffStage below.
+      // Any LIVING player can donate, queued or not - eliminated players are
+      // spectators and have no say over the stage.
       const { room, player } = getRoomAndPlayer(socket);
       if (!room || !player || !room.started || !room.stage) return;
+      const donor = G.byId(room.state, player.id);
+      if (!donor || !donor.alive) return;
       if (!room.stage.speakerId || room.stage.speakerId === player.id) return;
       if (room.stage.turnDeadline === null) return; // timer hasn't started yet - nothing to donate to
       if (room.stage.donateUsedBy.has(player.id)) return; // max 5s per person per turn, spent in one press

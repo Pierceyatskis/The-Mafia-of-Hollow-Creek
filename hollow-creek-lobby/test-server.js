@@ -226,11 +226,11 @@ async function testDisconnectFallback() {
 // room - the server should clean that room up as if they'd left properly.
 // ============================================================
 async function testCreateWithoutLeavingCleansUpOldRoom() {
-  const host = await createRoom('PH-Host');
+  const host = await createRoom('PH-Lead');
   const other = await joinRoom(host.roomCode, 'PH-Other');
 
   const rosterAfterLeave = once(other.ws, m => m.type === 'roster' && m.players.length === 1, 3000);
-  send(host.ws, { type: 'create', name: 'PH-Host2', isPublic: false });
+  send(host.ws, { type: 'create', name: 'PH-Lead2', isPublic: false });
   const created2 = await once(host.ws, m => m.type === 'created');
   assert(created2.roomCode !== host.roomCode, 'sending a second create gives back a brand new room code');
 
@@ -246,7 +246,7 @@ async function testCreateWithoutLeavingCleansUpOldRoom() {
 // else joins or leaves the room.
 // ============================================================
 async function testRosterSyncsToExistingClients() {
-  const host = await createRoom('RS-Host');
+  const host = await createRoom('RS-Lead');
   const rosterOnJoin = once(host.ws, m => m.type === 'roster' && m.players.length === 2, 3000);
   const p2 = await joinRoom(host.roomCode, 'RS-P2');
   const hostSawJoin = await rosterOnJoin;
@@ -255,38 +255,11 @@ async function testRosterSyncsToExistingClients() {
   const rosterOnLeave = once(host.ws, m => m.type === 'roster' && m.players.length === 1, 3000);
   send(p2.ws, { type: 'leave' });
   const hostSawLeave = await rosterOnLeave;
-  assert(hostSawLeave.players.length === 1 && hostSawLeave.players[0].name === 'RS-Host', 'the HOST\'s existing connection also receives an updated roster when another real player leaves');
+  assert(hostSawLeave.players.length === 1 && hostSawLeave.players[0].name === 'RS-Lead', 'the HOST\'s existing connection also receives an updated roster when another real player leaves');
 
   host.ws.close(); p2.ws.close();
 }
 
-// ============================================================
-// Task 11: live "still deciding" night-progress counter - updates the
-// moment either of two real players submits, and never leaks identity
-// or choice, only counts.
-// ============================================================
-async function testNightProgressCounter() {
-  const host = await createRoom('NP1');
-  const p2 = await joinRoom(host.roomCode, 'NP2');
-  const players = [host, p2];
-
-  const initialProgress = Promise.all(players.map(p => once(p.ws, m => m.type === 'nightProgress')));
-  send(host.ws, { type: 'start', playerCount: 6, mafiaCount: 0, roles: { Godfather: false, DoubleAgent: false, Detective: false, Doctor: false, Miller: false, BountyHunter: false, CrazyGranny: false, Coward: false, Farmer: false, NavySeal: false } });
-  const [initA, initB] = await initialProgress;
-  assert(initA.submitted === 0 && initA.total === 2, 'night begins with a 0-of-2 progress broadcast (only the 2 real players count, not placeholders)');
-  assert(Object.keys(initA).sort().join(',') === 'submitted,total,type', 'the nightProgress payload contains only counts and a type - no player id, name, or choice ever appears in it');
-
-  const progressAfterOneSubmits = once(p2.ws, m => m.type === 'nightProgress' && m.submitted === 1);
-  send(host.ws, { type: 'nightAction', action: {} });
-  const afterOne = await progressAfterOneSubmits;
-  assert(afterOne.submitted === 1 && afterOne.total === 2, 'the count updates the moment the FIRST of two real players submits, visible to the OTHER player');
-
-  const resolved = once(p2.ws, m => m.type === 'gameState' && m.view.phase === 'day-discuss', 5000);
-  send(p2.ws, { type: 'nightAction', action: {} });
-  await resolved;
-
-  host.ws.close(); p2.ws.close();
-}
 
 // ============================================================
 // Task 7: mafia-only chat is scoped strictly to align==='mafia' players -
@@ -350,7 +323,7 @@ async function testDayChatAccusationTag() {
   const p2 = await joinRoom(host.roomCode, 'DC2');
   const players = [host, p2];
 
-  const initialProgress = Promise.all(players.map(p => once(p.ws, m => m.type === 'nightProgress')));
+  const initialProgress = Promise.all(players.map(p => once(p.ws, m => m.type === 'gameState')));
   send(host.ws, { type: 'start', playerCount: 6, mafiaCount: 0, roles: { Godfather: false, DoubleAgent: false, Detective: false, Doctor: false, Miller: false, BountyHunter: false, CrazyGranny: false, Coward: false, Farmer: false, NavySeal: false } });
   await initialProgress;
 
@@ -624,6 +597,93 @@ async function testDayChatInferredAccusationAndAgreement() {
   players.forEach(p => { try { p.ws.close(); } catch (e) {} });
 }
 
+// ============================================================
+// Night: nothing about progress is revealed - a "N of M have decided" count
+// let anyone work out how many players still had a night action to take
+// (i.e. how many important roles were left).
+// ============================================================
+async function testNightProgressHidden() {
+  const host = await createRoom('NP1');
+  const p2 = await joinRoom(host.roomCode, 'NP2');
+  const players = [host, p2];
+  let leaked = null;
+  players.forEach(p => p.ws.on('message', raw => { const m = JSON.parse(raw); if (m.type === 'nightProgress') leaked = m; }));
+  const started = once(host.ws, m => m.type === 'gameState');
+  send(host.ws, { type: 'start', playerCount: 6, mafiaCount: 0, roles: { Godfather: false, DoubleAgent: false, Detective: false, Doctor: false, Miller: false, BountyHunter: false, CrazyGranny: false, Coward: false, Farmer: false, NavySeal: false } });
+  await started;
+  send(host.ws, { type: 'nightAction', action: {} });
+  await new Promise(r => setTimeout(r, 400));
+  assert(leaked === null, 'no night progress/count message is ever sent to anyone, even right after one player has decided');
+  const resolved = once(p2.ws, m => m.type === 'gameState' && m.view.phase === 'day-discuss', 5000);
+  send(p2.ws, { type: 'nightAction', action: {} });
+  await resolved;
+  assert(leaked === null, 'the night still ends the moment everyone has decided, with no progress message along the way');
+  players.forEach(p => { try { p.ws.close(); } catch (e) {} });
+}
+
+// ============================================================
+// Names: no pronoun/stand-in names, and "Host"/"Owner" can't be typed in to
+// pose as the server's badges. Host/Owner flags come only from the server.
+// ============================================================
+async function testNamesAndBadges() {
+  async function nameAs(raw, ownerKey) {
+    const ws = await connect();
+    send(ws, { type: 'create', name: raw, ownerKey });
+    const roster = await once(ws, m => m.type === 'roster');
+    const me = roster.players[0];
+    ws.close();
+    await new Promise(r => setTimeout(r, 30));
+    return me;
+  }
+  assert(/^Player \d{3}$/.test((await nameAs('You')).name), 'the name "You" is replaced, not allowed');
+  assert(/^Player \d{3}$/.test((await nameAs('he')).name), 'the name "he" is replaced');
+  assert(/^Player \d{3}$/.test((await nameAs('No One')).name), 'the name "No One" is replaced');
+  assert((await nameAs('Alice')).name === 'Alice', 'an ordinary name is untouched');
+  assert((await nameAs('Bob Host')).name === 'Bob', 'typing "Host" after a name strips it so nobody can pose as the host');
+  assert((await nameAs('[HOST] Zed')).name === 'Zed', 'a bracketed [HOST] tag in a name is stripped');
+  const pierce = await nameAs('Pierce');
+  assert(pierce.isOwner === true && pierce.isHost === true, 'the username Pierce is flagged Owner (and as host of the room they made)');
+  const alice = await nameAs('Alice');
+  assert(alice.isOwner === false && alice.isHost === true, 'a normal player who creates a room is Host but not Owner');
+  process.env.OWNER_KEY = 'secret-key';
+  const fake = await nameAs('Pierce');
+  const real = await nameAs('Pierce', 'secret-key');
+  delete process.env.OWNER_KEY;
+  assert(fake.isOwner === false, 'with OWNER_KEY set on the server, typing the name Pierce alone does not earn the Owner badge');
+  assert(real.isOwner === true, 'with OWNER_KEY set, Pierce presenting the right key does');
+}
+
+// ============================================================
+// Stage: the 30s turn clock applies to EVERYONE promoted from the queue while
+// others are still waiting, not only the first speaker.
+// ============================================================
+async function testStageTimerOnPromotedSpeaker() {
+  const host = await createRoom('Stg1');
+  const p2 = await joinRoom(host.roomCode, 'Stg2');
+  const p3 = await joinRoom(host.roomCode, 'Stg3');
+  const players = [host, p2, p3];
+  const roles = { Godfather: false, DoubleAgent: false, Detective: false, Doctor: false, Miller: false, BountyHunter: false, CrazyGranny: false, Coward: false, Farmer: false, NavySeal: false };
+  const started = once(host.ws, m => m.type === 'gameState');
+  send(host.ws, { type: 'start', playerCount: 6, mafiaCount: 0, roles, voiceEnabled: true });
+  await started;
+  const day = Promise.all(players.map(p => once(p.ws, m => m.type === 'gameState' && m.view.phase === 'day-discuss', 8000)));
+  players.forEach(p => send(p.ws, { type: 'nightAction', action: {} }));
+  await day;
+
+  send(host.ws, { type: 'joinQueue' });
+  await once(p3.ws, m => m.type === 'stageState' && m.speakerId === host.playerId, 3000);
+  send(p2.ws, { type: 'joinQueue' });
+  const firstTimed = await once(p3.ws, m => m.type === 'stageState' && m.speakerId === host.playerId && m.turnDeadline, 3000);
+  assert(!!firstTimed.turnDeadline, 'the first speaker is timed once someone is waiting behind them');
+  send(p3.ws, { type: 'joinQueue' });
+  await new Promise(r => setTimeout(r, 150));
+  const secondSpeaker = once(p3.ws, m => m.type === 'stageState' && m.speakerId === p2.playerId, 3000);
+  send(host.ws, { type: 'leaveStage' });
+  const next = await secondSpeaker;
+  assert(next.turnDeadline && next.queue.length === 1, 'the next speaker, promoted from the queue with someone still waiting, gets their own 30s clock');
+  players.forEach(p => { try { p.ws.close(); } catch (e) {} });
+}
+
 async function main() {
   await testUndercapacityStartRejected();
   await testCustomRolesEnabled();
@@ -634,7 +694,9 @@ async function main() {
   await testCreateWithoutLeavingCleansUpOldRoom();
   await testRosterSyncsToExistingClients();
   await testMafiaChatScoping();
-  await testNightProgressCounter();
+  await testNightProgressHidden();
+  await testNamesAndBadges();
+  await testStageTimerOnPromotedSpeaker();
   await testDayChatAccusationTag();
   await testRoundScoreBreakdown();
   await testPlayAgainSameLobby();
