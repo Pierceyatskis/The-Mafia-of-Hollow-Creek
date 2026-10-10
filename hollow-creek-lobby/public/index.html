@@ -1361,6 +1361,16 @@ h2.sec{font-family:var(--font-type); font-size:13px; letter-spacing:2px; text-tr
 .ally-teammate-thumb{display:flex; flex-direction:column; align-items:center; gap:3px; width:44px; text-align:center;}
 .ally-teammate-thumb .portrait-frame{width:36px; height:36px; border-radius:4px; overflow:hidden;}
 .ally-teammate-thumb span{font-family:var(--font-type); font-size:9.5px; letter-spacing:0.3px; color:var(--parchment-dim); line-height:1.2; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; width:100%;}
+/* Lobby roster: a wrapping grid of player cards (large avatar + name) instead of one long column. Names are
+   capped at 14 characters, so every card is a predictable size. */
+#mp-roster{display:grid; grid-template-columns:repeat(auto-fill, minmax(250px, 1fr)); gap:10px 14px;}
+.lobby-player{display:flex; align-items:center; gap:12px; padding:8px 12px; background:rgba(20,14,10,0.45); border:1px solid var(--line); border-radius:8px; min-width:0;}
+.lobby-player-you{border-color:var(--gold-dim); background:rgba(227,177,85,0.08);}
+.lobby-player-info{min-width:0; display:flex; flex-direction:column; gap:4px;}
+.lobby-player-name{font-family:var(--font-ornate); font-weight:600; font-size:18px; letter-spacing:0.3px; color:var(--parchment); line-height:1.15; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.lobby-player-tags{display:flex; flex-wrap:wrap; align-items:center; gap:4px; font-size:13px; color:var(--parchment-dim); min-height:0;}
+.lobby-player-tags .name-tag{margin-left:0;}
+.lobby-player-actions{display:flex; flex-wrap:wrap; gap:6px;}
 .roster-row{display:flex; align-items:center; gap:10px; padding:8px 10px; border-bottom:1px solid var(--line); font-size:14px; cursor:pointer; transition:background .15s ease, padding-left .15s ease; border-radius:4px; opacity:0; animation:rowFadeIn .4s ease forwards;}
 .roster-row:last-child{border-bottom:none;}
 .roster-row:hover{background:rgba(227,177,85,0.06); padding-left:14px;}
@@ -3487,10 +3497,15 @@ function canShame(p){ return !!(ownerPowers && amOwner && p && !p.isOwner && p.i
 function renderMpRoster(players){
   players.forEach(function(p){ if(p.id===myPlayerId){ amHost = p.isHost; amOwner = !!p.isOwner; } });
   document.getElementById('mp-roster').innerHTML = players.map(function(p){
-    var tags = (p.id===myPlayerId ? ' (you)' : '') + nameTagsHTML(p);
-    var shameBtn = canShame(p) ? '<button class="btn ghost mp-shame-btn" data-shame-id="'+p.id+'" data-shame-on="'+(p.shame?'0':'1')+'" style="padding:3px 10px; font-size:12px; margin-left:8px;">'+(p.shame?'Pardon':'Tag of Shame')+'</button>' : '';
-    var kickBtn = (amHost && p.id !== myPlayerId) ? '<button class="btn ghost mp-kick-btn" data-kick-id="'+p.id+'" style="padding:3px 10px; font-size:12px; margin-left:8px;">Remove</button>' : '';
-    return '<div class="roster-row" style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--line);"><span style="display:flex; align-items:center; gap:8px;">'+avatarHTML(p,26)+escapeHtmlMp(p.name)+tags+'</span><span>'+shameBtn+kickBtn+'</span></div>';
+    var isMe = p.id===myPlayerId;
+    var tagsHTML = (isMe ? '<span>(you)</span>' : '') + nameTagsHTML(p);
+    var shameBtn = canShame(p) ? '<button class="btn ghost mp-shame-btn" data-shame-id="'+p.id+'" data-shame-on="'+(p.shame?'0':'1')+'" style="padding:3px 10px; font-size:12px;">'+(p.shame?'Pardon':'Tag of Shame')+'</button>' : '';
+    var kickBtn = (amHost && !isMe) ? '<button class="btn ghost mp-kick-btn" data-kick-id="'+p.id+'" style="padding:3px 10px; font-size:12px;">Remove</button>' : '';
+    return '<div class="lobby-player'+(isMe?' lobby-player-you':'')+'">'+avatarHTML(p,52)+
+      '<div class="lobby-player-info"><div class="lobby-player-name">'+escapeHtmlMp(p.name)+'</div>'+
+      (tagsHTML ? '<div class="lobby-player-tags">'+tagsHTML+'</div>' : '')+
+      ((shameBtn||kickBtn) ? '<div class="lobby-player-actions">'+shameBtn+kickBtn+'</div>' : '')+
+      '</div></div>';
   }).join('');
   document.querySelectorAll('.mp-shame-btn').forEach(function(btn){
     btn.addEventListener('click', function(){ sendWS({type:'shame', targetId: btn.getAttribute('data-shame-id'), on: btn.getAttribute('data-shame-on')==='1'}); });
