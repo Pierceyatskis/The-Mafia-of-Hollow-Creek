@@ -638,8 +638,8 @@ async function testNamesAndBadges() {
   assert(/^Player \d{3}$/.test((await nameAs('You')).name), 'the name "You" is replaced, not allowed');
   assert(/^Player \d{3}$/.test((await nameAs('he')).name), 'the name "he" is replaced');
   assert(/^Player \d{3}$/.test((await nameAs('No One')).name), 'the name "No One" is replaced');
-  assert((await nameAs('You')).shame === 'Nameless', 'trying a banned pronoun name earns the "Nameless" Tag of Shame');
-  assert((await nameAs('Bob Host')).shame === 'Poser', 'trying to fake a Host/Owner badge in a name earns the "Poser" tag');
+  assert((await nameAs('You')).shame === 'Unapproved', 'trying a banned pronoun name earns the UNAPPROVED tag');
+  assert((await nameAs('Bob Host')).shame === 'Unapproved', 'trying to fake a Host/Owner badge in a name earns the UNAPPROVED tag');
   const ghost = await nameAs('Ghost');
   assert(ghost.name === 'Ghost' && ghost.shame === null, 'a name merely CONTAINING the letters "host" ("Ghost") is fine - no change, no shame');
   assert((await nameAs('Alice')).name === 'Alice' && (await nameAs('Alice')).shame === null, 'an ordinary name is untouched and earns no tag');
@@ -655,7 +655,7 @@ async function testNamesAndBadges() {
   delete process.env.OWNER_KEY;
   assert(fake.isOwner === false, 'with OWNER_KEY set on the server, typing the name Pierce alone does not earn the Owner badge');
   assert(real.isOwner === true && real.name === 'Pierce', 'with OWNER_KEY set, Pierce presenting the right key does, under the real name');
-  assert(fake.shame === 'Impostor', 'with OWNER_KEY set, copying the owner\'s name earns the "Impostor" tag');
+  assert(fake.shame === 'Unapproved', 'with OWNER_KEY set, copying the owner\'s name earns the UNAPPROVED tag');
   assert(fake.name === 'Pierce 2', 'with OWNER_KEY set, the owner\'s name is reserved: a copy without the code is visibly different ("Pierce 2")');
 }
 
@@ -699,10 +699,10 @@ async function testOwnerCanShame() {
     const owner = await createRoomAs('Pierce', 'shame-key');
     const zed = await joinRoom(owner.roomCode, 'Zed');
     function rosterWith(ws, pred) { return once(ws, m => m.type === 'roster' && pred(m), 3000); }
-    const shamed = rosterWith(zed.ws, m => m.players.some(p => p.name === 'Zed' && p.shame === 'Scoundrel'));
+    const shamed = rosterWith(zed.ws, m => m.players.some(p => p.name === 'Zed' && p.shame === 'Unapproved'));
     send(owner.ws, { type: 'shame', targetId: zed.playerId });
     const r1 = await shamed;
-    assert(r1.players.find(p => p.name === 'Zed').shame === 'Scoundrel', 'the verified owner can apply the Tag of Shame to another player in the lobby');
+    assert(r1.players.find(p => p.name === 'Zed').shame === 'Unapproved', 'the verified owner can apply the Tag of Shame to another player in the lobby');
     assert(r1.ownerPowers === true, 'the roster tells clients owner powers are active (OWNER_KEY configured)');
 
     const errPromise = once(zed.ws, m => m.type === 'error', 2000);

@@ -117,12 +117,12 @@ function isConfusingName(name) {
 // to dress up as one, so those words (bare or bracketed) are stripped.
 // The Tag of Shame: a visible red badge on a player's name. Handed out
 // automatically when someone tries a banned name, and by the verified owner on
-// request. The label says what they did.
+// request. Every reason shows the same word - UNAPPROVED - the key just records why.
 const SHAME_LABELS = {
-  confusing: 'Nameless',   // tried a pronoun / stand-in name (You, me, he, No One...)
-  poser: 'Poser',          // tried to dress their name up as Host/Owner/Admin
-  impostor: 'Impostor',    // tried to be the owner without the code
-  owner: 'Scoundrel'       // applied by the owner
+  confusing: 'Unapproved',  // tried a pronoun / stand-in name (You, me, he, No One...)
+  poser: 'Unapproved',     // tried to dress their name up as Host/Owner/Admin
+  impostor: 'Unapproved',  // tried to be the owner without the code
+  owner: 'Unapproved'       // applied by the owner
 };
 function shameLabel(room, id) {
   return SHAME_LABELS[room.shame && room.shame.get(id)] || null;
