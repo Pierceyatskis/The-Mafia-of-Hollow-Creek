@@ -28,7 +28,9 @@ const MIN_DISCUSS_SECONDS = 30, MAX_DISCUSS_SECONDS = 300;
 const MIN_VOTE_SECONDS = 30, MAX_VOTE_SECONDS = 300;
 // Voice/stage feature - off unless a host explicitly turns it on for their room.
 const DEFAULT_VOICE_ENABLED = false;
-const STAGE_TURN_SECONDS = 30;
+const STAGE_TURN_SECONDS = 15;          // default - the host can change it per room (room.stageTurnMs)
+const MIN_STAGE_TURN_SECONDS = 10, MAX_STAGE_TURN_SECONDS = 120;
+function stageTurnMs(room) { return (room && room.stageTurnMs) || STAGE_TURN_SECONDS * 1000; }
 const DONATE_SECONDS = 5;
 
 // Clamps a host-supplied seconds value into range and converts to ms,
@@ -474,13 +476,13 @@ function startSpeakerTurn(room, playerId) {
   room.stage.speakerId = playerId;
   room.stage.turnStartedAt = Date.now();
   // resetStageTurnTallies just cleared the clock. Anyone still waiting means
-  // this speaker is under the same 30s limit as the one before them - without
+  // this speaker is under the same time limit as the one before them - without
   // this, only the very first speaker (who had to be joined by someone ELSE
   // while on stage) ever got timed; everyone promoted from the queue after
   // them kept the stage indefinitely.
   if (room.stage.queue.length > 0) {
-    room.stage.turnDeadline = Date.now() + STAGE_TURN_SECONDS * 1000;
-    room.stage.turnTimer = setTimeout(() => endSpeakerTurn(room), STAGE_TURN_SECONDS * 1000);
+    room.stage.turnDeadline = Date.now() + stageTurnMs(room);
+    room.stage.turnTimer = setTimeout(() => endSpeakerTurn(room), stageTurnMs(room));
   }
   broadcastStageState(room);
 }
@@ -504,14 +506,14 @@ function endSpeakerTurn(room) {
   advanceStageIfIdle(room);
 }
 
-// Called after every joinQueue - the 30s timer only starts once there's
+// Called after every joinQueue - the speaker timer only starts once there's
 // actual demand for the stage (a second person waiting); a solo speaker with
 // an empty queue is never put under pressure.
 function maybeStartStageTimer(room) {
   if (!room.stage || !room.stage.speakerId) return;
   if (room.stage.queue.length < 1 || room.stage.turnDeadline !== null) return;
-  room.stage.turnDeadline = Date.now() + STAGE_TURN_SECONDS * 1000;
-  room.stage.turnTimer = setTimeout(() => endSpeakerTurn(room), STAGE_TURN_SECONDS * 1000);
+  room.stage.turnDeadline = Date.now() + stageTurnMs(room);
+  room.stage.turnTimer = setTimeout(() => endSpeakerTurn(room), stageTurnMs(room));
   broadcastStageState(room);
 }
 
@@ -836,7 +838,7 @@ wss.on('connection', (socket) => {
       socket.pendingShame = null;
       socket.roomCode = code;
       socket.playerId = playerId;
-      socket.send(JSON.stringify({ type: 'rejoined', roomCode: code, playerId, started: true }));
+      socket.send(JSON.stringify({ type: 'rejoined', roomCode: code, playerId, started: true, voiceEnabled: !!room.voiceEnabled }));
       sendGameState(room);
       if (room.stage) broadcastStageState(room);
       console.log(`${sp.name} reconnected to room ${code}`);
@@ -920,7 +922,7 @@ wss.on('connection', (socket) => {
       if (!room.stage.speakerId) {
         advanceStageIfIdle(room); // stage was idle - this player is promoted immediately
       } else {
-        maybeStartStageTimer(room); // starts the 30s timer if this is the first person to queue up
+        maybeStartStageTimer(room); // starts the speaker timer if this is the first person to queue up
         broadcastStageState(room);
       }
     }
@@ -1044,8 +1046,9 @@ wss.on('connection', (socket) => {
       const roles = sanitizeRolesConfig(msg.roles);
       const discussMs = sanitizeDurationMs(msg.discussSeconds, MIN_DISCUSS_SECONDS, MAX_DISCUSS_SECONDS, DAY_DISCUSS_DURATION_MS);
       const voteMs = sanitizeDurationMs(msg.voteSeconds, MIN_VOTE_SECONDS, MAX_VOTE_SECONDS, DAY_VOTE_DURATION_MS);
+      const speakerMs = sanitizeDurationMs(msg.speakerSeconds, MIN_STAGE_TURN_SECONDS, MAX_STAGE_TURN_SECONDS, STAGE_TURN_SECONDS * 1000);
       const voiceEnabled = !!msg.voiceEnabled;
-      room.draftConfig = { playerCount, mafiaCount, roles, discussSeconds: discussMs / 1000, voteSeconds: voteMs / 1000, voiceEnabled };
+      room.draftConfig = { playerCount, mafiaCount, roles, discussSeconds: discussMs / 1000, voteSeconds: voteMs / 1000, speakerSeconds: speakerMs / 1000, voiceEnabled };
       room.players.forEach(rp => {
         if (rp.socket.readyState === WebSocket.OPEN) {
           rp.socket.send(JSON.stringify(Object.assign({ type: 'configUpdate' }, room.draftConfig)));
@@ -1079,6 +1082,7 @@ wss.on('connection', (socket) => {
       // instead of always falling back to the module-wide defaults.
       room.discussMs = sanitizeDurationMs(msg.discussSeconds, MIN_DISCUSS_SECONDS, MAX_DISCUSS_SECONDS, DAY_DISCUSS_DURATION_MS);
       room.voteMs = sanitizeDurationMs(msg.voteSeconds, MIN_VOTE_SECONDS, MAX_VOTE_SECONDS, DAY_VOTE_DURATION_MS);
+      room.stageTurnMs = sanitizeDurationMs(msg.speakerSeconds, MIN_STAGE_TURN_SECONDS, MAX_STAGE_TURN_SECONDS, STAGE_TURN_SECONDS * 1000);
       room.voiceEnabled = !!msg.voiceEnabled;
       // Floor-control state for the voice/stage feature - a transport/session
       // concern layered on top of the game, not a mafia rule, so it lives

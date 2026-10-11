@@ -825,6 +825,24 @@ async function testChatStancesPollsAndLobbyChat() {
   players.forEach(p => { try { p.ws.close(); } catch (e) {} });
 }
 
+// ============================================================
+// Speaker (stage) time is a host setting: 15s by default, clamped to 10-120s.
+// ============================================================
+async function testSpeakerSeconds() {
+  const host = await createRoom('SpkHost');
+  const guest = await joinRoom(host.roomCode, 'SpkGuest');
+  async function configWith(extra) {
+    const seen = once(guest.ws, m => m.type === 'configUpdate', 3000);
+    send(host.ws, Object.assign({ type: 'hostConfigUpdate', playerCount: 8, mafiaCount: 1, roles: {} }, extra));
+    return seen;
+  }
+  assert((await configWith({})).speakerSeconds === 15, 'speaker time defaults to 15s when the host has not set it');
+  assert((await configWith({ speakerSeconds: 40 })).speakerSeconds === 40, 'host-chosen speaker time reaches the other players');
+  assert((await configWith({ speakerSeconds: 3 })).speakerSeconds === 10, 'speaker time is clamped to at least 10s');
+  assert((await configWith({ speakerSeconds: 999 })).speakerSeconds === 120, 'speaker time is clamped to at most 120s');
+  [host, guest].forEach(p => { try { p.ws.close(); } catch (e) {} });
+}
+
 async function main() {
   await testUndercapacityStartRejected();
   await testCustomRolesEnabled();
@@ -840,6 +858,7 @@ async function main() {
   await testOwnerCanShame();
   await testNameCapAndOwnerAvatar();
   await testChatStancesPollsAndLobbyChat();
+  await testSpeakerSeconds();
   await testStageTimerOnPromotedSpeaker();
   await testDayChatAccusationTag();
   await testRoundScoreBreakdown();
