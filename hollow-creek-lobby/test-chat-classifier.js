@@ -281,8 +281,16 @@ assert(analyze('he is the mafia', { recentTexts: ['I wonder about Corky'] }).tar
   const viaReply = G.detectAgreementTarget(state, 'I agree', { name:'Ann', text:'I think its Corky' }, 'b');
   assert(viaReply && viaReply.targetId === 'c' && viaReply.agreedWithId === 'a', 'D-reply: replying "I agree" to an accusation files the replier against the same target');
   assert(G.detectAgreementTarget(state, 'I agree', { name:'Cy', text:'hello' }, 'b') === null, 'D-reply2: agreeing with a message that is not an accusation files nothing');
-  const implicit = G.detectAgreementTarget(state, 'same', null, 'b');
-  assert(implicit && implicit.targetId === 'c', 'D-implicit: a bare "same" right after an accusation (no Reply) files the sender too');
+  const skipped = G.detectAgreementTarget(state, 'same', null, 'b');
+  assert(skipped === null, 'D-implicit: a bare "same" does NOT reach back over another player\'s line (Cy said hello after the accusation) to find an older accusation');
+  const justAfter = { players: state.players, chatLog: [state.chatLog[1], state.chatLog[0]] }; // accusation is now the most recent line
+  const implicit = G.detectAgreementTarget(justAfter, 'same', null, 'b');
+  assert(implicit && implicit.targetId === 'c', 'D-implicit2: a bare "same" right after an accusation (no Reply) files the sender too');
+  const support = G.detectAgreement(state, 'I agree', null, 'b');
+  assert(support && support.kind === 'support' && support.agreedWithId === 'c', 'D-support: agreeing with a non-accusation line is Supporting whoever said it, not accusing');
+  const defState = { players: state.players, chatLog: [{ playerId:'a', name:'Ann', text:'I think he is clear', defendedId:'c', category:'defense', ts: Date.now() }] };
+  const defAgree = G.detectAgreement(defState, 'I agree', null, 'b');
+  assert(defAgree && defAgree.kind === 'defense' && defAgree.targetId === 'c', 'D-defend: agreeing with a defense makes the sender a defender of the same player');
   assert(G.detectAgreementTarget(state, 'I agree', { name:'Ann', text:'I think its Corky' }, 'a') === null, 'D-self: you cannot agree with your own accusation into a second one');
   state.players[2].alive = false;
   assert(G.detectAgreementTarget(state, 'I agree', { name:'Ann', text:'I think its Corky' }, 'b') === null, 'D-dead: an accusation of someone since eliminated is not carried over by agreement');

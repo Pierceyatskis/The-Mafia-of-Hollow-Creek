@@ -1012,14 +1012,15 @@ body.force-reduced-motion .notebook-view.notebook-page-turn{animation:none;}
 .chat-tab-badge{display:inline-block; min-width:14px; height:14px; margin-left:5px; padding:0 3px; border-radius:7px; background:#8B1414; color:#fff; font-size:9px; line-height:14px; text-align:center; vertical-align:middle;}
 #chat-dead-note{display:none; margin:12px 0; padding:9px 12px; border:1px solid var(--gold-dim); border-left:3px solid #8B1414; border-radius:5px; background:rgba(20,14,10,0.7); color:var(--parchment-dim); font-size:12px; line-height:1.35;}
 #chat-dead-note b{color:var(--parchment);}
+#chat-tab-ghost{border-color:#6fc7b4; color:#a6efdf; background:rgba(60,140,120,0.18); animation:ghostTabPulse 2s ease-in-out infinite;}
+#chat-tab-ghost.active{animation:none; box-shadow:0 0 10px rgba(111,199,180,0.7);}
+@keyframes ghostTabPulse{0%,100%{box-shadow:0 0 0 rgba(111,199,180,0);} 50%{box-shadow:0 0 12px rgba(111,199,180,0.85);}}
+#ghost-chat-banner{display:none; margin:8px 0 0; padding:7px 12px; border:1px solid #6fc7b4; border-radius:5px; background:rgba(60,140,120,0.15); color:#a6efdf; font-size:12px; letter-spacing:0.3px;}
 #ghost-inline-row{display:none; gap:8px; margin:12px 0; align-items:center;}
 #death-continue-btn{display:none !important;}
-/* You've picked someone but haven't confirmed: the Confirm Vote button pulses
-   until you do (or the phase ends). */
-#day-confirm-btn.confirm-blink{animation:confirmBlink 0.9s ease-in-out infinite;}
-@keyframes confirmBlink{0%,100%{filter:brightness(1) drop-shadow(0 0 0 rgba(255,90,60,0));} 50%{filter:brightness(1.6) drop-shadow(0 0 14px rgba(255,100,60,0.95));}}
-@media (prefers-reduced-motion: reduce){ #day-confirm-btn.confirm-blink{animation:none; filter:brightness(1.35) drop-shadow(0 0 10px rgba(255,100,60,0.9));} }
-body.force-reduced-motion #day-confirm-btn.confirm-blink{animation:none; filter:brightness(1.35) drop-shadow(0 0 10px rgba(255,100,60,0.9));}
+/* No Confirm Vote button any more: picking a player casts the vote. */
+#day-confirm-btn{display:none !important;}
+#design-canvas.bg-day #daylayout-stage-request-btn.in-queue{font-family:var(--font-type); font-size:14px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:#f3e3c0; text-shadow:0 1px 2px #000;}
 .notebook-vote-nav{background:none; border:1px solid var(--gold-dim); color:var(--gold-bright); border-radius:3px; cursor:pointer; font-size:8px; line-height:1; padding:2px 5px;}
 .notebook-vote-nav:hover:not(:disabled){background:rgba(227,177,85,0.2);}
 .notebook-vote-nav:disabled{opacity:0.3; cursor:default;}
@@ -1621,6 +1622,30 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
 .chatline:hover .hint{opacity:1;}
 .chatline .accusation-tag{margin-left:8px; font-family:var(--font-type); font-size:11px; letter-spacing:0.5px; color:var(--danger); flex-shrink:0;}
 .accusation-tag-icon{width:11px; height:11px; object-fit:contain; vertical-align:-1px; margin-right:3px;}
+.chatline .stance-tag{margin-left:8px; font-family:var(--font-type); font-size:11px; letter-spacing:0.5px; flex-shrink:0; padding:1px 8px; border-radius:10px; border:1px solid currentColor; background:rgba(0,0,0,0.18);}
+.stance-accuse{color:#ee8478;} .stance-defend{color:#74b0ff;} .stance-support{color:#86d98f;} .stance-question{color:#f2c566;} .stance-claim{color:#cba3ff;}
+.stance-tag-icon{width:11px; height:11px; object-fit:contain; vertical-align:-1px; margin-right:3px;}
+.chatline.for-me{outline:2px solid #f2c566; outline-offset:-2px; background:rgba(242,197,102,0.10); box-shadow:0 0 12px rgba(242,197,102,0.35);}
+.chatline.for-me .for-me-flag{display:inline-block; margin-left:8px; font-family:var(--font-type); font-size:10.5px; letter-spacing:1px; text-transform:uppercase; color:#2a1d05; background:#f2c566; border-radius:3px; padding:1px 6px;}
+.chatline-poll{display:block; cursor:default; border:1px solid var(--gold-dim); border-radius:8px; background:rgba(227,177,85,0.07); padding:10px 12px;}
+.chatline-poll:hover{background:rgba(227,177,85,0.07);}
+.poll-head{font-family:var(--font-type); font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--lantern);}
+.poll-q{font-size:14px; color:var(--parchment); margin:4px 0 8px; overflow-wrap:anywhere;}
+.poll-opt{display:block; position:relative; width:100%; text-align:left; margin-bottom:5px; padding:6px 10px; border:1px solid var(--line); border-radius:5px; background:var(--panel-2); color:var(--parchment); font-family:var(--font-body); font-size:13px; cursor:pointer; overflow:hidden;}
+.poll-opt:hover:not(:disabled){border-color:var(--gold-dim);}
+.poll-opt:disabled{cursor:default; opacity:0.85;}
+.poll-opt.mine{border-color:var(--lantern); box-shadow:inset 0 0 0 1px var(--lantern);}
+.poll-opt .poll-bar{position:absolute; left:0; top:0; bottom:0; background:rgba(227,177,85,0.22); z-index:0; transition:width .25s ease;}
+.poll-opt .poll-opt-text, .poll-opt .poll-opt-count{position:relative; z-index:1;}
+.poll-opt .poll-opt-count{float:right; font-family:var(--font-type); font-size:12px; color:var(--parchment-dim);}
+.poll-voters{display:block; font-size:11px; color:var(--parchment-dim); margin:-2px 0 6px 4px; position:relative; z-index:1;}
+.poll-compose{display:none; margin:8px 0; padding:10px; border:1px solid var(--gold-dim); border-radius:8px; background:rgba(0,0,0,0.18);}
+.poll-compose input{width:100%; box-sizing:border-box; margin-bottom:6px; background:var(--panel-2); border:1px solid var(--line); border-radius:5px; padding:7px 10px; font-family:var(--font-body); font-size:13px; color:var(--parchment);}
+.poll-compose-actions{display:flex; gap:8px; align-items:center;}
+.poll-compose-msg{font-size:12px; color:var(--danger); margin-left:6px;}
+.lobby-chat-log{max-height:230px; overflow-y:auto; border:1px solid var(--line); border-radius:6px; padding:6px 8px; background:rgba(0,0,0,0.15);}
+.lobby-chat-log .chatline{cursor:default; padding:6px 4px;}
+.lobby-chat-log .chatline .who{min-width:0;}
 .chat-empty{font-family:var(--font-type); font-size:12.5px; color:var(--parchment-dim); text-align:center; padding:20px 0;}
 .chat-empty::before{content:''; display:block; width:56px; height:56px; margin:0 auto 8px; background-image:var(--daytime-empty-chat); background-size:contain; background-repeat:no-repeat; background-position:center; opacity:0.8;}
 .chat-tag-icon{width:16px; height:16px; object-fit:contain; align-self:center; opacity:0.85;}
@@ -2070,17 +2095,16 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
     <div class="chat-quick-phrases">
       <button type="button" class="chat-quick-phrase-btn" data-phrase="I accuse ">I accuse&hellip;</button>
       <button type="button" class="chat-quick-phrase-btn" data-phrase="I defend ">I defend&hellip;</button>
-      <button type="button" class="chat-quick-phrase-btn" data-phrase="Where were you when it happened?">Where were you?</button>
+      <button type="button" class="chat-quick-phrase-btn" id="chat-ask-btn" data-phrase="I have a question for ">I have a question for&hellip;</button>
+      <button type="button" class="chat-quick-phrase-btn" id="chat-poll-btn" title="Ask the town a quick poll (one per day)">Poll</button>
       <button type="button" class="chat-quick-phrase-btn" id="chat-whisper-btn" aria-haspopup="true" aria-expanded="false" title="Whisper privately to one player">Whisper</button>
     </div>
     <input type="text" id="chat-input" maxlength="140" placeholder="Say something to the town..." style="flex:1; background:var(--panel-2); border:1px solid var(--line); border-radius:5px; padding:9px 11px; font-family:var(--font-body); font-size:13px; color:var(--parchment);">
-    <img class="chat-tag-icon" id="chat-tag-select-icon" alt="" title="Optionally tag this message as an accusation">
-    <select id="chat-tag-select" title="Optionally tag this message as an accusation" style="background:var(--panel-2); border:1px solid var(--line); border-radius:5px; padding:9px 8px; font-family:var(--font-body); font-size:13px; color:var(--parchment-dim); max-width:120px;">
-      <option value="">No tag</option>
-    </select>
     <button class="btn" id="chat-send-btn" style="padding:9px 16px;">Send</button>
   </div>
-  <p id="chat-dead-note"><b>You've been eliminated.</b> Only living players can speak in Town Talk. Open <b>Ghost Chat</b> to talk with the other eliminated players.</p>
+  <div id="game-poll-wrap"></div>
+  <p id="chat-dead-note"><b>You've been eliminated.</b> Only living players can speak in Town Talk. <button type="button" class="btn" id="chat-dead-open-ghost" style="padding:4px 12px; font-size:12px; margin-left:6px;">Open Ghost Chat</button> to talk with the other eliminated players.</p>
+  <p id="ghost-chat-banner"><b>GHOST CHAT</b> &mdash; only eliminated players can read and write here. This is where you talk now.</p>
   <div id="ghost-inline-row">
     <input type="text" id="ghost-inline-input" maxlength="300" placeholder="Say something to the other ghosts..." style="flex:1; background:var(--panel-2); border:1px solid var(--line); border-radius:5px; padding:9px 11px; font-family:var(--font-body); font-size:13px; color:var(--parchment);">
     <button class="btn" id="ghost-inline-send" style="padding:9px 16px;">Send</button>
@@ -2217,10 +2241,9 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
   <div class="role-card-modal-content case-log-modal-content">
     <button class="role-card-close" id="case-log-close-btn" aria-label="Close">&times;</button>
     <h2 class="intro-modal-title" style="font-size:20px; margin-bottom:4px;">The Case File So Far</h2>
-    <p class="intro-modal-text" style="margin-bottom:12px;">Browse every resident, or the night-by-night recap.</p>
-    <div class="case-log-tabs" id="case-log-tabs">
-      <button class="case-log-tab" data-tab="players">Players</button>
-      <button class="case-log-tab" data-tab="rounds">Round recap</button>
+    <p class="intro-modal-text" style="margin-bottom:12px;">The night-by-night recap of what's happened so far.</p>
+    <div class="case-log-tabs" id="case-log-tabs" style="display:none;">
+      <button class="case-log-tab active" data-tab="rounds">Round recap</button>
     </div>
     <div id="case-log-list" class="case-log-list"></div>
   </div>
@@ -2500,6 +2523,19 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
   </div>
 </div>
 
+<div id="revenge-wait-modal" class="role-card-overlay" style="display:none;">
+  <div class="role-card-modal-content player-action-content" style="text-align:center; max-width:min(580px,92vw);">
+    <h2 class="intro-modal-title" id="revenge-wait-title" style="margin-bottom:10px; font-size:30px;"></h2>
+    <p class="intro-modal-text" id="revenge-wait-text" style="margin-bottom:14px; font-size:16px; line-height:1.6; color:var(--parchment);"></p>
+    <div id="revenge-wait-picker" style="display:none;">
+      <div class="chipgrid" id="revenge-grid"></div>
+      <button class="btn danger" id="revenge-confirm-btn" style="margin-top:14px;">Take them down</button>
+      <p class="msg err" id="revenge-error" style="display:none;">Choose someone first.</p>
+    </div>
+    <p class="intro-modal-text" id="revenge-wait-clock" style="margin:14px 0 0; font-size:28px; font-weight:700; color:var(--gold-bright);"></p>
+  </div>
+</div>
+
 <div class="wrap">
 <header id="top-header" style="display:none;">
   <div class="hollow-creek-sign" aria-hidden="true">
@@ -2540,6 +2576,7 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
       </div>
       <div class="poster-actions">
         <button class="btn" id="create-game-btn">Play</button>
+        <button class="btn" id="rejoin-game-btn" style="display:none;">Rejoin Game</button>
         <div class="poster-actions-row">
           <div class="coming-soon-toast" id="coming-soon-toast"></div>
           <button class="btn" id="howto-btn">How to Play</button>
@@ -2618,6 +2655,10 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
 
   <div id="panel-mpentry" style="display:none;">
     <h2 class="sec">Join Hollow Creek</h2>
+    <div id="mpentry-rejoin" style="display:none; margin-bottom:16px; padding:10px 14px; border:1px solid var(--gold-dim); border-radius:8px; background:rgba(227,177,85,0.08);">
+      <span style="font-size:13px; color:var(--parchment);">You left a game that may still be going &mdash; room <b id="mpentry-rejoin-code"></b>.</span>
+      <button class="btn" id="mpentry-rejoin-btn" style="margin-left:10px;">Rejoin it</button>
+    </div>
     <p style="font-size:13px; color:var(--parchment-dim); line-height:1.6; margin:0 0 16px;">Create a room and share the code, jump into an open public game, or join a friend's room directly.</p>
     <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
       <span style="font-family:var(--font-type); font-size:12px; letter-spacing:1px; text-transform:uppercase; color:var(--gold);">Playing as</span>
@@ -2641,6 +2682,16 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
   <div id="panel-lobby" style="display:none;">
     <h2 class="sec">Room Roster <span id="mp-room-code"></span></h2>
     <div id="mp-roster"></div>
+    <div id="lobby-chat" style="margin-top:18px;">
+      <h2 class="sec" style="margin-bottom:8px;">Lobby Chat</h2>
+      <div class="lobby-chat-log" id="lobby-chat-log"><p class="chat-empty">Nobody has said anything yet.</p></div>
+      <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">
+        <input type="text" id="lobby-chat-input" maxlength="140" placeholder="Say something to the lobby..." style="flex:1; min-width:180px; background:var(--panel-2); border:1px solid var(--line); border-radius:5px; padding:9px 11px; font-family:var(--font-body); font-size:13px; color:var(--parchment);">
+        <button class="btn" id="lobby-chat-send" style="padding:9px 16px;">Send</button>
+        <button class="btn ghost" id="lobby-poll-btn" style="padding:9px 16px; display:none;">Poll</button>
+      </div>
+      <div id="lobby-poll-wrap"></div>
+    </div>
     <p class="msg" id="mp-waiting-msg" style="display:none; margin-top:12px; color:var(--parchment-dim);">Waiting for the host to start the game...</p>
     <div id="mp-waiting-preview" style="display:none; margin-top:14px; border-top:1px solid var(--line); padding-top:14px;">
       <button class="btn ghost" id="mp-waiting-howto-btn" style="margin-bottom:14px;">How to Play</button>
@@ -2653,11 +2704,10 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
       <h2 class="sec">Set up the round</h2>
       <p style="font-size:13px; color:var(--parchment-dim); line-height:1.6; margin:0 0 16px;">Choose how many seats are in Hollow Creek this round and which roles are in play. Empty seats are filled with placeholder townsfolk. The godfather always stays in, so the mafia has someone to run it.</p>
 
-      <div class="daily-modifier-banner" id="daily-modifier-banner"></div>
 
       <div class="mode-toggle" id="mode-toggle">
         <button class="mode-toggle-btn active" data-mode="full" id="mode-full-btn">Full Case<span class="mode-toggle-sub">All roles, standard timers</span></button>
-        <button class="mode-toggle-btn" data-mode="quick" id="mode-quick-btn">Quick Case<span class="mode-toggle-sub">6 players, faster timers, ~15 min</span></button>
+        <button class="mode-toggle-btn" data-mode="quick" id="mode-quick-btn">Quick Case<span class="mode-toggle-sub">8 players, faster timers, ~15 min</span></button>
       </div>
 
       <h2 class="sec">Total seats</h2>
@@ -3260,6 +3310,26 @@ var latestRoundScore = null; // {night, total, breakdown, cumulativeTotal} - thi
 var deadNoticeDismissed = false; // once acknowledged, stays dismissed for the rest of THIS game - being eliminated is permanent, the notice shouldn't re-nag every phase
 var multiplayerWhisperLog = []; // [{fromId,toId,text,ts}] - re-synced from each gameState's (already privacy-scoped) whisperLog, topped up live by whisperMsg pushes in between
 var pendingDayVoteId = null;
+// Picking a player casts the vote right away (and picking someone else, or
+// clearing the ballot, simply changes it until the phase ends) - there is no
+// separate Confirm step any more.
+function selectVoteTarget(id){
+  if(!id) return;
+  pendingDayVoteId = id;
+  sendDayVoteNow(true);
+}
+function sendDayVoteNow(flourish){
+  if(!latestView || latestView.phase!=='day-vote') return;
+  var me = meFromView(latestView);
+  if(!me || !me.alive) return;
+  var cb = document.getElementById('mayor-reveal-checkbox');
+  sendWS({type:'dayVote', targetId: pendingDayVoteId || null, revealMayor: !!(cb && cb.checked)});
+  var err = document.getElementById('day-error'); if(err) err.style.display = 'none';
+  if(flourish && pendingDayVoteId){
+    var seal = document.getElementById('ballot-box-seal');
+    if(seal){ seal.src = DAYTIME_IMG.ballotWaxSeal; seal.classList.remove('playing'); void seal.offsetWidth; seal.classList.add('playing'); }
+  }
+}
 var mpNightSubmitted = false;
 var mpVoteSubmitted = false;
 var mpFarmerSubmitted = false;
@@ -3343,6 +3413,16 @@ function whenConnected(fn){
 function sendWS(obj){ if(ws && ws.readyState===WebSocket.OPEN) ws.send(JSON.stringify(obj)); }
 
 var pendingRejoinResolve = null; // set by initGame while it's waiting on an auto-rejoin attempt at startup
+// A live message is also appended to the matching log inside latestView so any
+// later re-render from the view still has it (the view otherwise only
+// refreshes on a full gameState).
+function keepLiveEntry(listName, msg){
+  if(!latestView) return;
+  if(!latestView[listName]) latestView[listName] = [];
+  var list = latestView[listName];
+  for(var i=list.length-1; i>=Math.max(0, list.length-30); i--){ if(list[i].ts===msg.ts && list[i].playerId===msg.playerId && list[i].text===msg.text) return; }
+  list.push(msg);
+}
 function handleServerMessage(msg){
   if(pendingRejoinResolve && (msg.type==='rejoined' || msg.type==='joined' || msg.type==='rejoinFailed' || msg.type==='error')){
     var resolveRejoinWait = pendingRejoinResolve; pendingRejoinResolve = null; resolveRejoinWait();
@@ -3369,10 +3449,12 @@ function handleServerMessage(msg){
     myPlayerId = msg.playerId; myRoomCode = msg.roomCode;
     saveActiveSession();
     stopReconnecting();
+    clearLastGame();
     var rejoinCodeEl = document.getElementById('mp-room-code');
     if(rejoinCodeEl) rejoinCodeEl.textContent = '· '+myRoomCode;
   } else if(msg.type==='rejoinFailed'){
     stopReconnecting();
+    clearLastGame();
     myRoomCode = null; myPlayerId = null;
     clearActiveSession();
     renderMpEntryScreen();
@@ -3418,6 +3500,7 @@ function handleServerMessage(msg){
   } else if(msg.type==='chatMsg'){
     // Respect the live chat filter (Task 3) - a live top-up must not bypass
     // it the way a full renderChatLog() rebuild never would.
+    keepLiveEntry('chatLog', msg);
     if(chatFilterMode === 'all' || (chatFilterMode === 'accusations' && (msg.targetId || msg.category==='accusation'))) appendChatLine(msg);
   } else if(msg.type==='typingIndicator'){
     if(typingPlayers[msg.playerId]) clearTimeout(typingPlayers[msg.playerId].timeout);
@@ -3426,15 +3509,40 @@ function handleServerMessage(msg){
       timeout: setTimeout(function(){ delete typingPlayers[msg.playerId]; renderTypingIndicator(); }, 4000)
     };
     renderTypingIndicator();
+  } else if(msg.type==='lobbyChatLog'){
+    lobbyEntries = msg.entries || [];
+    renderLobbyChat();
+  } else if(msg.type==='lobbyChatMsg'){
+    lobbyEntries.push(msg);
+    appendLobbyLine(msg);
+  } else if(msg.type==='pollMsg'){
+    var np = msg.poll;
+    if(np.night === 0){
+      lobbyEntries.push(np);
+      appendLobbyLine(np);
+    } else if(latestView){
+      if(!latestView.chatLog) latestView.chatLog = [];
+      latestView.chatLog.push(np);
+      if(chatFilterMode === 'all'){ var dlog = document.getElementById('discussion'); var emptyEl = dlog && dlog.querySelector('.chat-empty'); if(emptyEl) emptyEl.remove(); appendPollCard(np, dlog); }
+    }
+  } else if(msg.type==='pollUpdate'){
+    if(pollIndex[msg.pollId]){ pollIndex[msg.pollId].options = msg.options; refreshPollCards(msg.pollId); }
   } else if(msg.type==='mafiaChatMsg'){
+    // Also kept in the view: renderNightAction rebuilds this log from
+    // latestView.mafiaChatLog, which only refreshes on a full gameState - so
+    // a line that only ever went into the DOM vanished the moment you picked
+    // someone and the panel re-rendered (it looked like a different chat).
+    keepLiveEntry('mafiaChatLog', msg);
     appendMafiaChatLine(msg);
   } else if(msg.type==='cultChatMsg'){
+    keepLiveEntry('cultChatLog', msg);
     appendCultChatLine(msg);
   } else if(msg.type==='ghostChatMsg'){
     // Live top-up between full gameState resyncs, same principle as
     // mafiaChatMsg above - only ever delivered to already-eliminated
     // players (see server's ghostChat handler), so it's always safe to
     // append directly here.
+    keepLiveEntry('ghostChatLog', msg);
     if(document.getElementById('ghost-chat-modal').style.display === 'flex') appendGhostChatLine(msg);
     if(chatFilterMode === 'ghost') appendGhostInlineLine(msg);
     else if(msg.playerId !== myPlayerId){ ghostChatUnread++; updateChatDeadUI(); }
@@ -3477,6 +3585,12 @@ function handleServerMessage(msg){
     renderMpEntryScreen();
     switchPanel('mpentry');
   } else if(msg.type==='error'){
+    if(/poll/i.test(msg.message || '')){
+      var pe = document.getElementById(latestView ? 'game-poll-msg' : 'lobby-poll-msg');
+      var pbox = document.getElementById(latestView ? 'game-poll-compose' : 'lobby-poll-compose');
+      if(pe){ pe.textContent = msg.message; if(pbox) pbox.style.display = 'block'; }
+      return;
+    }
     var lobbyVisible = document.getElementById('panel-lobby').style.display === 'block';
     var errEl = lobbyVisible ? document.getElementById('setup-error') : document.getElementById('mpentry-error');
     if(errEl){ errEl.textContent = msg.message; errEl.style.display = 'block'; }
@@ -3495,7 +3609,8 @@ function nameTagsHTML(p){
 var ownerPowers = false, amOwner = false;
 function canShame(p){ return !!(ownerPowers && amOwner && p && !p.isOwner && p.id !== myPlayerId); }
 function renderMpRoster(players){
-  players.forEach(function(p){ if(p.id===myPlayerId){ amHost = p.isHost; amOwner = !!p.isOwner; } });
+  players.forEach(function(p){ lobbyNames[p.id] = p.name; if(p.id===myPlayerId){ amHost = p.isHost; amOwner = !!p.isOwner; } });
+  document.getElementById('lobby-poll-btn').style.display = amHost ? '' : 'none';
   document.getElementById('mp-roster').innerHTML = players.map(function(p){
     var isMe = p.id===myPlayerId;
     var tagsHTML = (isMe ? '<span>(you)</span>' : '') + nameTagsHTML(p);
@@ -3535,6 +3650,7 @@ document.getElementById('mp-waiting-howto-btn').addEventListener('click', functi
 });
 
 function renderMpEntryScreen(){
+  updateRejoinButtons();
   var nameEl = document.getElementById('mpentry-name-display');
   if(nameEl) nameEl.textContent = CURRENT_PROFILE.username || 'Player';
   var errEl = document.getElementById('mpentry-error');
@@ -4523,7 +4639,7 @@ function redactRoleMentions(text){
 // It's now tab-based, defaulting to a per-player browsable directory - see
 // renderCaseLogPlayers() further down (added after the file's winning
 // multiplayer helpers, since it depends on latestView/byId/avatarHTML).
-var caseLogActiveTab = 'players';
+var caseLogActiveTab = 'rounds';
 function renderCaseLogRounds(){
   var list = document.getElementById('case-log-list');
   var rawEntries = (latestView && latestView.history) || [];
@@ -4757,14 +4873,15 @@ function renderMafiaVoteUI(h, opts){
   var area = document.getElementById('night-action');
   var teammateIds = mafiaTeammateIdsOf(h);
   var killOpts = otherLivingOptions([h.id].concat(teammateIds));
-  var allyLine = renderAllyLine(h);
+  var allyLine = (opts.preHTML||'') + renderAllyLine(h);
   var introText = opts.introText || 'Vote for who the family eliminates tonight. If the family can\'t agree, it comes down to a coin flip.';
   var silenceBlock = opts.silence ? '<p style="font-size:13px; color:var(--parchment-dim); margin-top:12px;">Optionally, silence someone for tomorrow.</p><div class="chipgrid" id="grid-b"></div>' : '';
   // Framer's frame-target ability is separate from (and required alongside)
   // the shared kill vote above - unlike silence, this is the role's own
   // defining ability, not an optional extra.
   var frameBlock = opts.frame ? '<p style="font-size:13px; color:var(--parchment-dim); margin-top:12px;">Choose someone to alter tonight\'s investigation read for. Frame a townsperson guilty, or shield one of your own innocent.</p><div class="chipgrid" id="grid-c"></div>' : '';
-  area.innerHTML = allyLine+'<p style="font-size:13px; color:var(--parchment-dim);">'+introText+'</p><div class="chipgrid" id="grid-a"></div>'+silenceBlock+frameBlock+
+  var consBlock = opts.consigliere ? '<p style="font-size:13px; color:var(--parchment-dim); margin-top:12px;">Also choose someone outside the family to look into tonight. You\'ll learn exactly who they are.</p><div class="chipgrid" id="grid-d"></div>' : '';
+  area.innerHTML = allyLine+'<p style="font-size:13px; color:var(--parchment-dim);">'+introText+'</p><div class="chipgrid" id="grid-a"></div>'+silenceBlock+frameBlock+consBlock+
     '<button class="btn" id="night-confirm-btn" style="margin-top:12px;">Confirm</button>';
   document.getElementById('grid-a').innerHTML = chipGridHTML(killOpts,'pick-a');
   wireSingleSelect(document.getElementById('grid-a'), 'pick-a', function(id){
@@ -4791,7 +4908,13 @@ function renderMafiaVoteUI(h, opts){
     document.getElementById('grid-c').innerHTML = chipGridHTML(frameOpts,'pick-c');
     wireSingleSelect(document.getElementById('grid-c'), 'pick-c', function(id){pendingNightAction.frameTarget=id;});
   }
+  if(opts.consigliere){
+    // Her own ability, alongside the shared kill vote: cannot target family (already visible to her).
+    document.getElementById('grid-d').innerHTML = chipGridHTML(otherLivingOptions([h.id].concat(teammateIds)),'pick-d');
+    wireSingleSelect(document.getElementById('grid-d'), 'pick-d', function(id){pendingNightAction.consigliereInvestigate=id;});
+  }
   document.getElementById('night-confirm-btn').addEventListener('click', function(){
+    if(opts.consigliere && !pendingNightAction.consigliereInvestigate){document.getElementById('night-error').textContent='Choose someone to look into first.'; document.getElementById('night-error').style.display='block'; return;}
     if(!pendingNightAction.kill){document.getElementById('night-error').textContent='Choose someone to eliminate first.'; document.getElementById('night-error').style.display='block'; return;}
     if(opts.frame && !pendingNightAction.frameTarget){document.getElementById('night-error').textContent='Choose someone to frame or shield first.'; document.getElementById('night-error').style.display='block'; return;}
     submitNightAction();
@@ -4959,18 +5082,11 @@ function renderNightAction(){
       submitNightAction();
     });
   } else if(h.role==='Consigliere'){
+    // Votes on the night kill like every other mafia member (she was the one
+    // family role missing it), plus her own look-into ability.
     var lastLooked = (latestView.consigliereLog && latestView.consigliereLog.length) ? latestView.consigliereLog[latestView.consigliereLog.length-1] : null;
-    var lastLookedHTML = lastLooked ? '<p class="detective-last-read">Last night, <b>'+lastLooked.name+'</b> turned out to be <span class="detective-log-read detective-log-guilty">'+ROLE_SHORT[lastLooked.role]+'</span>.</p>' : '';
-    area.innerHTML = lastLookedHTML+renderAllyLine(h)+'<p style="font-size:13px; color:var(--parchment-dim);">Choose someone outside the family to look into tonight. You\'ll learn exactly who they are.</p><div class="chipgrid" id="grid-a"></div><button class="btn" id="night-confirm-btn">Confirm</button>';
-    // Cannot target teammates - already visible directly via the ally line
-    // above, so investigating one would be a wasted, redundant action.
-    var consOpts = otherLivingOptions([h.id].concat(mafiaTeammateIdsOf(h)));
-    document.getElementById('grid-a').innerHTML = chipGridHTML(consOpts,'pick-a');
-    wireSingleSelect(document.getElementById('grid-a'), 'pick-a', function(id){pendingNightAction.consigliereInvestigate=id;});
-    document.getElementById('night-confirm-btn').addEventListener('click', function(){
-      if(!pendingNightAction.consigliereInvestigate){document.getElementById('night-error').textContent='Choose someone to look into first.'; document.getElementById('night-error').style.display='block'; return;}
-      submitNightAction();
-    });
+    var lastLookedHTML = lastLooked ? '<p class="detective-last-read">Last night, <b>'+escapeHtmlMp(lastLooked.name)+'</b> turned out to be <span class="detective-log-read detective-log-guilty">'+ROLE_SHORT[lastLooked.role]+'</span>.</p>' : '';
+    renderMafiaVoteUI(h, {consigliere:true, preHTML:lastLookedHTML});
   } else if(h.role==='Mortician'){
     var lastExamined = (latestView.morticianLog && latestView.morticianLog.length) ? latestView.morticianLog[latestView.morticianLog.length-1] : null;
     var lastExaminedHTML = lastExamined ? '<p class="detective-last-read">Last night, <b>'+lastExamined.name+'</b> turned out to be <span class="detective-log-read detective-log-guilty">'+ROLE_SHORT[lastExamined.role]+'</span>.</p>' : '';
@@ -5529,7 +5645,7 @@ document.getElementById('player-action-vote-btn').addEventListener('click', func
     document.getElementById('player-action-vote-error').style.display = 'block';
     return;
   }
-  pendingDayVoteId = actionModalTargetId;
+  selectVoteTarget(actionModalTargetId);
   closePlayerActionModal();
   renderTownBoard();
 });
@@ -6186,21 +6302,7 @@ function sendHostConfigUpdate(){
   sendWS({type:'hostConfigUpdate', playerCount: GAME_CONFIG.playerCount, mafiaCount: GAME_CONFIG.mafiaCount, roles: GAME_CONFIG.roles, discussSeconds: GAME_CONFIG.discussSeconds, voteSeconds: GAME_CONFIG.voteSeconds, voiceEnabled: GAME_CONFIG.voiceEnabled});
 }
 function renderSetupScreen(){
-  var todaysModifier = getDailyModifier();
-  document.getElementById('daily-modifier-banner').innerHTML = '<span class="dmb-label">Today\'s Case</span><span>'+todaysModifier.name+' — '+todaysModifier.desc+'</span>';
-  // The banner above claims a timer change ("timers run 30% longer
-  // today") but nothing ever actually multiplied discussSeconds/
-  // voteSeconds - the real countdown just used the raw stepper value,
-  // silently ignoring the case. Applied once (guarded so the later re-
-  // renders every +/- click triggers don't compound it) directly onto
-  // the stepper's own base value, so what the host sees in the field IS
-  // what gets sent to the server - no separate multiply-at-send-time
-  // step to fall out of sync with the display again.
-  if(!GAME_CONFIG.timerMultApplied){
-    GAME_CONFIG.discussSeconds = Math.round(GAME_CONFIG.discussSeconds * todaysModifier.timerMult);
-    GAME_CONFIG.voteSeconds = Math.round(GAME_CONFIG.voteSeconds * todaysModifier.timerMult);
-    GAME_CONFIG.timerMultApplied = true;
-  }
+  // (The old "Today's Case" prompt - and the silent timer multiplier that rode along with it - is gone: the timers are exactly what the host sets.)
   if(GAME_CONFIG.playerCount>MAX_PLAYERS) GAME_CONFIG.playerCount = MAX_PLAYERS;
   if(GAME_CONFIG.playerCount<MIN_PLAYERS) GAME_CONFIG.playerCount = MIN_PLAYERS;
   if(GAME_CONFIG.mafiaCount>MAX_MAFIA_COUNT) GAME_CONFIG.mafiaCount = MAX_MAFIA_COUNT;
@@ -6236,7 +6338,7 @@ document.getElementById('mode-quick-btn').addEventListener('click', function(){
   if(GAME_CONFIG.quickMode) return;
   FULL_CASE_CONFIG_SNAPSHOT = {playerCount: GAME_CONFIG.playerCount, mafiaCount: GAME_CONFIG.mafiaCount, roles: Object.assign({}, GAME_CONFIG.roles)};
   GAME_CONFIG.quickMode = true;
-  GAME_CONFIG.playerCount = MIN_PLAYERS;
+  GAME_CONFIG.playerCount = 8;
   GAME_CONFIG.mafiaCount = 0;
   GAME_CONFIG.roles = {Godfather:true, DoubleAgent:false, Detective:true, Doctor:true, Miller:false, BountyHunter:false, CrazyGranny:false, Coward:false, Farmer:false, NavySeal:false};
   renderSetupScreen();
@@ -6483,6 +6585,8 @@ document.getElementById('profile-btn').addEventListener('click', function(){
   renderProfileScreen();
   switchPanel('profile');
 });
+document.getElementById('rejoin-game-btn').addEventListener('click', rejoinLastGame);
+document.getElementById('mpentry-rejoin-btn').addEventListener('click', rejoinLastGame);
 document.getElementById('profile-save-btn').addEventListener('click', function(){
   var name = document.getElementById('profile-username-input').value.trim() || 'Player';
   setOwnerKey(document.getElementById('profile-owner-code').value.trim());
@@ -6904,6 +7008,87 @@ function voteRevealParchmentFor(ratio){
   });
   return best;
 }
+// ---- Farmer / Hitman revenge ----
+// While a voted-out Farmer or Hitman is picking who to take with them the
+// whole table sees a modal saying exactly that (and the picker itself, if
+// it's you). Afterwards the vote-reveal parchment shows one more card for the
+// person they took, headed "<Role>'s Target" / "Taken Out".
+var revengeClockT = null, revengePickerNight = -1;
+function hideRevengeWait(){
+  clearInterval(revengeClockT); revengeClockT = null;
+  var m = document.getElementById('revenge-wait-modal'); if(m) m.style.display = 'none';
+}
+function showRevengeWaitModal(view){
+  var lead = findLynchedFromHistory(view);
+  var roleName = lead ? (ROLE_SHORT[lead.role] || lead.role) : 'Farmer';
+  var leadName = lead ? lead.name : 'The player';
+  var mine = view.farmerRevengePending === myPlayerId;
+  var submitted = mine && mpFarmerSubmitted;
+  document.getElementById('revenge-wait-title').textContent = mine ? 'Your Last Move' : roleName+'\u2019s Last Move';
+  document.getElementById('revenge-wait-text').innerHTML = mine
+    ? (submitted ? 'Your choice is locked in. The town will see it in a moment.' : 'The town voted you out &mdash; but as the <b>'+escapeHtmlMp(roleName)+'</b> you get to take one player down with you. Choose.')
+    : '<b>'+escapeHtmlMp(leadName)+'</b> was voted out and revealed as the <b>'+escapeHtmlMp(roleName)+'</b>. Before they go, they&rsquo;re choosing one player to take down with them&hellip; <b>wait.</b>';
+  var picker = document.getElementById('revenge-wait-picker');
+  picker.style.display = (mine && !submitted) ? 'block' : 'none';
+  if(mine && !submitted && revengePickerNight !== view.night){
+    revengePickerNight = view.night;
+    var grid = document.getElementById('revenge-grid');
+    grid.innerHTML = chipGridHTML(otherLivingOptions([myPlayerId]), 'pick-revenge');
+    var chosen = null;
+    wireSingleSelect(grid, 'pick-revenge', function(id){ chosen = id; document.getElementById('revenge-error').style.display = 'none'; });
+    document.getElementById('revenge-error').style.display = 'none';
+    document.getElementById('revenge-confirm-btn').onclick = function(){
+      if(!chosen){ document.getElementById('revenge-error').style.display = 'block'; return; }
+      sendWS({type:'farmerRevenge', targetId: chosen});
+      mpFarmerSubmitted = true;
+      showRevengeWaitModal(latestView || view);
+    };
+  }
+  document.getElementById('revenge-wait-modal').style.display = 'flex';
+  function tick(){
+    var el = document.getElementById('revenge-wait-clock');
+    if(!el) return;
+    var left = phaseEndsAt ? Math.max(0, Math.ceil((phaseEndsAt - Date.now())/1000)) : 0;
+    el.textContent = left ? left+'s' : '';
+  }
+  clearInterval(revengeClockT); tick(); revengeClockT = setInterval(tick, 500);
+}
+var pendingRevengeCard = null, revengeCardTimer = null;
+function cancelRevengeCard(){ clearTimeout(revengeCardTimer); pendingRevengeCard = null; }
+function showPendingRevengeCard(){
+  var p = pendingRevengeCard; if(!p) return;
+  pendingRevengeCard = null; clearTimeout(revengeCardTimer);
+  var view = p.view, lead = p.lead, target = p.target;
+  var roleName = ROLE_SHORT[lead.role] || lead.role;
+  var hasRole = !!target.role;
+  document.getElementById('vote-reveal-title').textContent = roleName+'\u2019s Target \u2014 Day '+view.night;
+  document.getElementById('vote-reveal-player-img').src = portraitImgFor(target);
+  document.getElementById('vote-reveal-player-name').textContent = target.name;
+  document.getElementById('vote-reveal-role-portrait').style.visibility = hasRole ? '' : 'hidden';
+  document.getElementById('vote-reveal-role-revealed').style.display = hasRole ? '' : 'none';
+  document.getElementById('vote-reveal-center-stamp').style.display = '';
+  document.getElementById('vote-reveal-role-img').src = hasRole ? (portraitFor(target) || '') : '';
+  var roleNameEl = document.getElementById('vote-reveal-role-name');
+  roleNameEl.textContent = hasRole ? (ROLE_LABEL[target.role] || target.role) : '';
+  roleNameEl.className = 'vote-reveal-portrait-name '+alignClass(target);
+  document.getElementById('vote-reveal-outcome').textContent = 'Taken Out';
+  document.getElementById('vote-reveal-flavor').textContent = lead.name+', voted out by the town, took '+target.name+' down with them on the way out.';
+  var groupsEl = document.getElementById('vote-reveal-groups');
+  groupsEl.style.setProperty('--cols', 1);
+  groupsEl.innerHTML = '<div class="vote-reveal-group vote-reveal-group-target">'+
+    '<img class="vote-reveal-group-stamp" src="'+DAYTIME_IMG.voteRevealStamp+'" alt="">'+
+    '<div class="vote-reveal-group-header">Taken out by '+escapeHtmlMp(lead.name)+'</div>'+
+    '<div class="vote-reveal-group-voters"><div class="vote-reveal-voter"><img class="vote-reveal-voter-icon" src="'+portraitImgFor(lead)+'" alt=""><span class="vote-reveal-voter-name">'+escapeHtmlMp(lead.name)+' ('+escapeHtmlMp(roleName)+')</span></div></div>'+
+  '</div>';
+  document.getElementById('vote-reveal-modal').style.display = 'flex';
+  groupsEl.style.setProperty('--vs', 1);
+  Array.prototype.slice.call(groupsEl.querySelectorAll('.vote-reveal-group')).forEach(function(el){
+    if(!el.offsetWidth || !el.offsetHeight) return;
+    var tier = voteRevealParchmentFor(el.offsetWidth / el.offsetHeight);
+    el.style.borderImage = 'url('+DAYTIME_IMG[tier.key]+') '+tier.slice+' fill / '+tier.bw+'cqw / 0 stretch';
+  });
+  SoundFX.playGavel();
+}
 function renderVoteRevealModal(view){
   var lead = findLynchedFromHistory(view);
   var noLynch = false;
@@ -6997,8 +7182,16 @@ function renderVoteRevealModal(view){
     var tier = voteRevealParchmentFor(el.offsetWidth / el.offsetHeight);
     el.style.borderImage = 'url('+DAYTIME_IMG[tier.key]+') '+tier.slice+' fill / '+tier.bw+'cqw / 0 stretch';
   });
+  // A voted-out Farmer/Hitman took someone with them: that victim gets their own card next.
+  cancelRevengeCard();
+  var revengeVictim = (view.farmerRevengeName && lead && lead.id) ? view.players.find(function(p){ return p.name===view.farmerRevengeName && !p.alive; }) : null;
+  if(revengeVictim){
+    pendingRevengeCard = {view: view, lead: lead, target: revengeVictim};
+    revengeCardTimer = setTimeout(showPendingRevengeCard, 6500);
+  }
 }
 document.getElementById('vote-reveal-close-btn').addEventListener('click', function(){
+  if(pendingRevengeCard){ showPendingRevengeCard(); return; }
   document.getElementById('vote-reveal-modal').style.display = 'none';
 });
 
@@ -7087,6 +7280,126 @@ document.getElementById('chat-reply-cancel-btn').addEventListener('click', funct
   renderReplyPreview();
 });
 
+// The automatic colored tag a chat line carries - worked out by the server from
+// what was typed (nobody picks it by hand): red = accusing, blue = defending,
+// green = backing another player's line, amber = a question, purple = a role claim.
+function stanceTagHTML(entry, agreedWith){
+  var pre = agreedWith ? 'Agrees with '+agreedWith.name+' \u00b7 ' : '';
+  function tag(cls, label, icon){ return '<span class="stance-tag '+cls+'">'+(icon ? '<img class="stance-tag-icon" src="'+icon+'" alt="">' : '')+escapeHtmlMp(label)+'</span>'; }
+  var t;
+  if(entry.targetId){ t = byId(entry.targetId); return tag('stance-accuse', pre+'Accusing '+(t ? t.name : 'someone'), DAYTIME_IMG.accusationPointer); }
+  if(entry.defendedId){ t = byId(entry.defendedId); return tag('stance-defend', pre+(entry.defendedId===entry.playerId ? 'Defending themselves' : 'Defending '+(t ? t.name : 'someone'))); }
+  if(entry.supportedId){ t = byId(entry.supportedId); return tag('stance-support', 'Supporting '+(t ? t.name : 'someone')); }
+  if(entry.category==='question'){ t = entry.askedId ? byId(entry.askedId) : null; return tag('stance-question', t ? 'Question for '+t.name : 'Question'); }
+  if(entry.category==='role_claim') return tag('stance-claim', 'Role claim');
+  if(entry.category==='accusation') return tag('stance-accuse', 'Accusation', DAYTIME_IMG.accusationPointer);
+  if(entry.category==='defense') return tag('stance-defend', 'Defending');
+  if(entry.category==='support') return tag('stance-support', 'Supporting');
+  return '';
+}
+
+// ---- polls (shared by the lobby chat and the day chat) ----
+var pollIndex = {};
+function pollName(id){
+  var p = latestView ? byId(id) : null;
+  return p ? p.name : (lobbyNames[id] || 'Someone');
+}
+function pollVotingOpen(poll){
+  if(poll.night === 0) return !latestView;                       // lobby poll: open while we're still in the lobby
+  if(!latestView || poll.night !== latestView.night) return false;
+  if(latestView.phase!=='day-discuss' && latestView.phase!=='day-vote') return false;
+  var me = meFromView(latestView);
+  return !!(me && me.alive);
+}
+function pollCardInnerHTML(poll){
+  var total = 0; poll.options.forEach(function(o){ total += o.voters.length; });
+  var open = pollVotingOpen(poll);
+  return '<div class="poll-head">Poll from '+escapeHtmlMp(poll.name)+'</div><div class="poll-q">'+escapeHtmlMp(poll.question)+'</div>'+
+    poll.options.map(function(o, i){
+      var mine = o.voters.indexOf(myPlayerId) !== -1;
+      var pct = total ? Math.round(100 * o.voters.length / total) : 0;
+      var names = o.voters.map(pollName).join(', ');
+      return '<button type="button" class="poll-opt'+(mine?' mine':'')+'" data-opt="'+i+'"'+(open?'':' disabled')+'><span class="poll-bar" style="width:'+pct+'%"></span><span class="poll-opt-text">'+escapeHtmlMp(o.text)+'</span><span class="poll-opt-count">'+o.voters.length+'</span></button>'+
+        (names ? '<span class="poll-voters">'+escapeHtmlMp(names)+'</span>' : '');
+    }).join('');
+}
+function appendPollCard(poll, log){
+  if(!log) return;
+  pollIndex[poll.id] = poll;
+  var div = document.createElement('div');
+  div.className = 'chatline chatline-poll';
+  div.setAttribute('data-poll-id', poll.id);
+  div.innerHTML = pollCardInnerHTML(poll);
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+  SoundFX.chatBlip();
+}
+function refreshPollCards(pollId){
+  var poll = pollIndex[pollId]; if(!poll) return;
+  document.querySelectorAll('.chatline-poll[data-poll-id="'+pollId+'"]').forEach(function(el){ el.innerHTML = pollCardInnerHTML(poll); });
+}
+document.addEventListener('click', function(e){
+  var btn = e.target.closest ? e.target.closest('.poll-opt') : null;
+  if(!btn || btn.disabled) return;
+  var card = btn.closest('.chatline-poll'); if(!card) return;
+  sendWS({type:'pollVote', pollId: card.getAttribute('data-poll-id'), option: Number(btn.getAttribute('data-opt'))});
+});
+// Poll composer (one markup, used in the lobby for the host and in the day chat for living players).
+function pollComposerHTML(prefix){
+  return '<div class="poll-compose" id="'+prefix+'-poll-compose">'+
+    '<input type="text" id="'+prefix+'-poll-q" maxlength="120" placeholder="Ask the room a question...">'+
+    '<input type="text" id="'+prefix+'-poll-o1" maxlength="40" placeholder="Option 1 (Yes)">'+
+    '<input type="text" id="'+prefix+'-poll-o2" maxlength="40" placeholder="Option 2 (No)">'+
+    '<input type="text" id="'+prefix+'-poll-o3" maxlength="40" placeholder="Option 3 (optional)">'+
+    '<input type="text" id="'+prefix+'-poll-o4" maxlength="40" placeholder="Option 4 (optional)">'+
+    '<div class="poll-compose-actions"><button type="button" class="btn" id="'+prefix+'-poll-ask" style="padding:7px 16px;">Ask</button><button type="button" class="btn ghost" id="'+prefix+'-poll-cancel" style="padding:7px 14px;">Cancel</button><span class="poll-compose-msg" id="'+prefix+'-poll-msg"></span></div></div>';
+}
+function wirePollComposer(prefix){
+  var box = document.getElementById(prefix+'-poll-compose');
+  document.getElementById(prefix+'-poll-cancel').addEventListener('click', function(){ box.style.display = 'none'; });
+  document.getElementById(prefix+'-poll-ask').addEventListener('click', function(){
+    var q = document.getElementById(prefix+'-poll-q').value.trim();
+    var msgEl = document.getElementById(prefix+'-poll-msg'); msgEl.textContent = '';
+    if(!q){ msgEl.textContent = 'Type a question first.'; return; }
+    var opts = [1,2,3,4].map(function(i){ return document.getElementById(prefix+'-poll-o'+i).value.trim(); }).filter(Boolean);
+    sendWS({type:'poll', question:q, options: opts});
+    [ 'q','o1','o2','o3','o4' ].forEach(function(k){ document.getElementById(prefix+'-poll-'+k).value = ''; });
+    box.style.display = 'none';
+  });
+}
+function togglePollComposer(prefix){
+  var box = document.getElementById(prefix+'-poll-compose');
+  box.style.display = box.style.display === 'block' ? 'none' : 'block';
+  document.getElementById(prefix+'-poll-msg').textContent = '';
+  if(box.style.display === 'block') document.getElementById(prefix+'-poll-q').focus();
+}
+// Lobby chat state.
+var lobbyEntries = [];
+var lobbyNames = {};
+function appendLobbyLine(entry){
+  var log = document.getElementById('lobby-chat-log'); if(!log) return;
+  var empty = log.querySelector('.chat-empty'); if(empty) empty.remove();
+  if(entry.kind === 'poll'){ appendPollCard(entry, log); return; }
+  var div = document.createElement('div');
+  div.className = 'chatline'+(entry.playerId===myPlayerId ? ' chatline-you' : '');
+  div.innerHTML = '<span class="who">'+escapeHtmlMp(entry.name)+'</span><span class="line">'+escapeHtmlMp(entry.text)+'</span>';
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+  SoundFX.chatBlip();
+}
+function renderLobbyChat(){
+  var log = document.getElementById('lobby-chat-log'); if(!log) return;
+  log.innerHTML = '';
+  lobbyEntries.forEach(appendLobbyLine);
+  if(!lobbyEntries.length) log.innerHTML = '<p class="chat-empty">Nobody has said anything yet.</p>';
+}
+function sendLobbyChat(){
+  var input = document.getElementById('lobby-chat-input');
+  var text = input.value.trim();
+  if(!text) return;
+  input.value = '';
+  sendWS({type:'lobbyChat', text:text});
+}
 function appendChatLine(entry){
   var log = document.getElementById('discussion');
   if(!log) return;
@@ -7096,7 +7409,7 @@ function appendChatLine(entry){
     // the sender/target's own view carries `text`, already redacted
     // server-side for anyone else (see getPlayerView's chatLog scoping).
     var wdiv = document.createElement('div');
-    wdiv.className = 'chatline chatline-whisper-announce';
+    wdiv.className = 'chatline chatline-whisper-announce' + (entry.toId===myPlayerId && entry.fromId!==myPlayerId ? ' for-me' : '');
     var contentHTML = entry.text
       ? '<span class="line">"'+escapeHtmlMp(entry.text)+'"</span>'
       : '';
@@ -7113,21 +7426,17 @@ function appendChatLine(entry){
   div.className = 'chatline'+youClass;
   if(clickable) div.dataset.id = entry.playerId;
   var p = byId(entry.playerId);
-  var target = entry.targetId ? byId(entry.targetId) : null;
   var agreedWith = entry.agreedWithId ? byId(entry.agreedWithId) : null;
-  var tagLabel = target ? ((agreedWith ? 'agrees with '+agreedWith.name+' · ' : '')+'accusing '+target.name) : (entry.category==='accusation' ? 'accusation' : '');
-  var tagHTML = tagLabel ? '<span class="accusation-tag"><img class="accusation-tag-icon" src="'+DAYTIME_IMG.accusationPointer+'" alt="">'+escapeHtmlMp(tagLabel)+'</span>' : '';
+  var tagHTML = stanceTagHTML(entry, agreedWith);
+  if(entry.askedId===myPlayerId && entry.playerId!==myPlayerId){
+    div.className += ' for-me';
+    tagHTML += '<span class="for-me-flag">for you</span>';
+  }
   var replyHTML = entry.replyTo ? '<div class="chatline-reply-quote">↩ <b>'+escapeHtmlMp(entry.replyTo.name)+'</b>: "'+escapeHtmlMp(entry.replyTo.text)+'"</div>' : '';
   div.innerHTML = avatarHTML(p||{name:entry.name,color:'#B0A588'},22)+'<span class="who">'+escapeHtmlMp(entry.name)+nameTagsHTML(p)+'</span>'+replyHTML+'<span class="line">"'+escapeHtmlMp(entry.text)+'"</span>'+tagHTML+
     '<button type="button" class="chatline-reply-btn">↩ Reply</button>'+
-    (clickable?'<span class="hint">select as vote</span>':'');
+    '';
   log.appendChild(div);
-  if(clickable){
-    div.addEventListener('click', function(e){
-      if(e.target.closest('.chatline-reply-btn')) return;
-      pendingDayVoteId = entry.playerId; renderTownBoard();
-    });
-  }
   div.querySelector('.chatline-reply-btn').addEventListener('click', function(e){
     e.stopPropagation();
     pendingReplyTo = {name: entry.name, text: entry.text};
@@ -7178,6 +7487,7 @@ function renderChatSystemList(){
 }
 // Ghost chat shown inside the Town Talk panel's own tab (dead players only).
 var ghostChatUnread = 0;
+var ghostAutoSwitched = false;
 function appendGhostInlineLine(entry, quiet){
   var log = document.getElementById('discussion');
   if(!log) return;
@@ -7204,6 +7514,14 @@ function updateChatDeadUI(){
     document.querySelectorAll('#chat-filter-tabs .case-log-tab').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-filter')==='all'); });
     renderChatLog();
   }
+  // The moment you die the chat switches to Ghost Chat once - that's where you can talk now.
+  if(dead && !ghostAutoSwitched){
+    ghostAutoSwitched = true;
+    chatFilterMode = 'ghost'; ghostChatUnread = 0;
+    document.querySelectorAll('#chat-filter-tabs .case-log-tab').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-filter')==='ghost'); });
+    renderChatLog();
+  }
+  if(!dead) ghostAutoSwitched = false;
   var badge = ghostTab.querySelector('.chat-tab-badge');
   if(dead && ghostChatUnread>0 && chatFilterMode!=='ghost'){
     if(!badge){ badge = document.createElement('span'); badge.className = 'chat-tab-badge'; ghostTab.appendChild(badge); }
@@ -7211,6 +7529,7 @@ function updateChatDeadUI(){
   } else if(badge){ badge.remove(); }
   document.getElementById('chat-dead-note').style.display = (dead && chatFilterMode!=='ghost') ? 'block' : 'none';
   document.getElementById('ghost-inline-row').style.display = (dead && chatFilterMode==='ghost') ? 'flex' : 'none';
+  document.getElementById('ghost-chat-banner').style.display = (dead && chatFilterMode==='ghost') ? 'block' : 'none';
   if(dead) document.getElementById('chat-input-row').style.display = 'none';
 }
 function sendGhostInline(){
@@ -7221,6 +7540,7 @@ function sendGhostInline(){
   sendWS({type:'ghostChat', text:text});
 }
 document.getElementById('ghost-inline-send').addEventListener('click', sendGhostInline);
+document.getElementById('chat-dead-open-ghost').addEventListener('click', function(){ document.getElementById('chat-tab-ghost').click(); });
 document.getElementById('ghost-inline-input').addEventListener('keydown', function(e){ if(e.key==='Enter') sendGhostInline(); });
 function renderChatLog(){
   var log = document.getElementById('discussion');
@@ -7247,7 +7567,8 @@ function renderChatLog(){
   (latestView.chatLog||[]).forEach(function(m){
     if(chatFilterMode === 'accusations' && !m.targetId && m.category!=='accusation') return;
     if(m.kind==='whisperAnnounce') appendChatLine({kind:'whisperAnnounce', fromId:m.fromId, fromName:m.fromName, toId:m.toId, toName:m.toName, text:m.text});
-    else appendChatLine({playerId:m.playerId, name:m.name, text:m.text, targetId:m.targetId, replyTo:m.replyTo, category:m.category, agreedWithId:m.agreedWithId});
+    else if(m.kind==='poll') appendPollCard(m, log);
+    else appendChatLine(m);
   });
   if(!log.children.length){
     var emptyMsg = chatFilterMode==='accusations' ? 'No accusations yet.' : 'No one has spoken yet.';
@@ -7443,7 +7764,6 @@ function renderDayPanel(){
   document.getElementById('daylayout-note3-subtitle').textContent = daylayoutSubtitleText;
   renderRosterGrid(view);
   renderChatLog();
-  renderChatTagOptions();
   renderWhisperQuickButton();
   renderTownBoard();
 
@@ -7469,7 +7789,8 @@ function renderDayPanel(){
   // hiding it here on every render would also slam it shut the instant any
   // OTHER gameState update lands while still in day-reveal (a chat message,
   // another player's action) - not just when the phase actually changes.
-  if(view.phase!=='day-reveal') document.getElementById('vote-reveal-modal').style.display='none';
+  if(view.phase!=='day-reveal'){ document.getElementById('vote-reveal-modal').style.display='none'; cancelRevengeCard(); }
+  if(view.phase!=='farmer-revenge') hideRevengeWait();
   if(view.phase!=='day-vote') stopVoteTimer();
 
   if(view.phase==='day-discuss'){
@@ -7504,10 +7825,9 @@ function renderDayPanel(){
     stagePanel.style.display = GAME_CONFIG.voiceEnabled ? 'block' : 'none';
     if(GAME_CONFIG.voiceEnabled) renderStagePanel();
   } else if(view.phase==='farmer-revenge'){
-    if(view.farmerRevengePending === myPlayerId && !mpFarmerSubmitted){
-      farmerSection.style.display='block';
-      renderFarmerRevengePicker();
-    }
+    // Everyone sees who is choosing (and the chooser gets the picker) in a proper modal -
+    // the old tiny hidden section was easy to miss, and nobody else was told anything.
+    showRevengeWaitModal(view);
     stagePanel.style.display='none';
   } else if(view.phase==='day-reveal'){
     // 5g: the stage never shares screen space with the vote-out reveal -
@@ -7527,7 +7847,6 @@ function renderDayPanel(){
     renderRoundScore();
   }
   updateChatDeadUI();
-  updateConfirmBlink();
 }
 
 function renderFromServerView(view){
@@ -7833,6 +8152,7 @@ function submitNightAction(){
 // ---- Further multiplayer overrides (function declarations - last one in
 // source order wins for every call site, including ones defined earlier) ----
 function switchPanel(p){
+  updateRejoinButtons();
   SoundFX.setAmbience(p);
   var isMenu = (p==='home' || p==='howto' || p==='profile');
   document.getElementById('home-folder').style.display = (p==='home') ? 'block' : 'none';
@@ -7917,16 +8237,9 @@ function switchPanel(p){
   if(p==='lobby' || p==='mpentry') document.getElementById('night-label').textContent = '';
 }
 
-function updateConfirmBlink(){
-  var btn = document.getElementById('day-confirm-btn');
-  if(!btn) return;
-  var me = latestView ? meFromView(latestView) : null;
-  btn.classList.toggle('confirm-blink', !!(latestView && latestView.phase==='day-vote' && me && me.alive && pendingDayVoteId && !mpVoteSubmitted));
-}
 function renderTownBoard(){
   var board = document.getElementById('town-board');
   if(!board || !latestView) return;
-  updateConfirmBlink();
   var subtitle = document.getElementById('town-board-subtitle');
   if(subtitle){
     var soulCount = latestView.players.length;
@@ -8168,10 +8481,7 @@ function sendHumanChatMessage(){
     return;
   }
   input.value = '';
-  var tagSelect = document.getElementById('chat-tag-select');
-  var targetId = tagSelect ? (tagSelect.value || null) : null;
-  sendWS({type:'dayChat', text: text, targetId: targetId, replyTo: pendingReplyTo});
-  if(tagSelect) tagSelect.value = '';
+  sendWS({type:'dayChat', text: text, replyTo: pendingReplyTo});
   pendingReplyTo = null;
   renderReplyPreview();
 }
@@ -8709,6 +9019,12 @@ var lastKnownSpeakerId = undefined;
 function renderStagePanel(){
   if(!latestView || !latestStageState) return;
   var s = latestStageState;
+  var askBtn = document.getElementById('chat-ask-btn');
+  if(askBtn){
+    var spk = (s.speakerId && s.speakerId !== myPlayerId) ? byId(s.speakerId) : null;
+    askBtn.setAttribute('data-phrase', spk ? 'I have a question for '+spk.name+': ' : 'I have a question for ');
+    askBtn.innerHTML = spk ? 'I have a question for '+escapeHtmlMp(spk.name) : 'I have a question for&hellip;';
+  }
   var speakerEl = document.getElementById('stage-speaker');
   var joinBtn = document.getElementById('stage-join-queue-btn');
   var leaveQueueBtn = document.getElementById('stage-leave-queue-btn');
@@ -8852,7 +9168,14 @@ function renderStagePanel(){
   // donating time, or reacting (the server refuses all of it too).
   var deadStageViewer = !h || !h.alive;
   var daylayoutRequestBtn = document.getElementById('daylayout-stage-request-btn');
-  daylayoutRequestBtn.style.display = deadStageViewer ? 'none' : '';
+  stageIAmQueued = !!iAmQueued;
+  // Hidden for the dead (they only listen) and for the speaker (they have Leave Stage); when you're
+  // already queued the same button becomes "Leave Queue" and a press takes you out of the line.
+  daylayoutRequestBtn.style.display = (deadStageViewer || iAmSpeaker) ? 'none' : '';
+  daylayoutRequestBtn.classList.toggle('in-queue', stageIAmQueued);
+  daylayoutRequestBtn.style.backgroundImage = 'url(' + (stageIAmQueued ? DAYTIME_IMG.buttonRedWide : DAYTIME_IMG.stageRequestBtn) + ')';
+  daylayoutRequestBtn.textContent = stageIAmQueued ? 'Leave Queue' : '';
+  daylayoutRequestBtn.setAttribute('aria-label', stageIAmQueued ? 'Leave the speaking queue' : 'Request to speak');
   if(deadStageViewer){
     giveTimeBtn.style.display = 'none';
     document.getElementById('daylayout-stage-subtitle').textContent = 'Eliminated players can only listen.';
@@ -9021,7 +9344,35 @@ document.getElementById('mpentry-edit-profile-btn').addEventListener('click', fu
 // Disconnects from the current room/game cleanly: tells the server, closes the
 // socket, and wipes every piece of client-side state tied to that room so a
 // stray late gameState/roster push can't silently pull the player back in.
+// A game you left (on purpose or by accident) stays rejoinable: the server
+// keeps your seat, and this remembers which room/seat it was so the home and
+// join screens can offer a one-click way back in.
+var LAST_GAME_KEY = 'hc-last-game';
+function saveLastGame(g){ try{ localStorage.setItem(LAST_GAME_KEY, JSON.stringify(g)); }catch(e){} }
+function clearLastGame(){ try{ localStorage.removeItem(LAST_GAME_KEY); }catch(e){} updateRejoinButtons(); }
+function loadLastGame(){
+  try{
+    var g = JSON.parse(localStorage.getItem(LAST_GAME_KEY) || 'null');
+    if(g && g.roomCode && g.playerId && Date.now() - (g.at||0) < 8*3600*1000) return g;
+  }catch(e){}
+  return null;
+}
+function updateRejoinButtons(){
+  var g = loadLastGame();
+  var homeBtn = document.getElementById('rejoin-game-btn');
+  var entryRow = document.getElementById('mpentry-rejoin');
+  if(homeBtn){ homeBtn.style.display = g ? '' : 'none'; if(g) homeBtn.textContent = 'Rejoin Game ('+g.roomCode+')'; }
+  if(entryRow){ entryRow.style.display = g ? 'block' : 'none'; var c=document.getElementById('mpentry-rejoin-code'); if(c && g) c.textContent = g.roomCode; }
+}
+function rejoinLastGame(){
+  var g = loadLastGame();
+  if(!g) return;
+  whenConnected(function(){
+    sendWS({type:'rejoin', roomCode:g.roomCode, playerId:g.playerId, name: CURRENT_PROFILE.username||'Player', avatarKey: CURRENT_PROFILE.avatarKey, gameIconKey: CURRENT_PROFILE.gameIconKey, color: CURRENT_PROFILE.color, ownerKey: getOwnerKey()});
+  });
+}
 function leaveCurrentRoom(){
+  if(myRoomCode && myPlayerId && latestView && !latestView.gameOver) saveLastGame({roomCode: myRoomCode, playerId: myPlayerId, at: Date.now()});
   stopReconnecting();
   sendWS({type:'leave'});
   clearActiveSession();
@@ -9269,7 +9620,7 @@ document.getElementById('case-log-list').addEventListener('click', function(e){
   // skipping the pick-then-confirm flow the real voting box is built
   // around (portrait+name preview, Confirm Vote as its own deliberate
   // step).
-  pendingDayVoteId = btn.getAttribute('data-vote-for');
+  selectVoteTarget(btn.getAttribute('data-vote-for'));
   renderTownBoard();
   closeCaseLogModal();
 });
@@ -9859,7 +10210,7 @@ document.getElementById('notebook-dossier-vote-btn').addEventListener('click', f
   // auto-click day-confirm-btn immediately, skipping that confirm step
   // entirely.
   var alreadyChosen = pendingDayVoteId === notebookOpenPlayerId;
-  pendingDayVoteId = notebookOpenPlayerId;
+  selectVoteTarget(notebookOpenPlayerId);
   renderTownBoard();
   renderNotebookDossier(notebookOpenPlayerId);
   if(!alreadyChosen){
@@ -9905,7 +10256,7 @@ document.addEventListener('keydown', function(e){
   // equivalent to "is this feature reachable right now."
   var caseFilesReachable = document.getElementById('case-log-badge').style.display !== 'none' || document.getElementById('panel-day').style.display !== 'none';
   if(e.key === 'c' || e.key === 'C'){
-    if(caseFilesReachable){ SoundFX.playCaseFileOpen(); caseLogActiveTab = 'players'; openCaseLogModal(); }
+    if(caseFilesReachable){ SoundFX.playCaseFileOpen(); caseLogActiveTab = 'rounds'; openCaseLogModal(); }
   } else if(e.key === 'n' || e.key === 'N'){
     if(caseFilesReachable){ SoundFX.playCaseFileOpen(); openNotebookModal(); }
   } else if(e.key === 'v' || e.key === 'V'){
@@ -9925,9 +10276,17 @@ document.querySelectorAll('#chat-filter-tabs .case-log-tab').forEach(function(bt
     updateChatDeadUI();
   });
 });
+document.getElementById('game-poll-wrap').innerHTML = pollComposerHTML('game');
+document.getElementById('lobby-poll-wrap').innerHTML = pollComposerHTML('lobby');
+wirePollComposer('game'); wirePollComposer('lobby');
+document.getElementById('chat-poll-btn').addEventListener('click', function(){ togglePollComposer('game'); });
+document.getElementById('lobby-poll-btn').addEventListener('click', function(){ togglePollComposer('lobby'); });
+document.getElementById('lobby-chat-send').addEventListener('click', sendLobbyChat);
+document.getElementById('lobby-chat-input').addEventListener('keydown', function(e){ if(e.key==='Enter') sendLobbyChat(); });
 // Quick-phrase buttons pre-fill the input for the player to edit and send
 // themselves - never auto-sent.
 document.querySelectorAll('.chat-quick-phrase-btn').forEach(function(btn){
+  if(!btn.hasAttribute('data-phrase')) return;     // Poll / Whisper have their own handlers
   btn.addEventListener('click', function(){
     var input = document.getElementById('chat-input');
     if(!input) return;
@@ -10103,23 +10462,20 @@ function updateVoteConfirmedCard(){
 document.getElementById('ballot-clear-btn').addEventListener('click', function(e){
   e.stopPropagation();
   pendingDayVoteId = null;
+  sendDayVoteNow(false);   // clearing the ballot is an explicit abstain
   updateBallotPaper();
   renderTownBoard();
 });
 document.getElementById('ballot-box').addEventListener('click', function(){
   if(!pendingDayVoteId){
     var err = document.getElementById('day-error');
-    if(err){ err.textContent = 'Cast a vote first.'; err.style.display = 'block'; }
+    if(err){ err.textContent = 'Pick a player to vote for.'; err.style.display = 'block'; }
     return;
   }
   var seal = document.getElementById('ballot-box-seal');
   if(seal){ seal.src = DAYTIME_IMG.ballotWaxSeal; seal.classList.remove('playing'); void seal.offsetWidth; seal.classList.add('playing'); }
-  // Reuses the exact same submission path as Confirm Vote (mayor-reveal
-  // checkbox, mpVoteSubmitted, lockTownBoard) - the seal animation is
-  // purely visual on top, per Task A: "functions identically, just
-  // without the visual flourish, when skipped."
-  document.getElementById('day-confirm-btn').click();
 });
+document.getElementById('mayor-reveal-checkbox').addEventListener('change', function(){ if(pendingDayVoteId) sendDayVoteNow(false); });
 
 // DAYTIME_PAGE_BUILD_ORDER final checkpoint - #role-envelope and #ballot-box
 // are click-only art divs, not real buttons; both now carry tabindex="0"
@@ -10136,12 +10492,12 @@ document.addEventListener('keydown', function(e){
 // ==================== LAYOUT_AND_ASSETS Task 6 - bottom nav ====================
 document.getElementById('bottom-nav-files').addEventListener('click', function(){
   SoundFX.playCaseFileOpen();
-  caseLogActiveTab = 'players';
+  caseLogActiveTab = 'rounds';
   openCaseLogModal();
 });
 document.getElementById('bottom-nav-casefiles').addEventListener('click', function(){
   SoundFX.playCaseFileOpen();
-  caseLogActiveTab = 'players';
+  caseLogActiveTab = 'rounds';
   openCaseLogModal();
 });
 document.getElementById('bottom-nav-notebook').addEventListener('click', function(){
@@ -10343,7 +10699,8 @@ var DAYTIME_IMG = {
   document.getElementById('notebook-dossier-view').style.backgroundImage = 'url('+DAYTIME_IMG.notebookDossierBg+')';
   document.getElementById('notebook-dossier-vote-btn').style.backgroundImage = 'url('+DAYTIME_IMG.notebookVoteBtn+')';
 })();
-document.getElementById('daylayout-stage-request-btn').addEventListener('click', function(){ sendWS({type:'joinQueue'}); });
+var stageIAmQueued = false;
+document.getElementById('daylayout-stage-request-btn').addEventListener('click', function(){ sendWS({type: stageIAmQueued ? 'leaveQueue' : 'joinQueue'}); });
 document.getElementById('daylayout-stage-mute-btn').addEventListener('click', function(){
   // Dual-purpose per explicit direction: "mutes whoever is speaking,
   // including yourself" - if you're the speaker this is a real broadcast
@@ -10582,7 +10939,7 @@ document.getElementById('daylayout-news-modal').addEventListener('click', functi
 // night-phase floating badge uses), just triggered from the desk instead.
 document.getElementById('daylayout-desk-casefile-wrap').addEventListener('click', function(){
   SoundFX.playCaseFileOpen();
-  caseLogActiveTab = 'players';
+  caseLogActiveTab = 'rounds';
   openCaseLogModal();
 });
 // Third desk prop - opens the private Notebook (Town Directory), same

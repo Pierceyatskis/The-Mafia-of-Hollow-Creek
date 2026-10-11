@@ -216,9 +216,11 @@ function mafiaVoters(state){
   // kill-vote access to begin with (see Task 4), nothing to revoke. Framer
   // gets an equal vote same as Godfather/Mafia/DoubleAgent, on top of (and
   // fully independent from) his own separate frame-target ability below.
+  // Consigliere likewise votes (alongside her own look-into ability) - she
+  // used to be the one mafia role left out of the kill vote by mistake.
   const flippedGranny = state.players.find(p => p.alive && p.role==='CrazyGranny' && p.flipped && p.align==='mafia');
   if(flippedGranny) return [flippedGranny];
-  return state.players.filter(p => p.alive && p.align==='mafia' && (p.role==='Godfather' || p.role==='Mafia' || p.role==='DoubleAgent' || p.role==='Framer'));
+  return state.players.filter(p => p.alive && p.align==='mafia' && (p.role==='Godfather' || p.role==='Mafia' || p.role==='DoubleAgent' || p.role==='Framer' || p.role==='Consigliere'));
 }
 function log(state, line){ state.history.push('Night '+state.night+' / '+line); }
 
@@ -984,6 +986,9 @@ function analyzeChatMessage(text, playerNames, context){
   // the mafia", "he never killed anyone") flips the meaning - skip those.
   const NEG_RE = /\b(?:not|never|isn'?t|wasn'?t|didn'?t|doesn'?t|hasn'?t|no)\b|n't\b/;
 
+  const qForM = t.match(/\bi have a question for\s+(.+)$/);
+  if (qForM) return R('question', targetIn(qForM[1]));
+
   const accuseM = t.match(/\bi accuse\b(.*)$/);
   if (accuseM) return R('accusation', targetIn(accuseM[1]) || targetIn(t));
 
@@ -1043,13 +1048,19 @@ function analyzeChatMessage(text, playerNames, context){
   }
 
 
-  if (/\bi defend\b/.test(t)) return R('defense');
-  if (/\b(?:i'?m not|i am not|i didn'?t|i did not|that'?s not (?:true|fair)|i swear|you'?re wrong about me|i can prove)\b/.test(t)) return R('defense');
+  const defendM = t.match(/\bi defend\b(.*)$/);
+  if (defendM) return R('defense', targetIn(defendM[1]));
+  if (/\b(?:i'?m not|i am not|i didn'?t|i did not|that'?s not (?:true|fair)|i swear|you'?re wrong about me|i can prove)\b/.test(t)) return R('defense'); // defending themselves - no target
+  // "Corky isn't the mafia", "he didn't do it" - defending someone ELSE.
+  const notGuiltyM = t.match(/^(.*?)\b(?:is not|isn'?t|was not|wasn'?t|'s not|ain'?t|did not do it|didn'?t do it|has nothing to do with)\b[^.!?]*$/);
+  if (notGuiltyM && /\b(?:mafia|killer|guilty|liar|lying|murderer|traitor|did it|it|this)\b/.test(t) && subjectPresent(notGuiltyM[1])) return R('defense', targetIn(notGuiltyM[1]));
 
   if (/\b(?:suspicious|sus|acting (?:weird|strange|off)|something'?s off|something is off|seems (?:off|weird|fishy)|why (?:did|would|were) you)\b/.test(t)) return R('suspicion');
 
-  if (/\bi trust\b/.test(t)) return R('trust_statement');
-  if (subjectPresent(t) && /\b(?:is|seems|'s)\b[^.!?]*\b(?:innocent|clean|trustworthy|telling the truth|on our side)\b/.test(t)) return R('trust_statement');
+  const trustM = t.match(/\b(?:i trust|i vouch for|i believe in)\b(.*)$/);
+  if (trustM) return R('trust_statement', targetIn(trustM[1]));
+  const clearM = t.match(/\b(?:is|seems|'s|looks)\b[^.!?]*\b(?:innocent|clean|clear|safe|trustworthy|telling the truth|on our side|town|good)\b/);
+  if (subjectPresent(t) && clearM) return R('trust_statement', targetIn(t.slice(0, clearM.index)) || targetIn(t));
 
   if (/\?\s*$/.test(t) || /^(?:who|what|why|where|when|how|did|do|does|are|is|can|could|would)\b/.test(t)) return R('question');
 
@@ -1071,35 +1082,39 @@ function isAgreement(text){
   return AGREE_RE.test(t) && !DISAGREE_RE.test(t);
 }
 
-// If this message is a bare agreement with an earlier accusation, returns
-// {targetId, agreedWithId} so the sender can be filed as accusing that same
-// player. An explicit Reply wins (matched back to the real chat line by name
-// + text, newest first); with no Reply it falls back to the most recent
-// accusation by someone else in the last few lines (and last ~90s).
-function detectAgreementTarget(state, text, replyTo, senderId){
+// If this message is a bare agreement ("I agree", "same", "me too"), works out
+// what it's agreeing WITH and returns { kind, agreedWithId, targetId? }:
+//   kind 'accusation' - the message answered accused someone: the sender is filed as
+//                       accusing that same player too (targetId)
+//   kind 'defense'    - it defended someone: sender is defending them too (targetId)
+//   kind 'support'    - anything else the other person said: the sender is just
+//                       supporting THEM (agreedWithId)
+// "What it answers" is the explicit Reply if there is one; otherwise ONLY the
+// message immediately before it - an agreement doesn't reach back over other
+// people's lines to find an older accusation (A accuses Joe, Joe says "slow
+// down", Sarah says "I agree" is Sarah backing Joe, not A).
+function detectAgreement(state, text, replyTo, senderId){
   if (!isAgreement(text)) return null;
-  const log = (state.chatLog || []).filter(e => e && e.kind !== 'whisperAnnounce');
-  function usable(e){
-    if (!e || !e.targetId || e.playerId === senderId) return false;
-    const tp = (state.players || []).find(p => p.id === e.targetId);
-    return !!(tp && tp.alive && tp.id !== senderId);
-  }
+  const log = (state.chatLog || []).filter(e => e && e.kind !== 'whisperAnnounce' && e.kind !== 'poll');
+  let e = null;
   if (replyTo && replyTo.name) {
     for (let i = log.length - 1; i >= 0; i--) {
-      const e = log[i];
-      if (e.name === replyTo.name && String(e.text || '').slice(0, 120) === String(replyTo.text || '')) {
-        return usable(e) ? { targetId: e.targetId, agreedWithId: e.playerId } : null;
-      }
+      if (log[i].name === replyTo.name && String(log[i].text || '').slice(0, 120) === String(replyTo.text || '')) { e = log[i]; break; }
     }
-    return null;
+  } else if (log.length) {
+    const last = log[log.length - 1];
+    if (!(last.ts && Date.now() - last.ts > 90000)) e = last;
   }
-  const now = Date.now();
-  for (let i = log.length - 1, seen = 0; i >= 0 && seen < 5; i--, seen++) {
-    const e = log[i];
-    if (e.ts && now - e.ts > 90000) break;
-    if (usable(e)) return { targetId: e.targetId, agreedWithId: e.playerId };
-  }
-  return null;
+  if (!e || e.playerId === senderId) return null;
+  const alive = id => { const p = (state.players || []).find(q => q.id === id); return !!(p && p.alive); };
+  if (e.targetId && e.targetId !== senderId && alive(e.targetId)) return { kind: 'accusation', targetId: e.targetId, agreedWithId: e.playerId };
+  if (e.defendedId && alive(e.defendedId)) return { kind: 'defense', targetId: e.defendedId, agreedWithId: e.playerId };
+  return { kind: 'support', agreedWithId: e.playerId };
+}
+// Old accusation-only view of the same thing (kept for callers/tests that only care about that case).
+function detectAgreementTarget(state, text, replyTo, senderId){
+  const r = detectAgreement(state, text, replyTo, senderId);
+  return r && r.kind === 'accusation' ? { targetId: r.targetId, agreedWithId: r.agreedWithId } : null;
 }
 
 // Who first publicly accused targetId (optionally scoped to a single round),
@@ -1220,5 +1235,5 @@ module.exports = {
   detectiveRead, investigateAndRead, resolveNight, resolveDayVote, resolveFarmerRevenge, startNextNight,
   getPlayerView, log, specialRoleCount, validateSeatCapacity,
   recordDayVoteSubmission, recordMayorReveal, recordLivingCountSnapshot, recordAccusation, firstAccuserOf,
-  recordSpotlight, spotlightCounts, classifyChatMessage, analyzeChatMessage, isAgreement, detectAgreementTarget
+  recordSpotlight, spotlightCounts, classifyChatMessage, analyzeChatMessage, isAgreement, detectAgreementTarget, detectAgreement
 };

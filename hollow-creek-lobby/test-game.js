@@ -873,4 +873,23 @@ assert(resCultF.cultConvertedPlayer === null, 'Phase2 Task5: resolveNight confir
   assert(stateZero.history.some(l => /Nobody was voted out/.test(l)), 'NoVote: the case log records that nobody was voted out');
 }
 
+// --- Every living mafia member except the Hitman votes on the night kill (Consigliere included) ---
+{
+  const realSeats = [1,2,3,4,5,6].map(i => ({id:'m'+i, name:'Mafi'+i}));
+  const stM = G.createGame(realSeats, {playerCount: 6, mafiaCount: 1, roles: Object.assign({}, G.DEFAULT_ROLES_CONFIG, {Godfather:false,DoubleAgent:false,Detective:false,Doctor:false,Miller:false,BountyHunter:false,CrazyGranny:false,Coward:false,Farmer:false,NavySeal:false})});
+  const [c1, c2, c3, c4, c5, c6] = stM.players;
+  c1.role = 'Mafia'; c1.align = 'mafia';
+  c2.role = 'Consigliere'; c2.align = 'mafia';
+  c3.role = 'Hitman'; c3.align = 'mafia';
+  [c4, c5, c6].forEach(p => { p.role = 'Civilian'; p.align = 'town'; });
+  const voterIds = G.mafiaVoters(stM).map(p => p.id);
+  assert(voterIds.includes(c1.id) && voterIds.includes(c2.id), 'MafiaVote: a regular Mafia AND the Consigliere both get a kill vote');
+  assert(!voterIds.includes(c3.id), 'MafiaVote: the Hitman still has no kill vote');
+  stM.pendingNightVotes[c1.id] = { kill: c4.id };
+  stM.pendingNightVotes[c2.id] = { kill: c5.id, consigliereInvestigate: c6.id };
+  const killsBefore = stM.players.filter(p => !p.alive).length;
+  const resM = G.resolveNight(stM);
+  assert(resM.killTargetId === c4.id || resM.killTargetId === c5.id, 'MafiaVote: the Consigliere\'s vote is counted in the night kill (a 1-1 split picks one of the two named targets)');
+}
+
 console.log('\nAll game.js checks completed.');

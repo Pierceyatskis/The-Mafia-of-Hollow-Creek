@@ -762,6 +762,69 @@ async function testNameCapAndOwnerAvatar() {
   } finally { delete process.env.OWNER_KEY; }
 }
 
+// ============================================================
+// Chat stances (accusing / defending / supporting), the "slow down" scenario,
+// questions for a person, polls, and the lobby chat.
+// ============================================================
+async function testChatStancesPollsAndLobbyChat() {
+  const pia = await createRoom('Pia');
+  const joe = await joinRoom(pia.roomCode, 'Joe');
+  const sarah = await joinRoom(pia.roomCode, 'Sarah');
+  const players = [pia, joe, sarah];
+
+  // lobby chat + a host poll before the game starts
+  const lobbySeen = once(sarah.ws, m => m.type === 'lobbyChatMsg' && m.text === 'hello lobby', 3000);
+  send(joe.ws, { type: 'lobbyChat', text: 'hello lobby' });
+  assert((await lobbySeen).name === 'Joe', 'lobby chat: a message reaches everyone waiting in the lobby, with the sender\'s name');
+  const pollSeen = once(sarah.ws, m => m.type === 'pollMsg', 3000);
+  send(pia.ws, { type: 'poll', question: 'Ready to start?' });
+  const lobbyPoll = (await pollSeen).poll;
+  assert(lobbyPoll.options.length === 2 && lobbyPoll.options[0].text === 'Yes', 'lobby: the host can ask a poll (defaults to Yes/No)');
+  const noPoll = once(joe.ws, m => m.type === 'error', 2000);
+  send(joe.ws, { type: 'poll', question: 'sneaky' });
+  assert(/host/i.test((await noPoll).message), 'lobby: a non-host cannot start a poll');
+  const upd = once(pia.ws, m => m.type === 'pollUpdate' && m.options[0].voters.length === 2, 3000);
+  send(joe.ws, { type: 'pollVote', pollId: lobbyPoll.id, option: 0 });
+  send(sarah.ws, { type: 'pollVote', pollId: lobbyPoll.id, option: 0 });
+  assert((await upd).options[0].voters.length === 2, 'lobby poll: votes are counted live for everyone');
+
+  const roles = { Godfather: false, DoubleAgent: false, Detective: false, Doctor: false, Miller: false, BountyHunter: false, CrazyGranny: false, Coward: false, Farmer: false, NavySeal: false };
+  const started = once(pia.ws, m => m.type === 'gameState');
+  send(pia.ws, { type: 'start', playerCount: 6, mafiaCount: 0, roles });
+  await started;
+  const day = Promise.all(players.map(p => once(p.ws, m => m.type === 'gameState' && m.view.phase === 'day-discuss', 8000)));
+  players.forEach(p => send(p.ws, { type: 'nightAction', action: {} }));
+  await day;
+  function say(from, text, replyTo) {
+    const seen = once(pia.ws, m => m.type === 'chatMsg' && m.text === text && m.name === from.name, 3000);
+    send(from.ws, { type: 'dayChat', text, replyTo });
+    return seen;
+  }
+  const accuse = await say({ ws: pia.ws, name: 'Pia' }, 'I think its Joe');
+  assert(accuse.category === 'accusation' && accuse.targetId === joe.playerId, 'Pia typing "I think its Joe" is filed as accusing Joe');
+  const slow = await say({ ws: joe.ws, name: 'Joe' }, 'I think we should slow down and think first.');
+  assert(slow.category !== 'accusation' && !slow.targetId, 'Joe saying "slow down" is not an accusation');
+  const agree = await say({ ws: sarah.ws, name: 'Sarah' }, 'I agree.');
+  assert(agree.category === 'support' && agree.supportedId === joe.playerId && !agree.targetId, 'Sarah\'s "I agree" after Joe\'s line is SUPPORTING Joe - not accusing the person Pia accused');
+  const clear = await say({ ws: sarah.ws, name: 'Sarah' }, "I think he's clear.");
+  assert(clear.category === 'defense' && clear.defendedId === joe.playerId, '"I think he\'s clear" right after an accusation is DEFENDING that person');
+  const q = await say({ ws: sarah.ws, name: 'Sarah' }, 'I have a question for Pia: why Joe?');
+  assert(q.askedId === pia.playerId, '"I have a question for Pia" records who the question is for');
+
+  const pollNew = once(joe.ws, m => m.type === 'pollMsg', 3000);
+  send(sarah.ws, { type: 'poll', question: 'Who do we trust?', options: ['Pia', 'Joe', 'Nobody'] });
+  const dayPoll = (await pollNew).poll;
+  assert(dayPoll.options.length === 3 && dayPoll.night === 1, 'in a game any living player can ask a poll in the day chat');
+  const dupe = once(sarah.ws, m => m.type === 'error', 2000);
+  send(sarah.ws, { type: 'poll', question: 'again?' });
+  assert(/one poll/i.test((await dupe).message), 'only one poll per player per day');
+  const tally = once(pia.ws, m => m.type === 'pollUpdate' && m.options[1].voters.length === 1, 3000);
+  send(joe.ws, { type: 'pollVote', pollId: dayPoll.id, option: 1 });
+  assert((await tally).options[1].voters.includes(joe.playerId), 'poll votes record who voted for what');
+
+  players.forEach(p => { try { p.ws.close(); } catch (e) {} });
+}
+
 async function main() {
   await testUndercapacityStartRejected();
   await testCustomRolesEnabled();
@@ -776,6 +839,7 @@ async function main() {
   await testNamesAndBadges();
   await testOwnerCanShame();
   await testNameCapAndOwnerAvatar();
+  await testChatStancesPollsAndLobbyChat();
   await testStageTimerOnPromotedSpeaker();
   await testDayChatAccusationTag();
   await testRoundScoreBreakdown();

@@ -23,7 +23,7 @@ const NIGHT_DURATION_MS = Number(process.env.NIGHT_DURATION_MS) || 60000;
 const DAY_DISCUSS_DURATION_MS = Number(process.env.DAY_DISCUSS_DURATION_MS) || 90000;
 const DAY_VOTE_DURATION_MS = Number(process.env.DAY_VOTE_DURATION_MS) || 105000; // was 45s - extended by an extra minute of actual voting time
 const DAY_REVEAL_DURATION_MS = Number(process.env.DAY_REVEAL_DURATION_MS) || 12000;
-const FARMER_REVENGE_DURATION_MS = Number(process.env.FARMER_REVENGE_DURATION_MS) || 20000;
+const FARMER_REVENGE_DURATION_MS = Number(process.env.FARMER_REVENGE_DURATION_MS) || 30000;
 const MIN_DISCUSS_SECONDS = 30, MAX_DISCUSS_SECONDS = 300;
 const MIN_VOTE_SECONDS = 30, MAX_VOTE_SECONDS = 300;
 // Voice/stage feature - off unless a host explicitly turns it on for their room.
@@ -232,7 +232,7 @@ function createRoom(socket, name, isPublic, avatarKey, color, initialVoiceEnable
   // first real edit.
   rooms[code] = {
     players: [{ id, name, socket, avatarKey, color, gameIconKey }], hostId: id, started: false, state: null, timer: null,
-    phaseEndsAt: null, isPublic: !!isPublic, ownerIds: new Set(), shame: new Map(),
+    phaseEndsAt: null, isPublic: !!isPublic, ownerIds: new Set(), shame: new Map(), lobbyChat: [],
     draftConfig: typeof initialVoiceEnabled === 'boolean' ? { voiceEnabled: initialVoiceEnabled } : null
   };
   if (isOwnerIdentity(name, socket.ownerKey)) rooms[code].ownerIds.add(id);
@@ -260,12 +260,19 @@ function joinRoom(socket, code, name, avatarKey, color, gameIconKey) {
   socket.roomCode = code;
   socket.playerId = id;
   socket.send(JSON.stringify({ type: 'joined', roomCode: code, playerId: id }));
+  socket.send(JSON.stringify({ type: 'lobbyChatLog', entries: room.lobbyChat }));
   // A player joining mid-setup should see the host's current choices right
   // away, not just whatever the next edit happens to broadcast.
   if (room.draftConfig) {
     socket.send(JSON.stringify(Object.assign({ type: 'configUpdate' }, room.draftConfig)));
   }
   broadcastRoster(code);
+}
+
+// One JSON message to everyone in the room with an open socket.
+function broadcastRoom(room, obj) {
+  const m = JSON.stringify(obj);
+  room.players.forEach(rp => { if (rp.socket.readyState === WebSocket.OPEN) rp.socket.send(m); });
 }
 
 function broadcastRoster(code) {
@@ -1181,22 +1188,37 @@ wss.on('connection', (socket) => {
         recentTexts
       });
       let category = analysis.category;
-      // Who this message accuses: the sender's own dropdown tag if they set
-      // one, otherwise whoever the classifier read the message as naming
-      // ("I think it's Corky"), otherwise - for a bare "I agree"/"same" -
-      // whoever the accusation they're answering named, so both the original
-      // accuser AND the agreeing player end up filed as accusing that target.
-      // Resolved before this entry is pushed so agreement detection only ever
-      // sees earlier lines.
-      let accusedId = targetId;
+      // What stance this line takes, worked out from what was typed (no
+      // dropdown tag needed): ACCUSING someone, DEFENDING someone (or
+      // themselves), SUPPORTING another player's line, or asking a question OF
+      // someone. A bare agreement ("I agree", "same") adopts the stance of the
+      // ONE line it answers - the explicit Reply, else the message right before
+      // it - so an "I agree" after "slow down" backs that, not an older
+      // accusation. Resolved before this entry is pushed so it only ever sees
+      // earlier lines.
+      let accusedId = targetId;               // a manual tag still counts if a client sends one
+      let defendedId = null, supportedId = null, askedId = null;
       let inferred = false, agreedWithId = null;
+      const livingNamed = (name, includeSelf) => room.state.players.filter(p => p.name === name && p.alive && (includeSelf || p.id !== player.id))[0];
       if (!accusedId && category === 'accusation' && analysis.target) {
-        const named = room.state.players.filter(p => p.name === analysis.target && p.alive && p.id !== player.id)[0];
+        const named = livingNamed(analysis.target, false);
         if (named) { accusedId = named.id; inferred = true; }
+      } else if (category === 'defense' || category === 'trust_statement') {
+        const named = analysis.target ? livingNamed(analysis.target, true) : null;
+        defendedId = named ? named.id : (category === 'defense' ? player.id : null);  // no one named = defending themselves
+        if (defendedId) category = 'defense';
+      } else if (category === 'question' && analysis.target) {
+        const named = livingNamed(analysis.target, false);
+        if (named) askedId = named.id;
       }
-      if (!accusedId && category !== 'defense' && category !== 'role_claim') {
-        const agreed = G.detectAgreementTarget(room.state, text, replyTo, player.id);
-        if (agreed) { accusedId = agreed.targetId; agreedWithId = agreed.agreedWithId; category = 'accusation'; inferred = true; }
+      if (!accusedId && !defendedId && category !== 'role_claim') {
+        const agreed = G.detectAgreement(room.state, text, replyTo, player.id);
+        if (agreed) {
+          agreedWithId = agreed.agreedWithId; inferred = true;
+          if (agreed.kind === 'accusation') { accusedId = agreed.targetId; category = 'accusation'; }
+          else if (agreed.kind === 'defense') { defendedId = agreed.targetId; category = 'defense'; }
+          else { supportedId = agreed.agreedWithId; category = 'support'; }
+        }
       }
       // night: same round number voteHistory/accusationLog already stamp
       // their own entries with, so the Case File can sort/group a chat-
@@ -1205,11 +1227,77 @@ wss.on('connection', (socket) => {
       const entry = { playerId: player.id, name: sp.name, text, ts: Date.now(), targetId: accusedId, replyTo, category, night: room.state.night };
       if (inferred) entry.inferred = true;
       if (agreedWithId) entry.agreedWithId = agreedWithId;
+      if (defendedId) entry.defendedId = defendedId;
+      if (supportedId) entry.supportedId = supportedId;
+      if (askedId) entry.askedId = askedId;
       room.state.chatLog.push(entry);
       if (accusedId) G.recordAccusation(room.state, player.id, accusedId, inferred ? { inferred: true, agreedWithId } : undefined);
-      room.players.forEach(rp => {
-        if (rp.socket.readyState === WebSocket.OPEN) rp.socket.send(JSON.stringify(Object.assign({ type: 'chatMsg' }, entry)));
-      });
+      broadcastRoom(room, Object.assign({ type: 'chatMsg' }, entry));
+    }
+
+    // ---- lobby chat (before the game starts) ----
+    else if (msg.type === 'lobbyChat') {
+      const { room, player } = getRoomAndPlayer(socket);
+      if (!room || !player || room.started) return;
+      const text = String(msg.text || '').trim().slice(0, 140);
+      if (!text) return;
+      const now = Date.now();
+      if (socket.lastLobbyChatAt && now - socket.lastLobbyChatAt < 300) return; // flood guard
+      socket.lastLobbyChatAt = now;
+      const p = room.players.find(rp => rp.id === player.id);
+      const entry = { playerId: player.id, name: p ? p.name : 'Player', text, ts: now };
+      room.lobbyChat.push(entry);
+      if (room.lobbyChat.length > 100) room.lobbyChat.shift();
+      broadcastRoom(room, Object.assign({ type: 'lobbyChatMsg' }, entry));
+    }
+
+    // ---- polls: in the lobby (host only) and in day chat (any living, unsilenced player, one per day) ----
+    else if (msg.type === 'poll') {
+      const { room, player } = getRoomAndPlayer(socket);
+      if (!room || !player) return;
+      const question = String(msg.question || '').trim().slice(0, 120);
+      if (!question) return;
+      let options = Array.isArray(msg.options) ? msg.options.map(o => String(o || '').trim().slice(0, 40)).filter(Boolean).slice(0, 4) : [];
+      if (options.length < 2) options = ['Yes', 'No'];
+      let name, log, night = 0;
+      if (!room.started) {
+        if (player.id !== room.hostId) { socket.send(JSON.stringify({ type: 'error', message: 'Only the host can start a poll in the lobby.' })); return; }
+        const p = room.players.find(rp => rp.id === player.id);
+        name = p ? p.name : 'Host'; log = room.lobbyChat;
+      } else {
+        if (room.state.phase !== 'day-discuss' && room.state.phase !== 'day-vote') return;
+        const sp = G.byId(room.state, player.id);
+        if (!sp || !sp.alive || sp.silencedToday) return;
+        night = room.state.night;
+        if (room.state.chatLog.some(e => e.kind === 'poll' && e.playerId === player.id && e.night === night)) {
+          socket.send(JSON.stringify({ type: 'error', message: 'You can only ask one poll per day.' }));
+          return;
+        }
+        name = sp.name; log = room.state.chatLog;
+      }
+      const poll = { kind: 'poll', id: makePlayerId(), playerId: player.id, name, question, options: options.map(t => ({ text: t, voters: [] })), ts: Date.now(), night };
+      log.push(poll);
+      if (!room.started && log.length > 100) log.shift();
+      broadcastRoom(room, { type: 'pollMsg', poll });
+    }
+
+    else if (msg.type === 'pollVote') {
+      const { room, player } = getRoomAndPlayer(socket);
+      if (!room || !player) return;
+      const pollId = String(msg.pollId || '');
+      const poll = [room.lobbyChat].concat(room.state ? [room.state.chatLog] : []).reduce((found, l) => found || l.find(e => e.kind === 'poll' && e.id === pollId), null);
+      if (!poll) return;
+      const idx = Number(msg.option);
+      if (!Number.isInteger(idx) || idx < 0 || idx >= poll.options.length) return;
+      if (room.started) {
+        // In a game only living players vote, and only while that day's poll is still live.
+        const sp = G.byId(room.state, player.id);
+        if (!sp || !sp.alive || poll.night !== room.state.night || (room.state.phase !== 'day-discuss' && room.state.phase !== 'day-vote')) return;
+      } else if (poll.night !== 0) return;
+      const already = poll.options[idx].voters.includes(player.id);
+      poll.options.forEach(o => { o.voters = o.voters.filter(id => id !== player.id); });
+      if (!already) poll.options[idx].voters.push(player.id);   // tapping your own choice again retracts it
+      broadcastRoom(room, { type: 'pollUpdate', pollId, options: poll.options });
     }
 
     else if (msg.type === 'typing') {
