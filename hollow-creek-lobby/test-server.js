@@ -805,7 +805,10 @@ async function testChatStancesPollsAndLobbyChat() {
     send(from.ws, { type: 'dayChat', text, replyTo });
     return seen;
   }
+  const joeHeat = once(joe.ws, m => m.type === 'heat' && m.heat && m.heat.self && m.heat.accusedToday.length === 1, 3000);
   const accuse = await say({ ws: pia.ws, name: 'Pia' }, 'I think its Joe');
+  const heatMsg = (await joeHeat).heat;
+  assert(heatMsg.accusedToday[0] === 'Pia' && heatMsg.level >= 1, 'heat: the accused player is sent their own updated heat (accused today by Pia) right after the accusation');
   assert(accuse.category === 'accusation' && accuse.targetId === joe.playerId, 'Pia typing "I think its Joe" is filed as accusing Joe');
   const slow = await say({ ws: joe.ws, name: 'Joe' }, 'I think we should slow down and think first.');
   assert(slow.category !== 'accusation' && !slow.targetId, 'Joe saying "slow down" is not an accusation');

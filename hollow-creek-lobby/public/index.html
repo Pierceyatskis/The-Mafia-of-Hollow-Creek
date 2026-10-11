@@ -531,6 +531,28 @@ body.force-reduced-motion .daylayout-roster-tile.qv-target{animation:none; box-s
 .daylayout-note-body{font-size:12.5px; line-height:1.3; margin:0; overflow:hidden;}
 .daylayout-note-count{font-size:14.5px; font-weight:700; letter-spacing:0.3px; margin:0; line-height:1.3;}
 .daylayout-note3-subtitle{margin-top:8px;}
+/* Heat thermometer: lives on the cream plaque under the three bulletin notes. */
+#daylayout-heat, #daylayout-heat-detail{display:none;}
+#design-canvas.bg-day #daylayout-heat{display:block; position:absolute; left:808px; top:408px; width:300px; height:52px; box-sizing:border-box; padding:4px 8px 3px; z-index:4; pointer-events:auto; cursor:help; color:#3b2d22; font-family:var(--font-type); outline:none;}
+.heat-top{display:flex; justify-content:space-between; align-items:baseline; font-size:10.5px; letter-spacing:1.4px; text-transform:uppercase; line-height:1.2;}
+#heat-label{color:#6b3a1f;}
+#heat-level{font-weight:700; font-size:12px; letter-spacing:1.2px; color:var(--heat-color,#4a8fd6); text-shadow:0 0 1px rgba(255,255,255,0.5);}
+.heat-row{display:flex; align-items:center; gap:7px; margin-top:2px;}
+#heat-flame{width:15px; height:21px; flex-shrink:0; fill:var(--heat-color,#4a8fd6); transform-origin:50% 100%; transform:scale(var(--heat-scale,0.7)); filter:drop-shadow(0 0 2px rgba(0,0,0,0.35)); transition:transform .4s ease, fill .4s ease;}
+.heat-bar{position:relative; flex:1; height:13px; display:flex; gap:2px; padding:1px; box-sizing:border-box; background:#2a1f16; border-radius:7px; box-shadow:inset 0 1px 2px rgba(0,0,0,0.7), 0 0 0 1px rgba(59,45,34,0.6);}
+.heat-seg{flex:1; border-radius:3px; opacity:0.22; transition:opacity .35s ease;}
+.heat-seg[data-l="0"]{background:#4a8fd6;} .heat-seg[data-l="1"]{background:#4cb3a5;} .heat-seg[data-l="2"]{background:#e3c23a;} .heat-seg[data-l="3"]{background:#ee8a2b;} .heat-seg[data-l="4"]{background:#d9362b;}
+.heat-seg.lit{opacity:1;}
+#heat-marker{position:absolute; top:-4px; width:0; height:0; margin-left:-4px; border-left:4px solid transparent; border-right:4px solid transparent; border-top:6px solid #2a1f16; transition:left .5s ease; left:0;}
+#daylayout-heat.heat-pulse{animation:heatPlaquePulse 1.3s ease-out;}
+@keyframes heatPlaquePulse{0%{box-shadow:0 0 0 0 rgba(217,54,43,0.0);} 25%{box-shadow:0 0 18px 6px rgba(238,138,43,0.8);} 100%{box-shadow:0 0 0 0 rgba(217,54,43,0);}}
+#daylayout-heat.heat-scalding #heat-flame{animation:heatFlicker .7s ease-in-out infinite alternate;}
+@keyframes heatFlicker{from{transform:scale(var(--heat-scale,1)) rotate(-4deg);} to{transform:scale(calc(var(--heat-scale,1) * 1.12)) rotate(4deg);}}
+body.force-reduced-motion #daylayout-heat.heat-pulse, body.force-reduced-motion #daylayout-heat.heat-scalding #heat-flame{animation:none;}
+#design-canvas.bg-day #daylayout-heat:hover + #daylayout-heat-detail, #design-canvas.bg-day #daylayout-heat:focus + #daylayout-heat-detail, #design-canvas.bg-day #daylayout-heat-detail.open{display:block; position:absolute; left:808px; top:462px; width:300px; box-sizing:border-box; padding:9px 12px; z-index:7; background:rgba(26,19,12,0.96); border:1px solid var(--gold-dim); border-radius:6px; color:var(--parchment); font-family:var(--font-type); font-size:12px; line-height:1.45; box-shadow:0 6px 16px rgba(0,0,0,0.6);}
+#daylayout-heat-detail b{color:var(--gold-bright);}
+#daylayout-heat-detail .heat-advice{margin-top:6px; padding-top:6px; border-top:1px solid rgba(232,223,199,0.25); color:#ffb48a;}
+#daylayout-heat-detail .heat-foot{margin-top:5px; font-style:italic; color:var(--parchment-dim); font-size:11px;}
 /* TEMP day-layout-rebuild step 6 - "THE STAGE" title + dynamic subtitle,
    overlaid on the cabinet's own curtain art (no separate plaque asset for
    this one, unlike the bulletin). Positioned in the stage region's dark
@@ -2001,6 +2023,14 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
   <p id="daylayout-note3-count" class="daylayout-note-count"></p>
   <p id="daylayout-note3-subtitle" class="daylayout-note-body daylayout-note3-subtitle"></p>
 </div>
+<div id="daylayout-heat" tabindex="0" role="status" aria-label="Heat">
+  <div class="heat-top"><span id="heat-label">Your heat</span><span id="heat-level">Cold</span></div>
+  <div class="heat-row">
+    <svg id="heat-flame" viewBox="0 0 24 32" aria-hidden="true"><path d="M12 1c1 5-4 7-4 13 0 2 1 3 2 4-3-1-5-4-5-8-3 3-4 6-4 9 0 6 5 12 11 12s11-5 11-11c0-5-3-8-5-11 0 3-1 5-3 6 1-4 0-10-3-14z"/></svg>
+    <div class="heat-bar"><span class="heat-seg" data-l="0"></span><span class="heat-seg" data-l="1"></span><span class="heat-seg" data-l="2"></span><span class="heat-seg" data-l="3"></span><span class="heat-seg" data-l="4"></span><i id="heat-marker"></i></div>
+  </div>
+</div>
+<div id="daylayout-heat-detail"></div>
 <div id="daylayout-stage-header">
   <h2 id="daylayout-stage-title">The Stage</h2>
   <p id="daylayout-stage-subtitle">The stage is empty.</p>
@@ -3612,6 +3642,9 @@ function handleServerMessage(msg){
   } else if(msg.type==='nightProgress'){
     latestNightProgress = msg;
     renderNightProgress();
+  } else if(msg.type==='heat'){
+    if(latestView) latestView.heat = msg.heat;
+    renderHeat(msg.heat);
   } else if(msg.type==='dayVoteProgress'){
     latestDayVoteProgress = msg.votedIds || [];
     renderTownBoard();
@@ -4085,6 +4118,15 @@ var SoundFX = (function(){
     // scoped to any one player - see the call site for why).
     playMayorTiebreak: function(){ playFile('townBell', 0.5); },
     playDoorCreak: function(){ playFile('doorCreak', 0.6); },
+    // Your heat just went up a level: a rising swell, a second blip for Hot/Scalding.
+    playHeatUp: function(level){
+      safe(function(c){
+        var t = c.currentTime;
+        tone(c, 300 + level*70, t, 0.35, 'sawtooth', 0.07, 520 + level*110);
+        if(level >= 3) tone(c, 880, t + 0.32, 0.18, 'square', 0.1);
+        if(level >= 4) tone(c, 1175, t + 0.5, 0.22, 'square', 0.12);
+      });
+    },
     // One short beep per second while the voting clock is in its last 15 seconds (higher and doubled for the last 5).
     playTimeWarning: function(secondsLeft){
       safe(function(c){
@@ -7792,6 +7834,57 @@ var BULLETIN_ANNOUNCEMENTS = [
   "Justice moves slow in Hollow Creek, but it moves.",
   "Every soul here has something to hide. Find the one that matters."
 ];
+// ---- Heat thermometer on the bulletin plaque ----
+var HEAT_COLORS = ['#4a8fd6', '#4cb3a5', '#e3c23a', '#ee8a2b', '#d9362b'];
+var HEAT_NAMES = ['Cold', 'Cool', 'Warm', 'Hot', 'Scalding'];
+var HEAT_RANGES = [0, 1, 2.5, 4.5, 7, 12];
+var lastHeatLevel = null;
+function heatPlural(n, word){ return n + ' ' + word + (n === 1 ? '' : 's'); }
+function renderHeat(heat){
+  var el = document.getElementById('daylayout-heat');
+  if(!el) return;
+  var detail = document.getElementById('daylayout-heat-detail');
+  if(!heat){ el.style.visibility = 'hidden'; return; }
+  el.style.visibility = 'visible';
+  var self = heat.self !== false;
+  var level, score, who = null;
+  if(self){ level = heat.level; score = heat.score; }
+  else if(heat.hottest){ level = heat.hottest.level; score = heat.hottest.score; who = heat.hottest.name; }
+  else { level = 0; score = 0; }
+  document.getElementById('heat-label').textContent = self ? 'Your heat' : (who ? 'Hottest: ' + who : 'The spirits see no heat');
+  var lvEl = document.getElementById('heat-level');
+  lvEl.textContent = HEAT_NAMES[level];
+  el.style.setProperty('--heat-color', HEAT_COLORS[level]);
+  el.style.setProperty('--heat-scale', String(0.7 + level * 0.18));
+  el.classList.toggle('heat-scalding', level >= 4);
+  el.querySelectorAll('.heat-seg').forEach(function(seg){ seg.classList.toggle('lit', Number(seg.getAttribute('data-l')) <= level); });
+  var span = HEAT_RANGES[level + 1] - HEAT_RANGES[level];
+  var frac = Math.max(0, Math.min(1, (score - HEAT_RANGES[level]) / span));
+  document.getElementById('heat-marker').style.left = Math.min(98, (level + frac) * 20 + 0.5) + '%';
+  // what's behind the number
+  var lines = [];
+  if(self){
+    lines.push('<b>Accused today by:</b> ' + (heat.accusedToday && heat.accusedToday.length ? heat.accusedToday.map(escapeHtmlMp).join(', ') : 'nobody yet'));
+    if(heat.accusedEarlier) lines.push('Accused on earlier days: ' + heat.accusedEarlier + ' (fading)');
+    if(heat.votesLast || heat.votesEarlier) lines.push('<b>Votes against you:</b> ' + heatPlural(heat.votesLast, 'vote') + ' yesterday' + (heat.votesEarlier ? ', ' + heat.votesEarlier + ' before that' : ''));
+    if(heat.nearMiss) lines.push('You were close to being voted out last time.');
+    if(heat.defenders || heat.supporters) lines.push('<b>Standing up for you:</b> ' + heatPlural(heat.defenders + heat.supporters, 'player'));
+  } else {
+    lines.push(who ? '<b>' + escapeHtmlMp(who) + '</b> is drawing the most attention right now.' : 'Nobody is drawing attention yet.');
+  }
+  var advice = (self && level >= 3) ? '<div class="heat-advice">' + (level >= 4 ? 'You are very likely to be voted out. ' : 'The room is turning on you. ') + 'Make your case: take the stage or reply to whoever accused you.</div>' : '';
+  detail.innerHTML = lines.join('<br>') + advice + '<div class="heat-foot">Heat is attention, not proof of guilt. It fades each day.</div>';
+  // went up a level: pulse + sound
+  if(self && lastHeatLevel !== null && level > lastHeatLevel){
+    el.classList.remove('heat-pulse'); void el.offsetWidth; el.classList.add('heat-pulse');
+    SoundFX.playHeatUp(level);
+  }
+  lastHeatLevel = self ? level : null;
+}
+document.getElementById('daylayout-heat').addEventListener('click', function(){
+  var d = document.getElementById('daylayout-heat-detail'); d.classList.toggle('open');
+});
+
 // The player grid pages through the table 6 icons at a time (3 x 2), living players
 // first so the first slide is always the people still in the game.
 var ROSTER_PAGE_SIZE = 6;
@@ -7939,6 +8032,7 @@ function renderDayPanel(){
   }
   document.getElementById('daylayout-note3-subtitle').textContent = daylayoutSubtitleText;
   renderRosterGrid(view);
+  renderHeat(view.heat);
   renderChatLog();
   renderWhisperQuickButton();
   renderTownBoard();

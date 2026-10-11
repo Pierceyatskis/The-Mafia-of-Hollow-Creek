@@ -1154,6 +1154,80 @@ function firstAccuserOf(state, targetId, night){
 // What ONE specific player is allowed to see. Never leaks other players'
 // hidden roles unless that player is dead/eliminated (spectator view) or the
 // role has already been revealed by death/vote-out.
+// ---------- Heat: how much bad attention a player is getting ----------
+// Built only from things the whole table can already see (accusations in chat,
+// the vote results after each day), so showing it leaks nothing. Live votes are
+// secret until the reveal, so votes only count from earlier days.
+//   accusation against you  +1   (a bare "I agree" accusation +0.5; once per accuser per day)
+//   a vote against you      +2   (earlier days)
+//   runner-up in last vote  +1   (2+ votes, you survived: the "that was close" bonus)
+//   someone defends you     -0.5 each,  supports you -0.25 each (today)
+// Everything halves for each day it is old, and heat never drops below zero.
+const HEAT_LEVELS = ['Cold', 'Cool', 'Warm', 'Hot', 'Scalding'];
+const HEAT_THRESHOLDS = [0, 1, 2.5, 4.5, 7];
+function heatLevelFor(score){
+  let lv = 0;
+  for(let i=0;i<HEAT_THRESHOLDS.length;i++) if(score >= HEAT_THRESHOLDS[i]) lv = i;
+  return lv;
+}
+function computeHeat(state, playerId){
+  const decay = night => Math.pow(0.5, Math.max(0, state.night - night));
+  let score = 0, accusedEarlier = 0, votesLast = 0, votesEarlier = 0, nearMiss = false;
+  const accusedToday = [];
+  // accusations: one count per accuser per day (the strongest wins)
+  const best = new Map();
+  (state.accusationLog || []).forEach(e => {
+    if(e.targetId !== playerId || e.accuserId === playerId) return;
+    const key = e.accuserId + ':' + e.night;
+    const w = e.agreedWithId ? 0.5 : 1;   // ("inferred" also covers ordinary typed accusations - only an agreement is the weaker kind)
+    if(!best.has(key) || best.get(key).w < w) best.set(key, { w, night: e.night, accuserId: e.accuserId });
+  });
+  best.forEach(v => {
+    score += v.w * decay(v.night);
+    if(v.night === state.night){ const a = byId(state, v.accuserId); if(a) accusedToday.push(a.name); }
+    else accusedEarlier++;
+  });
+  // votes against you from earlier days
+  (state.voteHistory || []).forEach(v => {
+    if(v.targetId !== playerId) return;
+    score += 2 * decay(v.night);
+    if(v.night === state.night - 1) votesLast++; else votesEarlier++;
+  });
+  // the close call in the last vote
+  const lastNight = state.night - 1;
+  if(lastNight >= 1){
+    const tally = {};
+    (state.voteHistory || []).forEach(v => { if(v.night === lastNight && v.targetId) tally[v.targetId] = (tally[v.targetId] || 0) + 1; });
+    const counts = Object.keys(tally).map(id => tally[id]).sort((a, b) => b - a);
+    const mine = tally[playerId] || 0;
+    const secondBest = counts.length > 1 ? counts[1] : counts[0];
+    const me = byId(state, playerId);
+    if(me && me.alive && mine >= 2 && mine >= secondBest){ nearMiss = true; score += 1 * decay(lastNight); }
+  }
+  // people standing up for you today
+  let defenders = 0, supporters = 0;
+  const defSeen = new Set(), supSeen = new Set();
+  (state.chatLog || []).forEach(e => {
+    if(!e || e.night !== state.night || e.playerId === playerId) return;
+    if(e.defendedId === playerId && !defSeen.has(e.playerId)){ defSeen.add(e.playerId); defenders++; score -= 0.5; }
+    else if(e.supportedId === playerId && !supSeen.has(e.playerId)){ supSeen.add(e.playerId); supporters++; score -= 0.25; }
+  });
+  score = Math.max(0, Math.round(score * 10) / 10);
+  return { score, level: heatLevelFor(score), accusedToday, accusedEarlier, votesLast, votesEarlier, nearMiss, defenders, supporters };
+}
+// What one viewer is shown: their own heat while alive; once dead, the hottest living player's.
+function heatForView(state, viewerSeat){
+  if(!viewerSeat) return null;
+  if(viewerSeat.alive) return Object.assign({ self: true }, computeHeat(state, viewerSeat.id));
+  let hot = null;
+  state.players.forEach(p => {
+    if(!p.alive) return;
+    const h = computeHeat(state, p.id);
+    if(!hot || h.score > hot.score) hot = { score: h.score, level: h.level, name: p.name };
+  });
+  return { self: false, hottest: hot };
+}
+
 function getPlayerView(state, playerId){
   const me = byId(state, playerId);
   const seeAllRoles = !me || !me.alive; // dead players get a full spectator view
@@ -1226,6 +1300,7 @@ function getPlayerView(state, playerId){
     voteLog: state.voteLog, voteHistory: state.voteHistory, accusationLog: state.accusationLog, history: state.history,
     cachedOvernightReport: state.cachedOvernightReport, cachedNearMissId: state.cachedNearMissId || null, farmerRevengeName: state.farmerRevengeName,
     farmerRevengePending: state.farmerRevengePending,
+    heat: heatForView(state, me),
     // A whisper is visible only to the two players in it, same scoping
     // principle as mafiaChatLog above - everyone else's whispers are
     // filtered out entirely, not just hidden client-side.
@@ -1245,6 +1320,7 @@ function getPlayerView(state, playerId){
 
 module.exports = {
   CHARACTERS, ROLE_LABEL, SPECIAL_ROLES, MIN_PLAYERS, MAX_PLAYERS, MAX_MAFIA_COUNT, DEFAULT_ROLES_CONFIG,
+  HEAT_LEVELS, computeHeat, heatForView,
   shuffle, alignOf, createGame, byId, living, mafiaAlive, cultAlive, mafiaVoters, checkWin, checkBountyHit, checkGrannyFlip,
   detectiveRead, investigateAndRead, resolveNight, resolveDayVote, resolveFarmerRevenge, startNextNight,
   getPlayerView, log, specialRoleCount, validateSeatCapacity,

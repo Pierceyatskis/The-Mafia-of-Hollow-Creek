@@ -892,4 +892,50 @@ assert(resCultF.cultConvertedPlayer === null, 'Phase2 Task5: resolveNight confir
   assert(resM.killTargetId === c4.id || resM.killTargetId === c5.id, 'MafiaVote: the Consigliere\'s vote is counted in the night kill (a 1-1 split picks one of the two named targets)');
 }
 
+// --- Heat: how much bad attention a player is getting ---
+{
+  const seats = [1,2,3,4,5,6].map(i => ({id:'h'+i, name:'Heat'+i}));
+  const stH = G.createGame(seats, {playerCount: 6, mafiaCount: 1, roles: Object.assign({}, G.DEFAULT_ROLES_CONFIG, {Godfather:false,DoubleAgent:false,Detective:false,Doctor:false,Miller:false,BountyHunter:false,CrazyGranny:false,Coward:false,Farmer:false,NavySeal:false})});
+  const [a, b, c, d, e, f] = stH.players;
+  stH.night = 2;
+  let h = G.computeHeat(stH, a.id);
+  assert(h.score === 0 && h.level === 0, 'Heat: a player nobody has touched is Cold (0)');
+  G.recordAccusation(stH, b.id, a.id); G.recordAccusation(stH, b.id, a.id);   // same accuser twice, same day
+  h = G.computeHeat(stH, a.id);
+  assert(h.score === 1 && h.level === 1 && h.accusedToday.length === 1, 'Heat: one accuser counts once even if they accuse repeatedly (Cool)');
+  G.recordAccusation(stH, c.id, a.id, {inferred: true, agreedWithId: b.id});
+  h = G.computeHeat(stH, a.id);
+  assert(h.score === 1.5, 'Heat: an agreement-accusation counts half');
+  G.recordAccusation(stH, d.id, a.id); G.recordAccusation(stH, e.id, a.id);
+  h = G.computeHeat(stH, a.id);
+  assert(h.score === 3.5 && h.level === 2 && G.HEAT_LEVELS[h.level] === 'Warm', 'Heat: four accusers reach Warm');
+  stH.chatLog.push({playerId: f.id, name: f.name, text: 'he is fine', defendedId: a.id, night: 2});
+  stH.chatLog.push({playerId: f.id, name: f.name, text: 'really fine', defendedId: a.id, night: 2});
+  h = G.computeHeat(stH, a.id);
+  assert(h.score === 3 && h.defenders === 1, 'Heat: a defender lowers it once (-0.5) however often they repeat');
+  const calm = G.computeHeat(stH, f.id);
+  stH.chatLog.push({playerId: a.id, name: a.name, text: 'f is safe', defendedId: f.id, night: 2});
+  stH.chatLog.push({playerId: b.id, name: b.name, text: 'f is safe', defendedId: f.id, night: 2});
+  stH.chatLog.push({playerId: c.id, name: c.name, text: 'f is safe', defendedId: f.id, night: 2});
+  assert(G.computeHeat(stH, f.id).score === 0 && calm.score === 0, 'Heat: never drops below zero');
+  // votes from earlier days count double and fade; a close second adds the near-miss bonus
+  const stV = G.createGame(seats, {playerCount: 6, mafiaCount: 1, roles: Object.assign({}, G.DEFAULT_ROLES_CONFIG, {Godfather:false,DoubleAgent:false,Detective:false,Doctor:false,Miller:false,BountyHunter:false,CrazyGranny:false,Coward:false,Farmer:false,NavySeal:false})});
+  stV.night = 2;
+  [stV.players[1], stV.players[2], stV.players[3]].forEach(p => stV.voteHistory.push({night: 1, voterId: p.id, name: p.name, targetId: stV.players[0].id, target: stV.players[0].name}));
+  stV.voteHistory.push({night: 1, voterId: stV.players[4].id, name: 'x', targetId: stV.players[5].id, target: 'y'});
+  const hv = G.computeHeat(stV, stV.players[0].id);
+  assert(hv.votesLast === 3 && hv.nearMiss && hv.score === 3.5 && hv.level === 2, 'Heat: 3 votes yesterday (3 x 2 x half) plus the close-call bonus = 3.5');
+  stV.night = 4;
+  assert(G.computeHeat(stV, stV.players[0].id).score < hv.score, 'Heat: old votes fade as days pass');
+  // each viewer only gets their own; the dead get the hottest living player
+  stV.night = 2;
+  const viewLive = G.getPlayerView(stV, stV.players[0].id);
+  assert(viewLive.heat && viewLive.heat.self === true && viewLive.heat.score === 3.5, 'Heat: a living player\'s view carries their own heat');
+  const other = G.getPlayerView(stV, stV.players[1].id);
+  assert(other.heat && other.heat.self === true && other.heat.score === 0, 'Heat: another player\'s view does not carry that player\'s heat');
+  stV.players[1].alive = false;
+  const viewDead = G.getPlayerView(stV, stV.players[1].id);
+  assert(viewDead.heat && viewDead.heat.self === false && viewDead.heat.hottest && viewDead.heat.hottest.name === stV.players[0].name, 'Heat: a dead player sees who the hottest living player is');
+}
+
 console.log('\nAll game.js checks completed.');

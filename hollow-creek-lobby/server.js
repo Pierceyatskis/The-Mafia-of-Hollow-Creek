@@ -277,6 +277,18 @@ function broadcastRoom(room, obj) {
   room.players.forEach(rp => { if (rp.socket.readyState === WebSocket.OPEN) rp.socket.send(m); });
 }
 
+// Each player's heat changes as the table accuses and defends, and chat lines don't
+// trigger a full gameState, so push each player just their own (or, for the dead,
+// the hottest player's) reading whenever a line moves it.
+function sendHeat(room) {
+  if (!room.started || !room.state) return;
+  room.players.forEach(rp => {
+    if (rp.socket.readyState !== WebSocket.OPEN) return;
+    const seat = G.byId(room.state, rp.id);
+    if (seat) rp.socket.send(JSON.stringify({ type: 'heat', heat: G.heatForView(room.state, seat) }));
+  });
+}
+
 function broadcastRoster(code) {
   const room = rooms[code];
   if (!room) return;
@@ -1240,6 +1252,7 @@ wss.on('connection', (socket) => {
       room.state.chatLog.push(entry);
       if (accusedId) G.recordAccusation(room.state, player.id, accusedId, inferred ? { inferred: true, agreedWithId } : undefined);
       broadcastRoom(room, Object.assign({ type: 'chatMsg' }, entry));
+      if (accusedId || defendedId || supportedId) sendHeat(room);
     }
 
     // ---- lobby chat (before the game starts) ----
