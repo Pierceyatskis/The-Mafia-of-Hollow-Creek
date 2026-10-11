@@ -2552,6 +2552,17 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
   </div>
 </div>
 
+<div id="leave-confirm-modal" class="role-card-overlay" style="display:none; z-index:400;">
+  <div class="role-card-modal-content player-action-content" style="text-align:center; max-width:min(460px,92vw);">
+    <h2 class="intro-modal-title" id="leave-confirm-title" style="margin-bottom:10px;">Leave the game?</h2>
+    <p class="intro-modal-text" id="leave-confirm-text" style="margin-bottom:18px;"></p>
+    <div class="intro-modal-actions">
+      <button type="button" class="btn" id="leave-confirm-stay-btn">Stay</button>
+      <button type="button" class="btn danger" id="leave-confirm-leave-btn">Leave</button>
+    </div>
+  </div>
+</div>
+
 <div id="revenge-wait-modal" class="role-card-overlay" style="display:none;">
   <div class="role-card-modal-content player-action-content" style="text-align:center; max-width:min(580px,92vw);">
     <h2 class="intro-modal-title" id="revenge-wait-title" style="margin-bottom:10px; font-size:30px;"></h2>
@@ -6699,7 +6710,37 @@ async function goToHome(){
     savedGameExists = !!(saved && saved.uiPhase && saved.uiPhase!=='lobby' && saved.uiPhase!=='end');
   }catch(e){ savedGameExists = false; }
 }
-document.getElementById('home-nav-btn').addEventListener('click', goToHome);
+// Leaving a lobby or a game in progress asks first, so nobody drops out by accident
+// (a game you leave can still be rejoined from the home screen). Once the game is over
+// the same button is just "Back to Home" and needs no confirmation.
+var pendingLeaveAction = null;
+function confirmLeave(inGame, action){
+  pendingLeaveAction = action;
+  document.getElementById('leave-confirm-title').textContent = inGame ? 'Leave the game?' : 'Leave the lobby?';
+  document.getElementById('leave-confirm-text').textContent = inGame
+    ? 'The game is still going. If you leave, your seat is held for you and you can rejoin from the home screen - but the town will be waiting on you in the meantime.'
+    : 'You will drop out of this lobby. You can rejoin with the room code.';
+  document.getElementById('leave-confirm-modal').style.display = 'flex';
+  document.getElementById('leave-confirm-stay-btn').focus();
+}
+function closeLeaveConfirm(){ document.getElementById('leave-confirm-modal').style.display = 'none'; pendingLeaveAction = null; }
+document.getElementById('leave-confirm-stay-btn').addEventListener('click', closeLeaveConfirm);
+document.getElementById('leave-confirm-leave-btn').addEventListener('click', function(){
+  var act = pendingLeaveAction; closeLeaveConfirm();
+  if(act) act();
+});
+document.getElementById('leave-confirm-modal').addEventListener('click', function(e){ if(e.target.id === 'leave-confirm-modal') closeLeaveConfirm(); });
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape' && document.getElementById('leave-confirm-modal').style.display === 'flex') closeLeaveConfirm();
+});
+document.getElementById('home-nav-btn').addEventListener('click', function(){
+  var inRoom = !!(myRoomCode && myPlayerId);
+  var gameLive = !!(latestView && !latestView.gameOver);
+  var lobbyOpen = document.getElementById('panel-lobby').style.display === 'block';
+  if(inRoom && gameLive){ confirmLeave(true, goToHome); }
+  else if(inRoom && lobbyOpen){ confirmLeave(false, goToHome); }
+  else goToHome();
+});
 
 function showComingSoonToast(label){
   var el = document.getElementById('coming-soon-toast');
@@ -9472,9 +9513,11 @@ document.getElementById('mpentry-join-btn').addEventListener('click', function()
   whenConnected(function(){ sendWS({type:'join', name: CURRENT_PROFILE.username||'Player', roomCode: code, avatarKey: CURRENT_PROFILE.avatarKey, gameIconKey: CURRENT_PROFILE.gameIconKey, color: CURRENT_PROFILE.color, ownerKey: getOwnerKey()}); });
 });
 document.getElementById('mp-leave-btn').addEventListener('click', function(){
-  leaveCurrentRoom();
-  renderMpEntryScreen();
-  switchPanel('mpentry');
+  confirmLeave(false, function(){
+    leaveCurrentRoom();
+    renderMpEntryScreen();
+    switchPanel('mpentry');
+  });
 });
 document.getElementById('mpentry-edit-profile-btn').addEventListener('click', function(){
   renderProfileScreen();
