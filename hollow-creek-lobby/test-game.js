@@ -892,50 +892,93 @@ assert(resCultF.cultConvertedPlayer === null, 'Phase2 Task5: resolveNight confir
   assert(resM.killTargetId === c4.id || resM.killTargetId === c5.id, 'MafiaVote: the Consigliere\'s vote is counted in the night kill (a 1-1 split picks one of the two named targets)');
 }
 
-// --- Heat: how much bad attention a player is getting ---
+// --- Heat: how much bad attention a player is getting (as a share of the table) ---
 {
-  const seats = [1,2,3,4,5,6].map(i => ({id:'h'+i, name:'Heat'+i}));
-  const stH = G.createGame(seats, {playerCount: 6, mafiaCount: 1, roles: Object.assign({}, G.DEFAULT_ROLES_CONFIG, {Godfather:false,DoubleAgent:false,Detective:false,Doctor:false,Miller:false,BountyHunter:false,CrazyGranny:false,Coward:false,Farmer:false,NavySeal:false})});
+  const noSpecials = Object.assign({}, G.DEFAULT_ROLES_CONFIG, {Godfather:false,DoubleAgent:false,Detective:false,Doctor:false,Miller:false,BountyHunter:false,CrazyGranny:false,Coward:false,Farmer:false,NavySeal:false});
+  const mk = n => G.createGame(Array.from({length:n}, (_, i) => ({id:'h'+(i+1), name:'Heat'+(i+1)})), {playerCount: n, mafiaCount: 1, roles: noSpecials});
+  const stH = mk(6);                       // 6 alive: 5 other players could be against you
   const [a, b, c, d, e, f] = stH.players;
   stH.night = 2;
   let h = G.computeHeat(stH, a.id);
-  assert(h.score === 0 && h.level === 0, 'Heat: a player nobody has touched is Cold (0)');
+  assert(h.score === 0 && h.level === 0 && h.others === 5, 'Heat: a player nobody has touched is Cold (0), measured against the 5 others');
   G.recordAccusation(stH, b.id, a.id); G.recordAccusation(stH, b.id, a.id);   // same accuser twice, same day
   h = G.computeHeat(stH, a.id);
-  assert(h.score === 1 && h.level === 1 && h.accusedToday.length === 1, 'Heat: one accuser counts once even if they accuse repeatedly (Cool)');
+  assert(h.score === 0.2 && h.percent === 20 && h.level === 2 && h.accusedToday.length === 1, 'Heat: one accuser of 5 others (counted once however often they repeat) = 20% of the table, Warm');
   G.recordAccusation(stH, c.id, a.id, {inferred: true, agreedWithId: b.id});
   h = G.computeHeat(stH, a.id);
-  assert(h.score === 1.5, 'Heat: an agreement-accusation counts half');
+  assert(h.score === 0.3, 'Heat: an agreement-accusation counts half (1.5 of 5 = 0.3)');
   G.recordAccusation(stH, d.id, a.id); G.recordAccusation(stH, e.id, a.id);
   h = G.computeHeat(stH, a.id);
-  assert(h.score === 3.5 && h.level === 2 && G.HEAT_LEVELS[h.level] === 'Warm', 'Heat: four accusers reach Warm');
+  assert(h.score === 0.7 && h.level === 4 && G.HEAT_LEVELS[h.level] === 'Scalding', 'Heat: four accusers of 5 others is Scalding');
   stH.chatLog.push({playerId: f.id, name: f.name, text: 'he is fine', defendedId: a.id, night: 2});
   stH.chatLog.push({playerId: f.id, name: f.name, text: 'really fine', defendedId: a.id, night: 2});
   h = G.computeHeat(stH, a.id);
-  assert(h.score === 3 && h.defenders === 1, 'Heat: a defender lowers it once (-0.5) however often they repeat');
-  const calm = G.computeHeat(stH, f.id);
+  assert(h.score === 0.6 && h.defenders === 1, 'Heat: a defender lowers it once (-0.5 raw) however often they repeat');
   stH.chatLog.push({playerId: a.id, name: a.name, text: 'f is safe', defendedId: f.id, night: 2});
   stH.chatLog.push({playerId: b.id, name: b.name, text: 'f is safe', defendedId: f.id, night: 2});
   stH.chatLog.push({playerId: c.id, name: c.name, text: 'f is safe', defendedId: f.id, night: 2});
-  assert(G.computeHeat(stH, f.id).score === 0 && calm.score === 0, 'Heat: never drops below zero');
+  assert(G.computeHeat(stH, f.id).score === 0, 'Heat: never drops below zero');
   // votes from earlier days count double and fade; a close second adds the near-miss bonus
-  const stV = G.createGame(seats, {playerCount: 6, mafiaCount: 1, roles: Object.assign({}, G.DEFAULT_ROLES_CONFIG, {Godfather:false,DoubleAgent:false,Detective:false,Doctor:false,Miller:false,BountyHunter:false,CrazyGranny:false,Coward:false,Farmer:false,NavySeal:false})});
+  const stV = mk(6);
   stV.night = 2;
   [stV.players[1], stV.players[2], stV.players[3]].forEach(p => stV.voteHistory.push({night: 1, voterId: p.id, name: p.name, targetId: stV.players[0].id, target: stV.players[0].name}));
   stV.voteHistory.push({night: 1, voterId: stV.players[4].id, name: 'x', targetId: stV.players[5].id, target: 'y'});
   const hv = G.computeHeat(stV, stV.players[0].id);
-  assert(hv.votesLast === 3 && hv.nearMiss && hv.score === 3.5 && hv.level === 2, 'Heat: 3 votes yesterday (3 x 2 x half) plus the close-call bonus = 3.5');
+  assert(hv.votesLast === 3 && hv.nearMiss && hv.score === 0.7 && hv.level === 4, 'Heat: 3 votes yesterday (3 x 2 x half) plus the close-call bonus = 3.5 raw, 0.7 of 5 others');
   stV.night = 4;
   assert(G.computeHeat(stV, stV.players[0].id).score < hv.score, 'Heat: old votes fade as days pass');
   // each viewer only gets their own; the dead get the hottest living player
   stV.night = 2;
   const viewLive = G.getPlayerView(stV, stV.players[0].id);
-  assert(viewLive.heat && viewLive.heat.self === true && viewLive.heat.score === 3.5, 'Heat: a living player\'s view carries their own heat');
+  assert(viewLive.heat && viewLive.heat.self === true && viewLive.heat.score === 0.7, 'Heat: a living player\'s view carries their own heat');
   const other = G.getPlayerView(stV, stV.players[1].id);
   assert(other.heat && other.heat.self === true && other.heat.score === 0, 'Heat: another player\'s view does not carry that player\'s heat');
   stV.players[1].alive = false;
   const viewDead = G.getPlayerView(stV, stV.players[1].id);
   assert(viewDead.heat && viewDead.heat.self === false && viewDead.heat.hottest && viewDead.heat.hottest.name === stV.players[0].name, 'Heat: a dead player sees who the hottest living player is');
+  // the same two accusers matter far more when few players are left
+  const big = mk(12);
+  big.night = 2;
+  G.recordAccusation(big, big.players[1].id, big.players[0].id); G.recordAccusation(big, big.players[2].id, big.players[0].id);
+  const crowded = G.computeHeat(big, big.players[0].id);
+  assert(crowded.others === 11 && crowded.level === 1 && crowded.percent === 18, 'Heat: two accusers among 11 others is only Cool (18%) - barely worth worrying about');
+  for (let i = 3; i < 9; i++) big.players[i].alive = false;      // six players left
+  const thin = G.computeHeat(big, big.players[0].id);
+  assert(thin.others === 5 && thin.level === 3 && thin.percent === 40 && thin.score > crowded.score, 'Heat: the SAME two accusers with only 6 left is Hot (40%) - a share of the table, not a head count');
+  assert(crowded.score !== thin.score && crowded.percent !== thin.percent, 'Heat: scores move in fine steps inside each level (percent differs), not just five jumps');
+}
+
+// --- End-of-game summary ---
+{
+  const noSpecials = Object.assign({}, G.DEFAULT_ROLES_CONFIG, {Godfather:false,DoubleAgent:false,Detective:false,Doctor:false,Miller:false,BountyHunter:false,CrazyGranny:false,Coward:false,Farmer:false,NavySeal:false});
+  const st = G.createGame([1,2,3,4,5,6].map(i => ({id:'s'+i, name:'Sum'+i})), {playerCount: 8, mafiaCount: 1, roles: noSpecials});
+  const humans = st.players.filter(p => !p.isPlaceholder);
+  st.night = 3; st.winner = 'town'; st.gameOver = true;
+  const [p1, p2, p3] = humans;
+  p1.role = 'Mafia'; p1.align = 'mafia';
+  humans.slice(1).forEach(p => { p.align = 'town'; p.role = 'Civilian'; });
+  [humans[1], humans[2], humans[3]].forEach(p => st.voteHistory.push({night: 1, voterId: p.id, name: p.name, targetId: p1.id, target: p1.name}));
+  G.recordAccusation(st, p2.id, p1.id); G.recordAccusation(st, p3.id, p1.id); G.recordAccusation(st, p2.id, p3.id);
+  for (let i = 0; i < 4; i++) st.chatLog.push({playerId: p2.id, name: p2.name, text: 'talk ' + i, night: 1});
+  st.chatLog.push({playerId: p3.id, name: p3.name, text: 'p2 is clear', defendedId: p2.id, night: 1});
+  st.chatLog.push({kind: 'poll', id: 'x', playerId: p3.id, name: p3.name, question: 'q?', options: [], night: 1});
+  st.history.push('Night 1 / Sum1 (Mafia) was voted out by the town.');
+  const sum = G.buildGameSummary(st, [{night: 1, cum: {[p1.id]: -3, [p2.id]: 6, [p3.id]: 2}}, {night: 2, cum: {[p1.id]: -4, [p2.id]: 9, [p3.id]: 5}}]);
+  assert(sum.winner === 'town' && sum.players.length === 8, 'Summary: names the winning side and lists every seat');
+  assert(sum.players.find(p => p.id === p1.id).won === false && sum.players.find(p => p.id === p2.id).won === true, 'Summary: marks who was on the winning side (town yes, mafia no)');
+  assert(sum.players.every(p => p.role && p.align), 'Summary: every player\'s role is included');
+  const mvp = sum.awards.find(a => a.key === 'mvp');
+  assert(mvp && mvp.playerId === p2.id && mvp.value === 9, 'Summary: the MVP is the human with the most points (9)');
+  assert(sum.players.find(p => p.id === p1.id).total === -4, 'Summary: totals come from the last round\'s running scores (negatives included)');
+  assert(sum.awards.find(a => a.key === 'mostVoted' && a.playerId === p1.id && a.value === 3), 'Summary: Public Enemy is whoever got the most votes against them');
+  assert(sum.awards.find(a => a.key === 'mostAccused' && a.playerId === p1.id), 'Summary: Most Wanted counts distinct accusers');
+  assert(sum.awards.find(a => a.key === 'chatterbox' && a.playerId === p2.id && a.value === 4), 'Summary: Chatterbox counts talk lines (polls are not talk)');
+  assert(sum.awards.find(a => a.key === 'defender' && a.playerId === p3.id), 'Summary: Defense Attorney is whoever stood up for others');
+  assert(sum.stats.polls === 1 && sum.stats.rounds === 3 && sum.stats.messages === 5, 'Summary: stats count rounds, talk lines and polls');
+  assert(sum.timeline.includes('Night 1 / Sum1 (Mafia) was voted out by the town.'), 'Summary: carries the game\'s story');
+  assert(sum.scoreRounds.length === 2, 'Summary: carries the points-per-round series for the graph');
+  const endView = G.getPlayerView(st, p2.id);
+  assert(endView.players.every(p => p.role), 'Game over: every player\'s role is visible to everyone, even to a survivor');
 }
 
 console.log('\nAll game.js checks completed.');

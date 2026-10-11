@@ -427,9 +427,14 @@ async function testPlayAgainSameLobby() {
   // Every town player votes out the mafia player - a deterministic town win
   // in round 1, so the game reaches gameOver without depending on chance.
   const gameOverPromise = Promise.all(players.map(p => once(p.ws, m => m.type === 'gameState' && m.view.gameOver, 8000)));
+  const summaryPromise = Promise.all(players.map(p => once(p.ws, m => m.type === 'gameSummary', 8000)));
   townPlayers.forEach(p => send(p.ws, { type: 'dayVote', targetId: mafiaPlayer.playerId }));
   send(mafiaPlayer.ws, { type: 'dayVote', targetId: townPlayers[0].playerId });
   await gameOverPromise;
+  const summaries = (await summaryPromise).map(m => m.summary);
+  assert(summaries.every(m => m.winner === 'town' && m.players.length >= 6), 'Game summary: every player is sent the end-of-game summary naming the winner');
+  assert(summaries[0].players.filter(p => p.won).every(p => p.align === 'town') && summaries[0].players.some(p => p.align === 'mafia' && !p.won), 'Game summary: the winners are the town and the mafia player is listed as having lost, with roles revealed');
+  assert(summaries[0].scoreRounds.length >= 1 && summaries[0].timeline.length >= 1, 'Game summary: includes the per-round points and the story of the game');
 
   const rejectPromise = once(nonHostPlayer.ws, m => m.type === 'error', 3000);
   send(nonHostPlayer.ws, { type: 'playAgain' });

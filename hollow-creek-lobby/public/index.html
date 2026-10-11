@@ -540,9 +540,81 @@ body.force-reduced-motion .daylayout-roster-tile.qv-target{animation:none; box-s
 .heat-row{display:flex; align-items:center; gap:7px; margin-top:2px;}
 #heat-flame{width:15px; height:21px; flex-shrink:0; fill:var(--heat-color,#4a8fd6); transform-origin:50% 100%; transform:scale(var(--heat-scale,0.7)); filter:drop-shadow(0 0 2px rgba(0,0,0,0.35)); transition:transform .4s ease, fill .4s ease;}
 .heat-bar{position:relative; flex:1; height:13px; display:flex; gap:2px; padding:1px; box-sizing:border-box; background:#2a1f16; border-radius:7px; box-shadow:inset 0 1px 2px rgba(0,0,0,0.7), 0 0 0 1px rgba(59,45,34,0.6);}
-.heat-seg{flex:1; border-radius:3px; opacity:0.22; transition:opacity .35s ease;}
-.heat-seg[data-l="0"]{background:#4a8fd6;} .heat-seg[data-l="1"]{background:#4cb3a5;} .heat-seg[data-l="2"]{background:#e3c23a;} .heat-seg[data-l="3"]{background:#ee8a2b;} .heat-seg[data-l="4"]{background:#d9362b;}
-.heat-seg.lit{opacity:1;}
+.heat-seg{flex:1; border-radius:3px; background:linear-gradient(90deg, var(--c) calc(var(--f,0) * 100%), var(--cd) calc(var(--f,0) * 100%)); transition:background .4s ease;}
+/* ---------- End-of-game results screen ---------- */
+#endgame-screen{position:fixed; inset:0; z-index:250; background:radial-gradient(ellipse at 50% 20%, rgba(70,40,18,0.55), rgba(8,6,4,0.97) 70%), var(--bg-end) center/cover; color:var(--parchment); font-family:var(--font-body); --eg-accent:#e3b155;}
+#eg-particles{position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:1;}
+#eg-scroll{position:absolute; inset:0; overflow-y:auto; z-index:2; scroll-behavior:smooth; padding:0 18px 90px;}
+.eg-wrap{max-width:1080px; margin:0 auto;}
+#eg-topbar{position:sticky; top:0; z-index:5; display:flex; justify-content:flex-end; gap:10px; padding:12px 0; background:linear-gradient(rgba(8,6,4,0.85), rgba(8,6,4,0));}
+#eg-topbar .btn{padding:6px 14px; font-size:12px;}
+.eg-sec{opacity:0; transform:translateY(26px); transition:opacity .8s ease, transform .8s ease; margin:0 0 54px;}
+.eg-sec.eg-in{opacity:1; transform:none;}
+.eg-instant .eg-sec, .eg-instant .eg-sec *{transition:none !important; animation-duration:0.01s !important;}
+#eg-hero{text-align:center; padding:6vh 0 4vh;}
+#eg-kicker{font-family:var(--font-type); letter-spacing:6px; text-transform:uppercase; font-size:13px; color:var(--parchment-dim); margin:0 0 14px;}
+#eg-title{font-family:var(--font-display); font-weight:700; font-size:clamp(38px, 8vw, 96px); line-height:1.05; margin:0; text-transform:uppercase; color:var(--eg-accent); text-shadow:0 0 18px var(--eg-accent), 0 0 60px var(--eg-accent), 0 4px 0 rgba(0,0,0,0.6);}
+#eg-hero.eg-in #eg-title{animation:egSlam 1.1s cubic-bezier(.2,1.3,.4,1) both;}
+@keyframes egSlam{0%{opacity:0; transform:scale(3.2) rotate(-4deg); filter:blur(14px);} 55%{opacity:1; transform:scale(0.94) rotate(1deg); filter:blur(0);} 100%{opacity:1; transform:scale(1) rotate(0);}}
+#eg-sub{font-family:var(--font-type); font-size:clamp(14px, 2vw, 20px); color:var(--parchment); margin:18px auto 0; max-width:640px; line-height:1.5;}
+#eg-you{display:inline-block; margin:22px 0 0; padding:9px 26px; border:2px solid var(--eg-accent); border-radius:40px; font-family:var(--font-type); letter-spacing:3px; text-transform:uppercase; font-size:15px; color:var(--eg-accent); background:rgba(0,0,0,0.35);}
+.eg-h{font-family:var(--font-display); font-weight:700; font-size:clamp(24px, 3.4vw, 38px); text-align:center; color:var(--gold-bright); margin:0 0 20px; text-transform:uppercase; letter-spacing:2px; text-shadow:0 2px 10px rgba(0,0,0,0.7);}
+.eg-label{font-family:var(--font-type); letter-spacing:4px; text-transform:uppercase; font-size:12.5px; color:var(--parchment-dim); text-align:center; margin:18px 0 12px;}
+.eg-grid{display:flex; flex-wrap:wrap; justify-content:center; gap:16px;}
+.eg-card{width:132px; height:198px; perspective:800px; position:relative; --ac:#b0a588;}
+.eg-card-in{position:absolute; inset:0; transform-style:preserve-3d; transition:transform .75s cubic-bezier(.3,1.25,.4,1);}
+.eg-card.flipped .eg-card-in{transform:rotateY(180deg);}
+.eg-face{position:absolute; inset:0; backface-visibility:hidden; -webkit-backface-visibility:hidden; border-radius:9px; overflow:hidden; box-sizing:border-box;}
+.eg-cover{display:flex; align-items:center; justify-content:center; background:linear-gradient(145deg, #3a2a1a, #1d1409); border:2px solid #8a6a2e; box-shadow:inset 0 0 18px rgba(0,0,0,0.7); font-family:var(--font-display); font-size:60px; color:#c9a04a; text-shadow:0 0 12px rgba(227,177,85,0.6);}
+.eg-role{transform:rotateY(180deg); background:#201710; border:2px solid var(--ac); box-shadow:0 0 16px -2px var(--ac); display:flex; flex-direction:column;}
+.eg-card.eg-won .eg-role{box-shadow:0 0 22px 2px var(--ac), 0 0 0 1px #f2c566;}
+.eg-role-img{width:100%; height:122px; object-fit:cover; object-position:center 20%; display:block; background:#111;}
+.eg-card.eg-dead .eg-role-img{filter:grayscale(0.85) brightness(0.7);}
+.eg-role-name{font-family:var(--font-type); font-size:11.5px; font-weight:700; text-align:center; padding:5px 4px 0; color:var(--parchment); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.eg-role-role{font-family:var(--font-type); font-size:12px; font-weight:700; text-align:center; letter-spacing:0.5px; text-transform:uppercase; color:var(--ac); padding-top:2px;}
+.eg-role-fate{font-family:var(--font-type); font-size:10px; text-align:center; color:var(--parchment-dim); padding-top:2px;}
+.eg-badge{position:absolute; top:5px; z-index:2; font-family:var(--font-type); font-size:10px; font-weight:700; letter-spacing:1px; padding:2px 6px; border-radius:3px; text-transform:uppercase;}
+.eg-badge-win{right:5px; background:#f2c566; color:#2a1d05;}
+.eg-badge-you{left:5px; background:#fff; color:#111;}
+.eg-dead-x{position:absolute; left:0; right:0; top:34px; text-align:center; font-size:46px; color:rgba(217,54,43,0.85); text-shadow:0 2px 6px #000; z-index:1;}
+.eg-bar-row{display:flex; align-items:center; gap:12px; margin:9px 0;}
+.eg-bar-rank{width:28px; text-align:right; font-family:var(--font-display); font-size:20px; color:var(--parchment-dim);}
+.eg-bar-name{width:130px; flex-shrink:0; font-family:var(--font-type); font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.eg-bar-track{position:relative; flex:1; height:26px; background:rgba(255,255,255,0.05); border-radius:13px;}
+.eg-bar-fill{position:absolute; top:0; bottom:0; border-radius:13px; width:0; transition:width 1.4s cubic-bezier(.2,.9,.3,1), left 1.4s cubic-bezier(.2,.9,.3,1);}
+.eg-bar-zero{position:absolute; top:-3px; bottom:-3px; width:1px; background:rgba(255,255,255,0.35);}
+.eg-bar-val{width:64px; text-align:right; font-family:var(--font-display); font-size:20px; color:var(--parchment);}
+.eg-bar-row.eg-first .eg-bar-fill{background:linear-gradient(90deg, #b8860b, #f2c566) !important; box-shadow:0 0 18px rgba(242,197,102,0.8);}
+.eg-bar-row.eg-first .eg-bar-name{color:#f2c566; font-weight:700;}
+.eg-crown{display:inline-block; margin-left:6px; animation:egBob 1.4s ease-in-out infinite alternate;}
+@keyframes egBob{from{transform:translateY(0) rotate(-6deg);} to{transform:translateY(-4px) rotate(6deg);}}
+#eg-chart-wrap{background:rgba(0,0,0,0.38); border:1px solid rgba(227,177,85,0.25); border-radius:10px; padding:10px;}
+#eg-chart{width:100%; height:auto; display:block;}
+#eg-chart .eg-grid-line{stroke:rgba(255,255,255,0.1); stroke-width:1;}
+#eg-chart .eg-axis-text{fill:#a89878; font-family:var(--font-type); font-size:12px;}
+#eg-chart .eg-line{fill:none; stroke-linecap:round; stroke-linejoin:round; transition:stroke-dashoffset 2.2s ease-out, opacity .25s ease;}
+#eg-chart .eg-end-label{font-family:var(--font-type); font-size:12px; font-weight:700;}
+#eg-chart.eg-hover .eg-line:not(.eg-hot), #eg-chart.eg-hover .eg-end-label:not(.eg-hot){opacity:0.12;}
+#eg-legend{display:flex; flex-wrap:wrap; justify-content:center; gap:8px 14px; margin-top:12px;}
+.eg-chip{display:flex; align-items:center; gap:6px; font-family:var(--font-type); font-size:12px; cursor:pointer; padding:3px 9px; border-radius:20px; background:rgba(255,255,255,0.06);}
+.eg-chip i{width:12px; height:12px; border-radius:50%; display:block;}
+.eg-awards-grid .eg-award{width:230px; padding:16px 14px; text-align:center; background:linear-gradient(160deg, rgba(60,42,22,0.85), rgba(25,18,10,0.9)); border:1px solid rgba(227,177,85,0.4); border-radius:12px; opacity:0; transform:translateY(20px) scale(0.92); transition:opacity .6s ease, transform .6s cubic-bezier(.3,1.4,.5,1);}
+.eg-award.eg-in{opacity:1; transform:none;}
+.eg-award-icon{font-size:38px; line-height:1;}
+.eg-award-title{font-family:var(--font-type); letter-spacing:2px; text-transform:uppercase; font-size:12px; color:var(--parchment-dim); margin:8px 0 4px;}
+.eg-award-name{font-family:var(--font-display); font-size:22px; color:var(--gold-bright);}
+.eg-award-blurb{font-size:12.5px; color:var(--parchment); margin-top:5px; line-height:1.35;}
+.eg-stats-row{display:flex; flex-wrap:wrap; justify-content:center; gap:14px;}
+.eg-stat{min-width:140px; padding:14px 18px; text-align:center; border:1px solid rgba(227,177,85,0.3); border-radius:10px; background:rgba(0,0,0,0.35);}
+.eg-stat b{display:block; font-family:var(--font-display); font-size:34px; color:var(--gold-bright);}
+.eg-stat span{font-family:var(--font-type); font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--parchment-dim);}
+#eg-timeline{max-width:760px; margin:0 auto; border-left:2px solid rgba(227,177,85,0.35); padding-left:20px;}
+.eg-tl-round{font-family:var(--font-type); letter-spacing:3px; text-transform:uppercase; font-size:12px; color:var(--gold-bright); margin:18px 0 6px;}
+.eg-tl-line{font-size:14px; line-height:1.5; padding:3px 0; color:var(--parchment);}
+#eg-actions{text-align:center;}
+#eg-actions .btn{margin:0 6px 10px;}
+@media (max-width:640px){ .eg-card{width:108px; height:164px;} .eg-role-img{height:98px;} .eg-bar-name{width:88px;} }
+.heat-seg[data-l="0"]{--c:#4a8fd6; --cd:rgba(74,143,214,0.24);} .heat-seg[data-l="1"]{--c:#4cb3a5; --cd:rgba(76,179,165,0.24);} .heat-seg[data-l="2"]{--c:#e3c23a; --cd:rgba(227,194,58,0.24);} .heat-seg[data-l="3"]{--c:#ee8a2b; --cd:rgba(238,138,43,0.24);} .heat-seg[data-l="4"]{--c:#d9362b; --cd:rgba(217,54,43,0.24);}
 #heat-marker{position:absolute; top:-4px; width:0; height:0; margin-left:-4px; border-left:4px solid transparent; border-right:4px solid transparent; border-top:6px solid #2a1f16; transition:left .5s ease; left:0;}
 #daylayout-heat.heat-pulse{animation:heatPlaquePulse 1.3s ease-out;}
 @keyframes heatPlaquePulse{0%{box-shadow:0 0 0 0 rgba(217,54,43,0.0);} 25%{box-shadow:0 0 18px 6px rgba(238,138,43,0.8);} 100%{box-shadow:0 0 0 0 rgba(217,54,43,0);}}
@@ -2582,6 +2654,53 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
   </div>
 </div>
 
+<div id="endgame-screen" style="display:none;">
+  <canvas id="eg-particles"></canvas>
+  <div id="eg-scroll">
+    <div class="eg-wrap">
+      <div id="eg-topbar"><button type="button" class="btn ghost" id="eg-skip">Skip animation</button><button type="button" class="btn ghost" id="eg-close">Close</button></div>
+      <section id="eg-hero" class="eg-sec">
+        <p id="eg-kicker"></p>
+        <h1 id="eg-title"></h1>
+        <p id="eg-sub"></p>
+        <p id="eg-you"></p>
+      </section>
+      <section id="eg-cast" class="eg-sec">
+        <h2 class="eg-h">Who Was Who</h2>
+        <p class="eg-label" id="eg-win-label">The winners</p>
+        <div class="eg-grid" id="eg-cast-win"></div>
+        <p class="eg-label" id="eg-lose-label">The others</p>
+        <div class="eg-grid" id="eg-cast-lose"></div>
+      </section>
+      <section id="eg-points" class="eg-sec">
+        <h2 class="eg-h">The Points</h2>
+        <div id="eg-bars"></div>
+        <p class="eg-label" style="margin-top:22px;">Points, round by round</p>
+        <div id="eg-chart-wrap"><svg id="eg-chart" viewBox="0 0 760 320" preserveAspectRatio="xMidYMid meet"></svg></div>
+        <div id="eg-legend"></div>
+      </section>
+      <section id="eg-awards" class="eg-sec">
+        <h2 class="eg-h">Awards</h2>
+        <div class="eg-grid eg-awards-grid" id="eg-awards-grid"></div>
+      </section>
+      <section id="eg-stats" class="eg-sec">
+        <h2 class="eg-h">The Game in Numbers</h2>
+        <div class="eg-stats-row" id="eg-stats-row"></div>
+      </section>
+      <section id="eg-story" class="eg-sec">
+        <h2 class="eg-h">The Story of the Game</h2>
+        <div id="eg-timeline"></div>
+      </section>
+      <div id="eg-actions" class="eg-sec">
+        <button type="button" class="btn" id="eg-play-again">Play again</button>
+        <button type="button" class="btn ghost" id="eg-save">Save Case Summary Image</button>
+        <button type="button" class="btn ghost" id="eg-leave">Leave</button>
+        <p class="msg" id="eg-waiting" style="display:none; margin-top:10px; color:var(--parchment-dim);">Waiting for the host to start another round - or you can leave.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="leave-confirm-modal" class="role-card-overlay" style="display:none; z-index:400;">
   <div class="role-card-modal-content player-action-content" style="text-align:center; max-width:min(460px,92vw);">
     <h2 class="intro-modal-title" id="leave-confirm-title" style="margin-bottom:10px;">Leave the game?</h2>
@@ -2969,6 +3088,7 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
     <button class="btn ghost" id="mp-end-leave-btn" style="margin-top:16px; margin-left:10px; display:none;">Leave</button>
     <p class="msg" id="mp-end-waiting-msg" style="display:none; margin-top:10px; color:var(--parchment-dim);">Waiting for the host to start another round — or you can leave.</p>
     <button class="btn ghost" id="share-summary-btn" style="margin-top:16px; margin-left:10px;">Save Case Summary Image</button>
+    <button class="btn ghost" id="eg-reopen-btn" style="margin-top:16px; margin-left:10px;">Show results screen</button>
   </div>
 </div>
 </div>
@@ -3561,6 +3681,7 @@ function handleServerMessage(msg){
     if(typeof msg.voiceEnabled === 'boolean') GAME_CONFIG.voiceEnabled = msg.voiceEnabled;
     if(!amHost) renderWaitingRolesView();
   } else if(msg.type==='returnToLobby'){
+    latestSummary = null; egView = null; egBuiltKey = null; egDismissedKey = null; hideEndgame();
     // Same room/players/host - the game just reset back to a pre-start
     // lobby, with last game's presets carried over for the host.
     latestView = null; previousView = null;
@@ -3642,6 +3763,10 @@ function handleServerMessage(msg){
   } else if(msg.type==='nightProgress'){
     latestNightProgress = msg;
     renderNightProgress();
+  } else if(msg.type==='gameSummary'){
+    latestSummary = msg.summary;
+    var egScr = document.getElementById('endgame-screen');
+    if(egView && egScr.style.display === 'block' && egBuiltKey !== (msg.summary.rounds + ':' + msg.summary.winner)) buildEndgame(msg.summary);
   } else if(msg.type==='heat'){
     if(latestView) latestView.heat = msg.heat;
     renderHeat(msg.heat);
@@ -4118,6 +4243,10 @@ var SoundFX = (function(){
     // scoped to any one player - see the call site for why).
     playMayorTiebreak: function(){ playFile('townBell', 0.5); },
     playDoorCreak: function(){ playFile('doorCreak', 0.6); },
+    // a card turning over / an award popping in on the results screen
+    playFlip: function(){
+      safe(function(c){ var t = c.currentTime; tone(c, 420 + Math.random()*120, t, 0.07, 'triangle', 0.06, 700); noiseBurst(c, t, 0.06, 'bandpass', 2600, 1200, 0.8, 0.03, 0.01); });
+    },
     // Your heat just went up a level: a rising swell, a second blip for Hot/Scalding.
     playHeatUp: function(level){
       safe(function(c){
@@ -7835,9 +7964,277 @@ var BULLETIN_ANNOUNCEMENTS = [
   "Every soul here has something to hide. Find the one that matters."
 ];
 // ---- Heat thermometer on the bulletin plaque ----
+// ---- End-of-game results screen ----
+var latestSummary = null, egView = null, egBuiltKey = null, egDismissedKey = null;
+var egTimers = [], egFollow = true, egParticleRAF = null;
+var EG_PALETTE = ['#e3b155','#5aa0ff','#e07a6e','#4cb3a5','#c79bff','#ee8a2b','#86d98f','#f2c566','#ff8fb1','#8fd3ff','#b0a588','#d9362b','#74b0ff','#a6efdf','#f0d79b','#cba3ff'];
+var EG_ALIGN_COLOR = {town:'#5aa0ff', mafia:'#d9362b', cult:'#e3c23a', neutral:'#c79bff'};
+var EG_AWARD_ICON = {mvp:'\uD83C\uDFC6', mostAccused:'\uD83C\uDFAF', mostVoted:'\u2696\uFE0F', prosecutor:'\uD83D\uDD0D', chatterbox:'\uD83D\uDCAC', defender:'\uD83D\uDEE1\uFE0F'};
+function egAt(ms, fn){ egTimers.push(setTimeout(fn, ms)); }
+function egClearTimers(){ egTimers.forEach(clearTimeout); egTimers = []; }
+function hideEndgame(){
+  egClearTimers();
+  if(egParticleRAF){ cancelAnimationFrame(egParticleRAF); egParticleRAF = null; }
+  var scr = document.getElementById('endgame-screen'); if(scr) scr.style.display = 'none';
+}
+function egColorFor(p, i){ return (p.color && /^#[0-9a-fA-F]{6}$/.test(p.color)) ? p.color : EG_PALETTE[i % EG_PALETTE.length]; }
+function egStartParticles(kind, accent){
+  var cv = document.getElementById('eg-particles'); if(!cv) return;
+  if(egParticleRAF) cancelAnimationFrame(egParticleRAF);
+  if(document.body.classList.contains('force-reduced-motion')) return;
+  var ctx = cv.getContext('2d');
+  var W = cv.width = window.innerWidth, H = cv.height = window.innerHeight;
+  var confetti = (kind === 'confetti');
+  var cols = confetti ? ['#f2c566','#5aa0ff','#e07a6e','#86d98f','#c79bff','#ffffff'] : [accent, '#ee8a2b', '#f2c566'];
+  var ps = [];
+  for(var i=0;i<(confetti ? 90 : 70);i++){
+    ps.push({x: Math.random()*W, y: confetti ? -Math.random()*H : H + Math.random()*H, vx: (Math.random()-0.5)*(confetti?1.4:0.6), vy: confetti ? 1.2 + Math.random()*2.4 : -(0.6 + Math.random()*1.8), s: confetti ? 5 + Math.random()*7 : 2 + Math.random()*3.5, r: Math.random()*6, vr: (Math.random()-0.5)*0.2, c: cols[i % cols.length], a: 0.5 + Math.random()*0.5});
+  }
+  function frame(){
+    ctx.clearRect(0,0,W,H);
+    ps.forEach(function(p){
+      p.x += p.vx + Math.sin(p.y*0.01 + p.r)*0.4; p.y += p.vy; p.r += p.vr;
+      if(confetti && p.y > H + 20){ p.y = -20; p.x = Math.random()*W; }
+      if(!confetti && p.y < -20){ p.y = H + 20; p.x = Math.random()*W; }
+      ctx.globalAlpha = p.a; ctx.fillStyle = p.c;
+      if(confetti){ ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.fillRect(-p.s/2, -p.s/3, p.s, p.s*0.6); ctx.restore(); }
+      else { ctx.beginPath(); ctx.arc(p.x, p.y, p.s, 0, 6.283); ctx.fill(); }
+    });
+    egParticleRAF = requestAnimationFrame(frame);
+  }
+  frame();
+}
+function egWinInfo(summary){
+  var w = summary.winner, n = summary.rounds;
+  if(w === 'town') return {title:'The Town Wins', sub:'The mafia has been rooted out after ' + n + (n === 1 ? ' round.' : ' rounds.') + ' Hollow Creek can sleep again.', accent:'#5aa0ff', fx:'confetti'};
+  if(w === 'mafia') return {title:'The Mafia Wins', sub:'After ' + n + (n === 1 ? ' round' : ' rounds') + ', the family owns Hollow Creek. Nobody left to stop them.', accent:'#d9362b', fx:'embers'};
+  if(w === 'cult') return {title:'The Cult Wins', sub:'The faithful outnumber the rest. Hollow Creek belongs to the cult now.', accent:'#e3c23a', fx:'embers'};
+  if(w === 'bounty') return {title:'The Bounty Hunter Wins', sub:'Three marks collected. The ledger is closed and the hunter walks away rich.', accent:'#c79bff', fx:'embers'};
+  return {title:'Game Over', sub:'The case is closed.', accent:'#e3b155', fx:'embers'};
+}
+function egCountUp(el, target, ms, prefix){
+  var start = null;
+  function step(ts){
+    if(start === null) start = ts;
+    var t = Math.min(1, (ts - start) / ms), e = 1 - Math.pow(1 - t, 3);
+    el.textContent = (prefix || '') + Math.round(target * e);
+    if(t < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+function egRevealSection(id){
+  var el = document.getElementById(id); if(!el) return;
+  el.classList.add('eg-in');
+  if(egFollow && id !== 'eg-hero'){
+    var box = document.getElementById('eg-scroll');
+    var top = el.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop - 50;
+    box.scrollTo({top: top, behavior: 'smooth'});
+  }
+}
+function buildEndgame(summary){
+  var key = summary.rounds + ':' + summary.winner;
+  egBuiltKey = key;
+  egClearTimers(); egFollow = true;
+  var scr = document.getElementById('endgame-screen');
+  scr.classList.remove('eg-instant');
+  document.querySelectorAll('#endgame-screen .eg-sec, #endgame-screen .eg-award').forEach(function(e){ e.classList.remove('eg-in'); });
+  document.getElementById('eg-scroll').scrollTop = 0;
+  var info = egWinInfo(summary);
+  scr.style.setProperty('--eg-accent', info.accent);
+  var me = null; summary.players.forEach(function(p){ if(p.id === myPlayerId) me = p; });
+  var iWon = !!(me && me.won);
+  document.getElementById('eg-kicker').textContent = 'Case closed';
+  document.getElementById('eg-title').textContent = info.title;
+  document.getElementById('eg-sub').textContent = info.sub;
+  var youEl = document.getElementById('eg-you');
+  if(me){ youEl.style.display = 'inline-block'; youEl.textContent = (iWon ? 'Victory' : 'Defeat') + ' \u2014 you were ' + (ROLE_LABEL[me.role] || me.role); }
+  else youEl.style.display = 'none';
+  egStartParticles(iWon && info.fx === 'confetti' ? 'confetti' : (iWon ? 'confetti' : 'embers'), info.accent);
+  if(iWon) SoundFX.playTownBell(); else SoundFX.playGavel();
+
+  // ---- the cast: everyone's role, winners first ----
+  var order = summary.players.slice().sort(function(a, b){ return (b.won - a.won) || ((b.alive?1:0) - (a.alive?1:0)); });
+  var winners = order.filter(function(p){ return p.won; }), others = order.filter(function(p){ return !p.won; });
+  function cardHTML(p){
+    var ac = EG_ALIGN_COLOR[p.align] || '#b0a588';
+    var img = portraitFor(p) || portraitImgFor(p) || '';
+    var badges = (p.won ? '<span class="eg-badge eg-badge-win">Winner</span>' : '') + (p.id === myPlayerId ? '<span class="eg-badge eg-badge-you">You</span>' : '');
+    return '<div class="eg-card'+(p.won?' eg-won':'')+(p.alive?'':' eg-dead')+'" style="--ac:'+ac+';"><div class="eg-card-in">'+
+      '<div class="eg-face eg-cover">?</div>'+
+      '<div class="eg-face eg-role">'+badges+(p.alive ? '' : '<div class="eg-dead-x">\u2716</div>')+
+        '<img class="eg-role-img" src="'+img+'" alt="">'+
+        '<div class="eg-role-name">'+escapeHtmlMp(p.name)+'</div>'+
+        '<div class="eg-role-role">'+escapeHtmlMp(ROLE_SHORT[p.role] || p.role)+'</div>'+
+        '<div class="eg-role-fate">'+(p.alive ? 'survived' : 'eliminated')+(p.isPlaceholder ? ' \u00b7 NPC' : '')+'</div>'+
+      '</div></div></div>';
+  }
+  document.getElementById('eg-cast-win').innerHTML = winners.map(cardHTML).join('') || '<p class="eg-label">Nobody</p>';
+  document.getElementById('eg-cast-lose').innerHTML = others.map(cardHTML).join('');
+  document.getElementById('eg-win-label').textContent = 'The winners \u2014 ' + (summary.winner === 'town' ? 'the town' : summary.winner === 'mafia' ? 'the mafia' : summary.winner === 'cult' ? 'the cult' : 'the bounty hunter');
+  document.getElementById('eg-lose-label').style.display = others.length ? '' : 'none';
+
+  // ---- points: ranking bars ----
+  var humans = summary.players.filter(function(p){ return !p.isPlaceholder; }).sort(function(a, b){ return b.total - a.total; });
+  var colorOf = {}; summary.players.forEach(function(p, i){ colorOf[p.id] = egColorFor(p, i); });
+  var vals = humans.map(function(p){ return p.total; });
+  var minV = Math.min.apply(null, vals.concat([0])), maxV = Math.max.apply(null, vals.concat([1])), range = (maxV - minV) || 1;
+  var zeroPct = (-minV / range) * 100;
+  document.getElementById('eg-bars').innerHTML = humans.map(function(p, i){
+    return '<div class="eg-bar-row'+(i===0 ? ' eg-first' : '')+'"><span class="eg-bar-rank">'+(i+1)+'</span>'+
+      '<span class="eg-bar-name">'+escapeHtmlMp(p.name)+(i===0 ? '<span class="eg-crown">\uD83D\uDC51</span>' : '')+(p.id===myPlayerId ? ' (you)' : '')+'</span>'+
+      '<div class="eg-bar-track"><div class="eg-bar-zero" style="left:'+zeroPct+'%"></div><div class="eg-bar-fill" data-v="'+p.total+'" style="background:'+(p.total<0 ? '#8a2b22' : colorOf[p.id])+';"></div></div>'+
+      '<span class="eg-bar-val" data-v="'+p.total+'">0</span></div>';
+  }).join('') || '<p class="eg-label">No points were scored.</p>';
+  function growBars(){
+    document.querySelectorAll('#eg-bars .eg-bar-fill').forEach(function(f){
+      var v = Number(f.getAttribute('data-v'));
+      if(v >= 0){ f.style.left = zeroPct + '%'; f.style.width = (v / range * 100) + '%'; }
+      else { f.style.left = ((v - minV) / range * 100) + '%'; f.style.width = (-v / range * 100) + '%'; }
+    });
+    document.querySelectorAll('#eg-bars .eg-bar-val').forEach(function(el){ egCountUp(el, Number(el.getAttribute('data-v')), 1400); });
+  }
+
+  // ---- points: line graph over the rounds ----
+  var rounds = summary.scoreRounds || [];
+  var svg = document.getElementById('eg-chart');
+  var wrap = document.getElementById('eg-chart-wrap');
+  var legend = document.getElementById('eg-legend');
+  var paths = [];
+  if(rounds.length && humans.length){
+    var W = 760, H = 320, L = 46, Rm = 120, T = 16, B = 34;
+    var series = humans.map(function(p){ return {p: p, ys: [0].concat(rounds.map(function(r){ return r.cum[p.id] || 0; }))}; });
+    var all = []; series.forEach(function(sr){ all = all.concat(sr.ys); });
+    var yMin = Math.min.apply(null, all.concat([0])), yMax = Math.max.apply(null, all.concat([1]));
+    var span = (yMax - yMin) || 1; yMin -= span * 0.06; yMax += span * 0.06;
+    var n = rounds.length + 1;
+    var xOf = function(i){ return L + (W - L - Rm) * (n > 1 ? i / (n - 1) : 0); };
+    var yOf = function(v){ return T + (H - T - B) * (1 - (v - yMin) / (yMax - yMin)); };
+    var out = '';
+    for(var g = 0; g <= 4; g++){
+      var gv = yMin + (yMax - yMin) * g / 4, gy = yOf(gv);
+      out += '<line class="eg-grid-line" x1="'+L+'" x2="'+(W-Rm)+'" y1="'+gy+'" y2="'+gy+'"></line><text class="eg-axis-text" x="'+(L-8)+'" y="'+(gy+4)+'" text-anchor="end">'+Math.round(gv)+'</text>';
+    }
+    for(var xi = 0; xi < n; xi++) out += '<text class="eg-axis-text" x="'+xOf(xi)+'" y="'+(H-10)+'" text-anchor="middle">'+(xi === 0 ? 'Start' : 'R' + xi)+'</text>';
+    var zeroY = yOf(0);
+    out += '<line x1="'+L+'" x2="'+(W-Rm)+'" y1="'+zeroY+'" y2="'+zeroY+'" stroke="rgba(255,255,255,0.3)" stroke-dasharray="4 4"></line>';
+    var labelYs = [];
+    series.forEach(function(sr, si){
+      var d = sr.ys.map(function(v, i){ return (i === 0 ? 'M' : 'L') + xOf(i).toFixed(1) + ' ' + yOf(v).toFixed(1); }).join(' ');
+      var col = colorOf[sr.p.id], top = si === 0;
+      out += '<path class="eg-line" data-pid="'+sr.p.id+'" d="'+d+'" stroke="'+col+'" stroke-width="'+(top ? 4.5 : 2.4)+'"></path>';
+      labelYs.push({pid: sr.p.id, y: yOf(sr.ys[sr.ys.length - 1]), name: sr.p.name, col: col});
+    });
+    labelYs.sort(function(a, b){ return a.y - b.y; });
+    for(var li = 1; li < labelYs.length; li++) if(labelYs[li].y - labelYs[li-1].y < 13) labelYs[li].y = labelYs[li-1].y + 13;
+    labelYs.forEach(function(l){ out += '<text class="eg-end-label" data-pid="'+l.pid+'" x="'+(W-Rm+8)+'" y="'+(l.y+4)+'" fill="'+l.col+'">'+escapeHtmlMp(l.name.length > 11 ? l.name.slice(0, 10) + '\u2026' : l.name)+'</text>'; });
+    svg.innerHTML = out;
+    wrap.style.display = '';
+    legend.innerHTML = humans.map(function(p){ return '<span class="eg-chip" data-pid="'+p.id+'"><i style="background:'+colorOf[p.id]+'"></i>'+escapeHtmlMp(p.name)+'</span>'; }).join('');
+    paths = [].slice.call(svg.querySelectorAll('.eg-line'));
+    paths.forEach(function(pa){ var len = pa.getTotalLength(); pa.style.strokeDasharray = len; pa.style.strokeDashoffset = len; });
+    legend.querySelectorAll('.eg-chip').forEach(function(chip){
+      function hot(on){
+        svg.classList.toggle('eg-hover', on);
+        svg.querySelectorAll('[data-pid]').forEach(function(e){ e.classList.toggle('eg-hot', on && e.getAttribute('data-pid') === chip.getAttribute('data-pid')); });
+      }
+      chip.addEventListener('mouseenter', function(){ hot(true); });
+      chip.addEventListener('mouseleave', function(){ hot(false); });
+    });
+  } else { wrap.style.display = 'none'; legend.innerHTML = ''; }
+  function drawLines(){ paths.forEach(function(pa){ pa.style.strokeDashoffset = 0; }); }
+
+  // ---- awards, stats, story ----
+  document.getElementById('eg-awards-grid').innerHTML = (summary.awards || []).map(function(a){
+    return '<div class="eg-award"><div class="eg-award-icon">'+(EG_AWARD_ICON[a.key] || '\u2605')+'</div><div class="eg-award-title">'+escapeHtmlMp(a.title)+'</div><div class="eg-award-name">'+escapeHtmlMp(a.name)+'</div><div class="eg-award-blurb">'+escapeHtmlMp(a.blurb)+'</div></div>';
+  }).join('');
+  document.getElementById('eg-awards').style.display = (summary.awards || []).length ? '' : 'none';
+  var st = summary.stats || {};
+  var statDefs = [['Rounds', st.rounds], ['Lines of talk', st.messages], ['Accusations', st.accusations], ['Votes cast', st.votesCast], ['Polls asked', st.polls], ['Whispers', st.whispers]];
+  document.getElementById('eg-stats-row').innerHTML = statDefs.map(function(d){ return '<div class="eg-stat"><b data-v="'+(d[1]||0)+'">0</b><span>'+d[0]+'</span></div>'; }).join('');
+  var byRound = {}, order2 = [];
+  (summary.timeline || []).forEach(function(line){
+    var m = line.match(/^Night (\d+) \/ (.*)$/);
+    var rn = m ? m[1] : '?', text = m ? m[2] : line;
+    var c = classifyLogEntry(text); if(c.private) return;
+    if(!byRound[rn]){ byRound[rn] = []; order2.push(rn); }
+    byRound[rn].push(text);
+  });
+  document.getElementById('eg-timeline').innerHTML = order2.map(function(rn){
+    return '<div class="eg-tl-round">Round '+rn+'</div>' + byRound[rn].map(function(t){ return '<div class="eg-tl-line">'+escapeHtmlMp(t)+'</div>'; }).join('');
+  }).join('') || '<p class="eg-label">Nothing on record.</p>';
+
+  // ---- buttons ----
+  document.getElementById('eg-play-again').style.display = (myRoomCode && amHost) ? 'inline-block' : 'none';
+  document.getElementById('eg-waiting').style.display = (myRoomCode && !amHost) ? 'block' : 'none';
+  document.getElementById('eg-leave').style.display = myRoomCode ? 'inline-block' : 'none';
+
+  // ---- the show ----
+  var nCast = summary.players.length;
+  var t = 0;
+  egAt(t, function(){ egRevealSection('eg-hero'); });
+  t = 2800;
+  egAt(t, function(){ egRevealSection('eg-cast'); });
+  t += 700;
+  document.querySelectorAll('#endgame-screen .eg-card').forEach(function(card, i){
+    egAt(t + i * 150, function(){ card.classList.add('flipped'); SoundFX.playFlip(); });
+  });
+  t += nCast * 150 + 1400;
+  egAt(t, function(){ egRevealSection('eg-points'); growBars(); });
+  egAt(t + 1800, drawLines);
+  t += 5200;
+  egAt(t, function(){ egRevealSection('eg-awards'); });
+  document.querySelectorAll('#endgame-screen .eg-award').forEach(function(a, i){ egAt(t + 500 + i * 380, function(){ a.classList.add('eg-in'); SoundFX.playFlip(); }); });
+  t += 700 + (summary.awards || []).length * 380 + 900;
+  egAt(t, function(){
+    egRevealSection('eg-stats');
+    document.querySelectorAll('#eg-stats-row b').forEach(function(b){ egCountUp(b, Number(b.getAttribute('data-v')), 1200); });
+  });
+  t += 2600;
+  egAt(t, function(){ egRevealSection('eg-story'); });
+  t += 1500;
+  egAt(t, function(){ egRevealSection('eg-actions'); });
+  // skip: everything at once
+  egSkipFn = function(){
+    egClearTimers();
+    scr.classList.add('eg-instant');
+    document.querySelectorAll('#endgame-screen .eg-sec, #endgame-screen .eg-award').forEach(function(e){ e.classList.add('eg-in'); });
+    document.querySelectorAll('#endgame-screen .eg-card').forEach(function(c){ c.classList.add('flipped'); });
+    growBars(); drawLines();
+    document.querySelectorAll('#eg-stats-row b').forEach(function(b){ b.textContent = b.getAttribute('data-v'); });
+    document.querySelectorAll('#eg-bars .eg-bar-val').forEach(function(b){ b.textContent = b.getAttribute('data-v'); });
+    document.getElementById('eg-scroll').scrollTop = 0;
+  };
+}
+var egSkipFn = null;
+function showEndgame(view){
+  egView = view;
+  var key = view.night + ':' + view.winner;
+  var scr = document.getElementById('endgame-screen');
+  if(egDismissedKey === key) return;
+  if(egBuiltKey === key && scr.style.display === 'block') return;
+  scr.style.display = 'block';
+  if(latestSummary) buildEndgame(latestSummary);
+}
+document.getElementById('eg-scroll').addEventListener('wheel', function(){ egFollow = false; }, {passive:true});
+document.getElementById('eg-scroll').addEventListener('touchmove', function(){ egFollow = false; }, {passive:true});
+document.getElementById('eg-skip').addEventListener('click', function(){ egFollow = false; if(egSkipFn) egSkipFn(); });
+document.getElementById('eg-close').addEventListener('click', function(){
+  if(egView) egDismissedKey = egView.night + ':' + egView.winner;
+  hideEndgame();
+});
+document.getElementById('eg-play-again').addEventListener('click', function(){ document.getElementById('play-again-btn').click(); });
+document.getElementById('eg-save').addEventListener('click', function(){ document.getElementById('share-summary-btn').click(); });
+document.getElementById('eg-leave').addEventListener('click', function(){ hideEndgame(); goToHome(); });
+document.getElementById('eg-reopen-btn').addEventListener('click', function(){
+  if(!egView) return;
+  egDismissedKey = null; egBuiltKey = null;
+  showEndgame(egView);
+  if(egSkipFn) egSkipFn();
+});
+
 var HEAT_COLORS = ['#4a8fd6', '#4cb3a5', '#e3c23a', '#ee8a2b', '#d9362b'];
 var HEAT_NAMES = ['Cold', 'Cool', 'Warm', 'Hot', 'Scalding'];
-var HEAT_RANGES = [0, 1, 2.5, 4.5, 7, 12];
+var HEAT_RANGES = [0, 0.08, 0.2, 0.35, 0.55, 0.9];   // share of the table (matches the server's thresholds)
 var lastHeatLevel = null;
 function heatPlural(n, word){ return n + ' ' + word + (n === 1 ? '' : 's'); }
 function renderHeat(heat){
@@ -7853,17 +8250,24 @@ function renderHeat(heat){
   else { level = 0; score = 0; }
   document.getElementById('heat-label').textContent = self ? 'Your heat' : (who ? 'Hottest: ' + who : 'The spirits see no heat');
   var lvEl = document.getElementById('heat-level');
-  lvEl.textContent = HEAT_NAMES[level];
+  var pct = self ? (heat.percent != null ? heat.percent : Math.round(score * 100)) : (heat.hottest && heat.hottest.percent != null ? heat.hottest.percent : Math.round(score * 100));
+  lvEl.textContent = HEAT_NAMES[level] + ' \u00b7 ' + pct + '%';
   el.style.setProperty('--heat-color', HEAT_COLORS[level]);
   el.style.setProperty('--heat-scale', String(0.7 + level * 0.18));
   el.classList.toggle('heat-scalding', level >= 4);
-  el.querySelectorAll('.heat-seg').forEach(function(seg){ seg.classList.toggle('lit', Number(seg.getAttribute('data-l')) <= level); });
+  // every segment fills in fine steps: full below your level, part-filled at it, empty above
+  el.querySelectorAll('.heat-seg').forEach(function(seg){
+    var i = Number(seg.getAttribute('data-l'));
+    var f = Math.max(0, Math.min(1, (score - HEAT_RANGES[i]) / (HEAT_RANGES[i + 1] - HEAT_RANGES[i])));
+    seg.style.setProperty('--f', f.toFixed(3));
+  });
   var span = HEAT_RANGES[level + 1] - HEAT_RANGES[level];
   var frac = Math.max(0, Math.min(1, (score - HEAT_RANGES[level]) / span));
   document.getElementById('heat-marker').style.left = Math.min(98, (level + frac) * 20 + 0.5) + '%';
   // what's behind the number
   var lines = [];
   if(self){
+    lines.push('<b>' + pct + '% of the table</b> is leaning on you (' + heatPlural(heat.others || 0, 'other player') + ' left to be against you).');
     lines.push('<b>Accused today by:</b> ' + (heat.accusedToday && heat.accusedToday.length ? heat.accusedToday.map(escapeHtmlMp).join(', ') : 'nobody yet'));
     if(heat.accusedEarlier) lines.push('Accused on earlier days: ' + heat.accusedEarlier + ' (fading)');
     if(heat.votesLast || heat.votesEarlier) lines.push('<b>Votes against you:</b> ' + heatPlural(heat.votesLast, 'vote') + ' yesterday' + (heat.votesEarlier ? ', ' + heat.votesEarlier + ' before that' : ''));
@@ -8121,6 +8525,7 @@ function renderDayPanel(){
 
 function renderFromServerView(view){
   var prev = previousView;
+  if(!view.gameOver && (latestSummary || egBuiltKey)){ latestSummary = null; egBuiltKey = null; egDismissedKey = null; hideEndgame(); }
   var prevMe = prev ? meFromView(prev) : null;
   latestView = view;
   var me = meFromView(view);
@@ -8415,6 +8820,7 @@ async function renderEnd(view){
     waitingMsg.style.display = 'none';
     leaveBtn.style.display = 'none';
   }
+  showEndgame(view);   // the animated results screen
 }
 
 function submitNightAction(){

@@ -620,6 +620,10 @@ function finishRoundScoring(room, dayResult, revengeResult) {
   const roundScores = Scoring.scoreRound(room.state, {
     night, nightResult: room.lastNightResult || {}, dayResult, revengeResult: revengeResult || null
   });
+  // every seat's running total after this round - the end-of-game points graph is drawn from these
+  room.allCum = room.allCum || {}; room.scoreRounds = room.scoreRounds || [];
+  Object.keys(roundScores).forEach(id => { room.allCum[id] = (room.allCum[id] || 0) + (roundScores[id] ? roundScores[id].total : 0); });
+  room.scoreRounds.push({ night, cum: Object.assign({}, room.allCum) });
   room.players.forEach(rp => {
     const entry = roundScores[rp.id];
     room.cumulativeScores[rp.id] = (room.cumulativeScores[rp.id] || 0) + (entry ? entry.total : 0);
@@ -702,6 +706,9 @@ function endGame(room) {
   clearPhaseTimer(room);
   room.phaseEndsAt = null;
   sendGameState(room);
+  // The full story of the game for the end screen: winners, every role, points per round, awards.
+  room.lastSummary = G.buildGameSummary(room.state, room.scoreRounds || []);
+  broadcastRoom(room, { type: 'gameSummary', summary: room.lastSummary });
   // Each real player's total across the whole just-finished game, so the
   // client can fold it into its own local (Task 21) average-score tracking.
   room.players.forEach(rp => {
@@ -852,6 +859,7 @@ wss.on('connection', (socket) => {
       socket.playerId = playerId;
       socket.send(JSON.stringify({ type: 'rejoined', roomCode: code, playerId, started: true, voiceEnabled: !!room.voiceEnabled }));
       sendGameState(room);
+      if (room.state.gameOver && room.lastSummary) socket.send(JSON.stringify({ type: 'gameSummary', summary: room.lastSummary }));
       if (room.stage) broadcastStageState(room);
       console.log(`${sp.name} reconnected to room ${code}`);
     }
@@ -1117,6 +1125,7 @@ wss.on('connection', (socket) => {
       }
 
       room.started = true;
+      room.scoreRounds = []; room.allCum = {}; room.lastSummary = null;
       room.lobbyChat = [];   // the lobby chat belongs to that waiting period only - never carries into a game or the next lobby
       room.state = state;
       room.cumulativeScores = {};
@@ -1143,6 +1152,7 @@ wss.on('connection', (socket) => {
       room.lastNightResult = null;
       room.lastDayResult = null;
       room.lobbyChat = [];   // fresh lobby chat for the next game
+      room.scoreRounds = []; room.allCum = {}; room.lastSummary = null;
       // Same room, same players, same host - just back to the lobby with
       // last game's presets pre-filled so the host doesn't have to redo them.
       room.players.forEach(rp => {

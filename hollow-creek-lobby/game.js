@@ -1164,7 +1164,10 @@ function firstAccuserOf(state, targetId, night){
 //   someone defends you     -0.5 each,  supports you -0.25 each (today)
 // Everything halves for each day it is old, and heat never drops below zero.
 const HEAT_LEVELS = ['Cold', 'Cool', 'Warm', 'Hot', 'Scalding'];
-const HEAT_THRESHOLDS = [0, 1, 2.5, 4.5, 7];
+// Heat is measured against how many people are left to be against you: the same attention that is
+// background noise at a full table is deadly when six are left. The score is the weighted pile of
+// accusations/votes divided by the other living players (0.35 = about a third of the table).
+const HEAT_THRESHOLDS = [0, 0.08, 0.2, 0.35, 0.55];
 function heatLevelFor(score){
   let lv = 0;
   for(let i=0;i<HEAT_THRESHOLDS.length;i++) if(score >= HEAT_THRESHOLDS[i]) lv = i;
@@ -1212,8 +1215,10 @@ function computeHeat(state, playerId){
     if(e.defendedId === playerId && !defSeen.has(e.playerId)){ defSeen.add(e.playerId); defenders++; score -= 0.5; }
     else if(e.supportedId === playerId && !supSeen.has(e.playerId)){ supSeen.add(e.playerId); supporters++; score -= 0.25; }
   });
-  score = Math.max(0, Math.round(score * 10) / 10);
-  return { score, level: heatLevelFor(score), accusedToday, accusedEarlier, votesLast, votesEarlier, nearMiss, defenders, supporters };
+  // ...as a share of everyone who could be against you (the other living players)
+  const others = Math.max(1, state.players.filter(p => p.alive && p.id !== playerId).length);
+  score = Math.max(0, Math.round((score / others) * 1000) / 1000);
+  return { score, percent: Math.round(score * 100), others, level: heatLevelFor(score), accusedToday, accusedEarlier, votesLast, votesEarlier, nearMiss, defenders, supporters };
 }
 // What one viewer is shown: their own heat while alive; once dead, the hottest living player's.
 function heatForView(state, viewerSeat){
@@ -1223,14 +1228,80 @@ function heatForView(state, viewerSeat){
   state.players.forEach(p => {
     if(!p.alive) return;
     const h = computeHeat(state, p.id);
-    if(!hot || h.score > hot.score) hot = { score: h.score, level: h.level, name: p.name };
+    if(!hot || h.score > hot.score) hot = { score: h.score, percent: h.percent, level: h.level, name: p.name };
   });
   return { self: false, hottest: hot };
 }
 
+// ---------- End-of-game summary: who won, who everyone was, points, awards ----------
+// scoreRounds = [{night, cum:{playerId: cumulativePoints}}] kept by the server after every round.
+function buildGameSummary(state, scoreRounds){
+  scoreRounds = scoreRounds || [];
+  const winner = state.winner;
+  const won = p => winner === 'town' ? p.align === 'town' : winner === 'mafia' ? p.align === 'mafia' : winner === 'cult' ? p.align === 'cult' : winner === 'bounty' ? p.role === 'BountyHunter' : false;
+  const totals = scoreRounds.length ? scoreRounds[scoreRounds.length - 1].cum : {};
+  const players = state.players.map(p => ({
+    id: p.id, name: p.name, role: p.role, align: p.align, alive: p.alive, isPlaceholder: !!p.isPlaceholder,
+    avatarKey: p.avatarKey, gameIconKey: p.gameIconKey, color: p.color, won: won(p), total: totals[p.id] || 0
+  }));
+  const humans = players.filter(p => !p.isPlaceholder);
+  const nameOf = id => { const p = players.find(q => q.id === id); return p ? p.name : '?'; };
+  const topOf = (counts, min, humansOnly) => {
+    let best = null;
+    Object.keys(counts).forEach(id => {
+      const p = players.find(q => q.id === id);
+      if(!p || (humansOnly && p.isPlaceholder)) return;
+      if(counts[id] >= min && (!best || counts[id] > best.value)) best = { id, value: counts[id] };
+    });
+    return best;
+  };
+  const bump = (m, k) => { if(k) m[k] = (m[k] || 0) + 1; };
+  // accusations: once per accuser, target and day
+  const acc = new Set(); const accusedBy = {}, accusersMade = {};
+  (state.accusationLog || []).forEach(e => {
+    const key = e.accuserId + '>' + e.targetId + ':' + e.night;
+    if(acc.has(key)) return; acc.add(key);
+    bump(accusedBy, e.targetId); bump(accusersMade, e.accuserId);
+  });
+  const votedAgainst = {};
+  (state.voteHistory || []).forEach(v => { if(v.targetId) bump(votedAgainst, v.targetId); });
+  const talk = {}, defended = {};
+  (state.chatLog || []).forEach(e => {
+    if(!e || e.kind) return;
+    bump(talk, e.playerId);
+    if(e.defendedId && e.defendedId !== e.playerId) bump(defended, e.playerId);
+  });
+  const awards = [];
+  const addAward = (key, title, hit, blurb) => { if(hit) awards.push({ key, title, playerId: hit.id, name: nameOf(hit.id), value: hit.value, blurb: blurb(hit.value) }); };
+  const scoreCounts = {}; humans.forEach(p => { scoreCounts[p.id] = p.total; });
+  const mvp = humans.length ? humans.slice().sort((a, b) => b.total - a.total)[0] : null;
+  if(mvp) addAward('mvp', 'MVP', { id: mvp.id, value: mvp.total }, v => v + ' points - the best player of the game');
+  addAward('mostAccused', 'Most Wanted', topOf(accusedBy, 2, false), v => 'accused by ' + v + ' different players');
+  addAward('mostVoted', 'Public Enemy No. 1', topOf(votedAgainst, 2, false), v => v + ' votes against them over the game');
+  addAward('prosecutor', 'The Prosecutor', topOf(accusersMade, 2, true), v => 'pointed the finger ' + v + ' times');
+  addAward('chatterbox', 'Chatterbox', topOf(talk, 3, true), v => v + ' lines of talk');
+  addAward('defender', 'Defense Attorney', topOf(defended, 1, true), v => 'stood up for others ' + v + (v === 1 ? ' time' : ' times'));
+  const chatLines = (state.chatLog || []).filter(e => e && !e.kind).length;
+  return {
+    winner,
+    rounds: state.night,
+    players,
+    awards,
+    scoreRounds: scoreRounds.map(r => ({ night: r.night, cum: r.cum })),
+    stats: {
+      rounds: state.night, messages: chatLines,
+      accusations: acc.size,
+      votesCast: (state.voteHistory || []).filter(v => v.targetId).length,
+      polls: (state.chatLog || []).filter(e => e && e.kind === 'poll').length,
+      whispers: (state.whisperLog || []).length
+    },
+    timeline: (state.history || []).slice()
+  };
+}
+
 function getPlayerView(state, playerId){
   const me = byId(state, playerId);
-  const seeAllRoles = !me || !me.alive; // dead players get a full spectator view
+  const seeAllRoles = !me || !me.alive || state.gameOver; // dead players get a full spectator view; everyone sees every role once the game is over
   // A living mafia-aligned player sees their living teammates too - the family
   // has to be able to coordinate a kill and avoid targeting its own.
   const iAmMafia = me && me.alive && me.align === 'mafia';
@@ -1320,7 +1391,7 @@ function getPlayerView(state, playerId){
 
 module.exports = {
   CHARACTERS, ROLE_LABEL, SPECIAL_ROLES, MIN_PLAYERS, MAX_PLAYERS, MAX_MAFIA_COUNT, DEFAULT_ROLES_CONFIG,
-  HEAT_LEVELS, computeHeat, heatForView,
+  HEAT_LEVELS, computeHeat, heatForView, buildGameSummary,
   shuffle, alignOf, createGame, byId, living, mafiaAlive, cultAlive, mafiaVoters, checkWin, checkBountyHit, checkGrannyFlip,
   detectiveRead, investigateAndRead, resolveNight, resolveDayVote, resolveFarmerRevenge, startNextNight,
   getPlayerView, log, specialRoleCount, validateSeatCapacity,
