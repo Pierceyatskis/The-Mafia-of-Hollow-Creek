@@ -29,7 +29,7 @@ const ROLE_LABEL = {
 const SPECIAL_ROLES = ['Godfather','Mafia','DoubleAgent','Detective','Doctor','Miller','BountyHunter','CrazyGranny','Coward','Farmer','NavySeal','Vigilante','Consigliere','Mayor','Mortician','Framer','Hitman','CultLeader'];
 
 const MIN_PLAYERS = 6;
-const MAX_PLAYERS = CHARACTERS.length + 1; // +1 for at least one real seat beyond the character pool isn't needed; kept for parity with single-player (12)
+const MAX_PLAYERS = 16;   // a lobby holds up to 16 (the day-page player grid pages through them 6 at a time)
 const MAX_MAFIA_COUNT = 4;
 
 const DEFAULT_ROLES_CONFIG = {Godfather:true, DoubleAgent:true, Detective:true, Doctor:true, Miller:true, BountyHunter:true, CrazyGranny:true, Coward:false, Farmer:false, NavySeal:false, Vigilante:false, Consigliere:false, Mayor:false, Mortician:false, Framer:false, Hitman:false, CultLeader:false};

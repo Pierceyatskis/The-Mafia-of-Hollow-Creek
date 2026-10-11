@@ -848,6 +848,28 @@ async function testSpeakerSeconds() {
   [host, guest].forEach(p => { try { p.ws.close(); } catch (e) {} });
 }
 
+// ============================================================
+// A lobby holds up to 16 players; the 17th is turned away, and a 16-seat game starts.
+// ============================================================
+async function testSixteenPlayerLobby() {
+  const host = await createRoom('Sx1');
+  const players = [host];
+  for (let i = 2; i <= 16; i++) {
+    const p = await joinRoom(host.roomCode, 'Sx' + i);
+    assert(!p.error, 'player ' + i + ' of 16 can join');
+    players.push(p);
+  }
+  const extra = await joinRoom(host.roomCode, 'Sx17');
+  assert(/full/i.test(extra.error || ''), 'the 17th player is told the room is full');
+  try { extra.ws.close(); } catch (e) {}
+  const roles = { Godfather: false, DoubleAgent: false, Detective: false, Doctor: false, Miller: false, BountyHunter: false, CrazyGranny: false, Coward: false, Farmer: false, NavySeal: false };
+  const started = Promise.all(players.map(p => once(p.ws, m => m.type === 'gameState', 5000)));
+  send(host.ws, { type: 'start', playerCount: 16, mafiaCount: 3, roles });
+  const states = await started;
+  assert(states.every(r => r.view.players.length === 16), 'a 16-player game starts with all 16 seats');
+  players.forEach(p => { try { p.ws.close(); } catch (e) {} });
+}
+
 async function main() {
   await testUndercapacityStartRejected();
   await testCustomRolesEnabled();
@@ -864,6 +886,7 @@ async function main() {
   await testNameCapAndOwnerAvatar();
   await testChatStancesPollsAndLobbyChat();
   await testSpeakerSeconds();
+  await testSixteenPlayerLobby();
   await testStageTimerOnPromotedSpeaker();
   await testDayChatAccusationTag();
   await testRoundScoreBreakdown();

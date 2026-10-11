@@ -189,7 +189,7 @@ body.game-mode{height:100%; overflow:hidden;}
    left/top/width match the frame img exactly, height is the measured
    header-band offset (77.03px, i.e. the same top fraction used for the
    grid interior below it: 0.1150 of the frame's 669.68px rendered height). */
-#design-canvas.bg-day #daylayout-roster-title{display:flex; position:absolute; left:2px; top:175px; width:624px; height:79.7px; margin:0; align-items:center; justify-content:center; font-family:var(--font-type); font-size:30px; letter-spacing:2px; text-transform:uppercase; color:var(--gold-bright); text-align:center; z-index:3;}
+#design-canvas.bg-day #daylayout-roster-title{display:flex; position:absolute; left:0px; top:175px; width:626px; height:80.6px; margin:0; align-items:center; justify-content:center; font-family:var(--font-type); font-size:30px; letter-spacing:2px; text-transform:uppercase; color:var(--gold-bright); text-align:center; z-index:3;}
 #daylayout-roster-frame{display:none;}
 /* TEMP day-layout-rebuild step 19 - swapped ee01c8ac (near-square,
    506px-tall interior, hard-capped 4-per-row cards at ~82x165) for
@@ -204,7 +204,8 @@ body.game-mode{height:100%; overflow:hidden;}
    is deliberately modest: trimmed the outer margin and the cabinet-
    clearance gap rather than touching the cabinet itself. Height still
    follows the asset's own aspect ratio automatically. */
-#design-canvas.bg-day #daylayout-roster-frame{display:block; position:absolute; left:2px; top:175px; width:624px; height:auto; z-index:2;}
+/* The old roster frame art was trimmed too tight: its corner scrollwork was cut off at the left and right edges. This uses the same complete frame as Town Talk (transparent margin all round, so nothing clips). */
+#design-canvas.bg-day #daylayout-roster-frame{display:block; position:absolute; left:0px; top:175px; width:626px; height:auto; z-index:2;}
 /* TEMP day-layout-rebuild step 17 - step 16 filled the full interior box
    in both axes, which squashed cards to ~0.82 ratio (near-square) -
    wrong, per explicit direction they need to stay true 1:2 tall
@@ -247,7 +248,15 @@ body.game-mode{height:100%; overflow:hidden;}
    rendered size - tile height is still solved from 3 rows/14px gaps
    filling the interior height, tile width follows from cardFrameTight's
    fixed 308:463 ratio, same method as the original sizing pass. */
-#design-canvas.bg-day #daylayout-roster-grid{display:grid; position:absolute; left:23.65px; top:254.7px; width:581.88px; height:590.51px; grid-template-columns:repeat(4, 124.73px); justify-content:center; gap:14px; z-index:3;}
+/* Interior of the complete frame = Town Talk's interior scaled to 626px wide (24px in, 80.6px down, 578 x 525). Six cards per slide, 3 x 2, then a bar for the page arrows. */
+#design-canvas.bg-day #daylayout-roster-grid{display:grid; position:absolute; left:24px; top:261px; width:578px; height:476px; grid-template-columns:repeat(3, 154.3px); grid-template-rows:repeat(2, 232px); justify-content:space-evenly; gap:12px 0; z-index:3;}
+#daylayout-roster-nav{display:none;}
+#design-canvas.bg-day #daylayout-roster-nav{display:flex; position:absolute; left:24px; top:741px; width:578px; height:36px; align-items:center; justify-content:center; gap:22px; z-index:4; pointer-events:auto;}
+.roster-nav-btn{width:60px; height:32px; border:1px solid var(--gold-dim); border-radius:6px; background:linear-gradient(#3b2d1c,#241a10); color:var(--gold-bright); font-size:18px; line-height:1; cursor:pointer; padding:0;}
+.roster-nav-btn:hover:not(:disabled){border-color:var(--gold-bright); filter:brightness(1.25);}
+.roster-nav-btn:active:not(:disabled){transform:translateY(1px) scale(0.97);}
+.roster-nav-btn:disabled{opacity:0.35; cursor:default;}
+#roster-page-label{min-width:92px; text-align:center; font-family:var(--font-type); font-size:13px; letter-spacing:1px; text-transform:uppercase; color:var(--parchment-dim);}
 .daylayout-roster-tile{position:relative; aspect-ratio:308/463;}
 .daylayout-roster-tile.is-clickable{cursor:pointer; transition:transform .15s ease, box-shadow .15s ease; border-radius:4px;}
 .daylayout-roster-tile.is-clickable:hover{transform:translateY(-2px); box-shadow:0 0 0 2px rgba(227,177,85,0.4), 0 4px 8px rgba(0,0,0,0.3);}
@@ -262,12 +271,24 @@ body.game-mode{height:100%; overflow:hidden;}
    tints the portrait red without fully hiding it, unlike an opaque box. */
 .daylayout-roster-tile-death-tint{position:absolute; left:12.01%; top:10.58%; width:75.98%; height:61.34%; background:#8f0f0f; mix-blend-mode:multiply; opacity:0.62; z-index:2; pointer-events:none;}
 .daylayout-roster-tile-frame{position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:3;}
+/* Checkmark on the brass stud right of the picture window: this player has cast their vote. */
+.daylayout-roster-tile-check{position:absolute; left:81%; top:-0.5%; width:18%; aspect-ratio:1/1; z-index:5; pointer-events:none; filter:drop-shadow(0 1px 2px rgba(0,0,0,0.8));}
+.daylayout-roster-tile-check img{width:100%; height:100%; object-fit:contain; display:block;}
+.daylayout-roster-tile.is-my-vote{box-shadow:0 0 0 2px var(--gold-bright), 0 0 12px 2px rgba(227,177,85,0.55); border-radius:4px;}
+/* "Vote for..." quick-vote mode: the pickable game icons pulse; clicking one casts the vote. */
+.daylayout-roster-tile.qv-target{cursor:pointer; animation:rosterQvPulse 1.1s ease-in-out infinite;}
+@keyframes rosterQvPulse{0%,100%{transform:scale(1); box-shadow:0 0 0 0 rgba(227,177,85,0);} 50%{transform:scale(1.045); box-shadow:0 0 16px 4px rgba(227,177,85,0.75);}}
+body.force-reduced-motion .daylayout-roster-tile.qv-target{animation:none; box-shadow:0 0 0 3px var(--gold-bright);}
+#design-canvas.bg-day #day-quick-vote-btn{position:absolute; left:1091px; top:807px; width:150px; height:41px; pointer-events:auto; font-size:13px; z-index:4;}
+#day-quick-vote-btn{display:none;}
+#design-canvas.bg-day #vote-section #day-quick-vote-btn{display:block;}
+#day-quick-vote-btn.active{filter:brightness(1.35) saturate(1.2); transform:translateY(1px);}
 /* Name box top/height narrowed from the plate's full 76.67%-91.79% span
    to 83.8%-94.2% (pixel-scanned: the plate's own corner rivets sit right
    at its top seam, ~355-388px of 463, and again near the bottom seam
    past ~436px - centering text in the full plate put it right against
    the top rivets. 83.8%-94.2% is the actual clear tan band between them. */
-.daylayout-roster-tile-name{position:absolute; left:6.82%; top:83.8%; width:85.39%; height:10.4%; z-index:4; display:flex; align-items:center; justify-content:center; text-align:center; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; font-family:var(--font-type); font-weight:700; letter-spacing:0.3px; text-transform:uppercase; font-size:11px; color:#3a2a18; padding:0 4px; box-sizing:border-box; pointer-events:none;}
+.daylayout-roster-tile-name{position:absolute; left:6.82%; top:83.8%; width:85.39%; height:10.4%; z-index:4; display:flex; align-items:center; justify-content:center; text-align:center; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; font-family:var(--font-type); font-weight:700; letter-spacing:0.3px; text-transform:uppercase; font-size:12.5px; color:#3a2a18; padding:0 4px; box-sizing:border-box; pointer-events:none;}
 /* Right column ("Town Talk" chat) - reuses ee01c8ac (the frame the roster
    itself used before it swapped to 5bcf2925), same 603px-max-width
    ceiling mirrored on the right side of the cabinet (cabinet's right
@@ -573,7 +594,7 @@ body.game-mode{height:100%; overflow:hidden;}
 #daylayout-stage-queue{position:absolute; left:955px; top:552px; width:185px; z-index:2; font-family:var(--font-type); text-align:left;}
 #daylayout-stage-queue-title{margin:0 0 3px; font-size:13px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--gold-bright);}
 #daylayout-stage-queue-rule{width:100%; height:1px; background:rgba(232,223,199,0.4); margin-bottom:6px;}
-.daylayout-stage-queue-row{display:flex; align-items:center; gap:7px; margin-bottom:5px;}
+.daylayout-stage-queue-row{display:flex; align-items:center; gap:7px; margin-bottom:3px;}
 .daylayout-stage-queue-num{flex-shrink:0; width:16px; height:16px; background:rgba(0,0,0,0.4); border:1px solid var(--gold-dim); border-radius:2px; display:flex; align-items:center; justify-content:center; font-size:10.5px; font-weight:700; color:var(--gold-bright);}
 .daylayout-stage-queue-text{font-size:11.5px; color:var(--parchment);}
 .daylayout-stage-queue-text.is-empty{font-style:italic; color:var(--parchment-dim);}
@@ -981,7 +1002,7 @@ body.force-reduced-motion .ballot-box-seal.playing{animation:none !important; op
    (the brief's "dim the interface, keep it visible behind" requirement)
    unchanged; only the inner content is bespoke. */
 .notebook-overlay{padding:20px; box-sizing:border-box;}
-.notebook-book{position:relative; width:min(94vw, 1500px); aspect-ratio:1600/1067; margin:0 auto; outline:none;}
+.notebook-book{position:relative; width:min(94vw, 1500px); aspect-ratio:1600/1067; margin:0 auto; outline:none; container-type:inline-size;}
 .notebook-view{position:absolute; inset:0; background-size:100% 100%; background-repeat:no-repeat; background-position:center;}
 .notebook-view[hidden]{display:none;}
 @keyframes notebookPageIn{from{opacity:0; transform:scale(0.97) rotateY(-4deg);} to{opacity:1; transform:none;}}
@@ -1020,7 +1041,9 @@ body.force-reduced-motion .notebook-view.notebook-page-turn{animation:none;}
 #death-continue-btn{display:none !important;}
 /* No Confirm Vote button any more: picking a player casts the vote. */
 #day-confirm-btn{display:none !important;}
-#design-canvas.bg-day #daylayout-stage-request-btn{font-family:'Cinzel',Georgia,serif; font-size:11.5px; font-weight:700; letter-spacing:0.6px; text-transform:uppercase; line-height:40px; white-space:nowrap; text-align:center; box-sizing:border-box; padding:0 11px 0 48px; color:#f0d79b; text-shadow:0 1px 1px rgba(60,10,5,0.9), 0 0 3px rgba(60,10,5,0.6);}
+/* The "You've been eliminated" box with the red X is gone: the ghost chat and the dimmed tiles already say it. */
+#dead-notice{display:none !important;}
+#design-canvas.bg-day #daylayout-stage-request-btn{font-family:'Cinzel',Georgia,serif; font-size:11.5px; font-weight:700; letter-spacing:0.6px; text-transform:uppercase; line-height:40px; white-space:nowrap; text-align:center; box-sizing:border-box; padding:0 13px 0 35px; color:#f0d79b; text-shadow:0 1px 1px rgba(60,10,5,0.9), 0 0 3px rgba(60,10,5,0.6);}
 .notebook-vote-nav{background:none; border:1px solid var(--gold-dim); color:var(--gold-bright); border-radius:3px; cursor:pointer; font-size:8px; line-height:1; padding:2px 5px;}
 .notebook-vote-nav:hover:not(:disabled){background:rgba(227,177,85,0.2);}
 .notebook-vote-nav:disabled{opacity:0.3; cursor:default;}
@@ -1124,7 +1147,9 @@ body.force-reduced-motion .notebook-view.notebook-page-turn{animation:none;}
 .notebook-pin-limit-msg{position:absolute; left:8.125%; top:91%; width:36.875%; margin:0; font-family:var(--font-type); font-size:11px; color:var(--danger); text-align:center;}
 .notebook-section-heading{margin:0 0 4px; font-family:var(--font-type); font-weight:400; font-size:12px; letter-spacing:2px; text-transform:uppercase; text-align:center; color:#7a6448;}
 .notebook-notes-section{position:absolute; left:54.75%; top:8.5%; width:37.6%; height:40.7%;}
-.notebook-notes-input{width:100%; height:88%; background:transparent; border:none; resize:none; outline:none; font-family:'Special Elite','Segoe Script',cursive; font-size:clamp(10px, 1.05vw, 14px); color:#2a2015; line-height:2.15; padding:0;}
+/* Lines up with the ruled page art: each text line is exactly one rule apart (2.6cqw = 41.6px of the 1600px page), the textarea starts one line above the first rule and stops at the last rule. */
+.notebook-notes-input{width:100%; height:23cqw; box-sizing:border-box; background:transparent; border:none; resize:none; outline:none; overflow-y:auto; scrollbar-width:none; font-family:'Special Elite','Segoe Script',cursive; font-size:1.15cqw; color:#2a2015; line-height:2.6cqw; padding:2.6cqw 0 0 0;}
+.notebook-notes-input::-webkit-scrollbar{display:none;}
 .notebook-notes-input::placeholder{color:#9a8a70;}
 .notebook-pencil-deco{position:absolute; right:-2%; bottom:-8%; width:30%; pointer-events:none;}
 .notebook-events-section{position:absolute; left:54.75%; top:52.3%; width:37.6%; height:31.6%; overflow-y:auto;}
@@ -1147,7 +1172,7 @@ body.force-reduced-motion .notebook-view.notebook-page-turn{animation:none;}
   .notebook-dossier-portrait-frame,.notebook-dossier-name,.notebook-dossier-status,.notebook-judgment-row,.notebook-vote-btn,.notebook-notes-section,.notebook-events-section,.notebook-dossier-actions,.notebook-pin-limit-msg{position:static; width:auto; margin:10px 16px;}
   .notebook-dossier-portrait-frame{width:140px; margin:10px auto;}
   .notebook-judgment-row{display:flex;}
-  .notebook-notes-input{background:rgba(255,250,235,0.5); border:1px solid rgba(90,70,45,0.3); border-radius:6px; padding:8px; height:120px;}
+  .notebook-notes-input{background:rgba(255,250,235,0.5); border:1px solid rgba(90,70,45,0.3); border-radius:6px; padding:8px; height:120px; line-height:1.5; font-size:14px;}
   .notebook-pencil-deco{display:none;}
   .notebook-events-section{max-height:none; overflow-y:visible;}
   .notebook-pin-toggle{left:auto; right:-6px; top:-6px; width:34px;}
@@ -1955,6 +1980,7 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
 <img id="daylayout-roster-frame" alt="">
 <h2 id="daylayout-roster-title">Town</h2>
 <div id="daylayout-roster-grid"></div>
+<div id="daylayout-roster-nav"><button type="button" class="roster-nav-btn" id="roster-prev-btn" aria-label="Previous players">&#9664;</button><span id="roster-page-label"></span><button type="button" class="roster-nav-btn" id="roster-next-btn" aria-label="More players">&#9654;</button></div>
 </div>
 <img id="daylayout-cabinet-full" alt="">
 <h2 id="daylayout-cabinet-title">Town Bulletin</h2>
@@ -1996,6 +2022,8 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
   <div class="daylayout-stage-queue-row"><span class="daylayout-stage-queue-num">1</span><span id="daylayout-stage-queue-text-1" class="daylayout-stage-queue-text"></span></div>
   <div class="daylayout-stage-queue-row"><span class="daylayout-stage-queue-num">2</span><span id="daylayout-stage-queue-text-2" class="daylayout-stage-queue-text"></span></div>
   <div class="daylayout-stage-queue-row"><span class="daylayout-stage-queue-num">3</span><span id="daylayout-stage-queue-text-3" class="daylayout-stage-queue-text"></span></div>
+  <div class="daylayout-stage-queue-row"><span class="daylayout-stage-queue-num">4</span><span id="daylayout-stage-queue-text-4" class="daylayout-stage-queue-text"></span></div>
+  <div class="daylayout-stage-queue-row"><span class="daylayout-stage-queue-num">5</span><span id="daylayout-stage-queue-text-5" class="daylayout-stage-queue-text"></span></div>
 </div>
 <button id="daylayout-stage-give-time-btn" class="daylayout-btn-fx" type="button" aria-label="Give time to speaker" style="display:none;"></button>
 <button id="daylayout-stage-mute-btn" class="daylayout-btn-fx" type="button" aria-label="Mute speaker">Mute Speaker</button>
@@ -2025,6 +2053,7 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
       </div>
     </div>
     <button class="btn btn-red-wide" id="day-confirm-btn">Confirm Vote</button>
+    <button class="btn btn-red-wide" id="day-quick-vote-btn" type="button">Vote for&hellip;</button>
   </div>
   <div id="mayor-reveal-section" style="display:none;">
     <label>
@@ -3139,13 +3168,13 @@ function newGame(pool, playerCount){
 var LAST_ROLE_POOL = null;
 var LAST_PLAYER_COUNT = null;
 var MIN_PLAYERS = 6;
-var MAX_PLAYERS = CHARACTERS.length + 1;
+var MAX_PLAYERS = 16;
 var MAX_MAFIA_COUNT = 4;
 var MIN_DISCUSS_SECONDS = 30, MAX_DISCUSS_SECONDS = 300, DISCUSS_STEP_SECONDS = 15;
 var MIN_VOTE_SECONDS = 30, MAX_VOTE_SECONDS = 300, VOTE_STEP_SECONDS = 15;
 var MIN_SPEAKER_SECONDS = 10, MAX_SPEAKER_SECONDS = 120, SPEAKER_STEP_SECONDS = 5;
 var GAME_CONFIG = {
-  playerCount: MAX_PLAYERS,
+  playerCount: 12,   // default table size; the host can go up to MAX_PLAYERS (16)
   mafiaCount: 0,
   quickMode: false,
   discussSeconds: 90,
@@ -3327,6 +3356,7 @@ function selectVoteTarget(id){
   if(!id) return;
   pendingDayVoteId = id;
   sendDayVoteNow(true);
+  if(latestView) renderRosterGrid(latestView);
 }
 function sendDayVoteNow(flourish){
   if(!latestView || latestView.phase!=='day-vote') return;
@@ -3574,6 +3604,7 @@ function handleServerMessage(msg){
   } else if(msg.type==='dayVoteProgress'){
     latestDayVoteProgress = msg.votedIds || [];
     renderTownBoard();
+    if(latestView) renderRosterGrid(latestView);   // checkmark on each player's frame as they vote
   } else if(msg.type==='spotlightCounts'){
     latestSpotlightCounts = msg.counts || {};
     renderTownBoard();
@@ -3737,6 +3768,7 @@ function renderPhaseTimer(){
   var phaseStartMs = Date.now();
   var tickStarted = false;
   var riserFired = false;
+  var lastWarnSecond = -1;
   function tick(){
     if(!labelEl) return;
     // No "night"/"day" word here - #phase-label right beside it already
@@ -3751,6 +3783,16 @@ function renderPhaseTimer(){
       labelEl.textContent = base;
     }
     updateRoundStatusBar(phaseStartMs);
+
+    // The clock blinks red for the last 15 seconds of voting - make it audible too.
+    if(latestView && latestView.phase==='day-vote' && phaseEndsAt){
+      var warnLeft = Math.round((phaseEndsAt - Date.now())/1000);
+      var warnMe = meFromView(latestView);
+      if(warnLeft > 0 && warnLeft <= 15 && warnLeft !== lastWarnSecond && warnMe && warnMe.alive){
+        lastWarnSecond = warnLeft;
+        SoundFX.playTimeWarning(warnLeft);
+      }
+    }
 
     if(latestView && latestView.phase==='night' && phaseEndsAt){
       // Escalating tension driven by whichever is closer to running out:
@@ -4032,6 +4074,14 @@ var SoundFX = (function(){
     // scoped to any one player - see the call site for why).
     playMayorTiebreak: function(){ playFile('townBell', 0.5); },
     playDoorCreak: function(){ playFile('doorCreak', 0.6); },
+    // One short beep per second while the voting clock is in its last 15 seconds (higher and doubled for the last 5).
+    playTimeWarning: function(secondsLeft){
+      safe(function(c){
+        var t = c.currentTime, urgent = secondsLeft <= 5;
+        tone(c, urgent ? 1320 : 880, t, 0.09, 'square', urgent ? 0.17 : 0.12);
+        if(urgent) tone(c, 1320, t + 0.15, 0.09, 'square', 0.17);
+      });
+    },
     // You've just been called up from the queue: a clear rising two-chime (twice) so it's noticed even mid-chat.
     playYourTurn: function(){
       safe(function(c){
@@ -7701,39 +7751,91 @@ var BULLETIN_ANNOUNCEMENTS = [
   "Justice moves slow in Hollow Creek, but it moves.",
   "Every soul here has something to hide. Find the one that matters."
 ];
-// TEMP day-layout-rebuild - the 12 card slots now show the real roster
-// (avatar in the cutout window, name on the painted plate) instead of
-// empty frames. Re-rendered every renderDayPanel call rather than once,
-// same as the rest of the day page, since the player list can change.
+// The player grid pages through the table 6 icons at a time (3 x 2), living players
+// first so the first slide is always the people still in the game.
+var ROSTER_PAGE_SIZE = 6;
+var rosterPage = 0;
+var quickVoteMode = false;
+function rosterOrdered(players){
+  var alive = [], dead = [];
+  players.forEach(function(p){ (p.alive ? alive : dead).push(p); });
+  return alive.concat(dead);
+}
+function updateQuickVoteBtn(){
+  var btn = document.getElementById('day-quick-vote-btn');
+  if(!btn) return;
+  btn.classList.toggle('active', quickVoteMode);
+  btn.innerHTML = quickVoteMode ? 'Pick a player&hellip;' : 'Vote for&hellip;';
+}
 function renderRosterGrid(view){
-  var players = (view && view.players) || [];
+  var players = rosterOrdered((view && view.players) || []);
+  var pages = Math.max(1, Math.ceil(players.length / ROSTER_PAGE_SIZE));
+  if(rosterPage >= pages) rosterPage = pages - 1;
+  if(rosterPage < 0) rosterPage = 0;
+  var votedIds = {};
+  if(view && view.phase === 'day-reveal' && view.voteLog){
+    view.voteLog.forEach(function(v){ if(!v.silenced && v.voterId) votedIds[v.voterId] = true; });
+  } else if(view && view.phase === 'day-vote'){
+    (latestDayVoteProgress || []).forEach(function(id){ votedIds[id] = true; });
+  }
+  var voting = !!(view && view.phase === 'day-vote');
+  var iAm = view ? meFromView(view) : null;
+  if(!voting || !iAm || !iAm.alive) quickVoteMode = false;
   var html = '';
-  for(var i=0;i<12;i++){
-    var p = players[i];
+  for(var i=0;i<ROSTER_PAGE_SIZE;i++){
+    var p = players[rosterPage*ROSTER_PAGE_SIZE + i];
     if(p){
       var frameSrc = p.alive ? DAYTIME_IMG.cardFrameTight : DAYTIME_IMG.cardFrameDeadTight;
       var deathTint = p.alive ? '' : '<div class="daylayout-roster-tile-death-tint"></div>';
       var isYou = p.id === myPlayerId;
       var tileLabel = isYou ? 'Your role card' : ("Open "+escapeHtmlMp(p.name)+"'s notebook page");
-      html += '<div class="daylayout-roster-tile is-clickable" data-id="'+p.id+'" role="button" tabindex="0" aria-label="'+tileLabel+'">'
+      var cls = 'daylayout-roster-tile is-clickable';
+      if(quickVoteMode && p.alive && !isYou) cls += ' qv-target';
+      if(voting && pendingDayVoteId === p.id) cls += ' is-my-vote';
+      var check = votedIds[p.id] ? '<span class="daylayout-roster-tile-check"><img src="'+PAINTED_CHECK_IMG+'" alt="voted"></span>' : '';
+      html += '<div class="'+cls+'" data-id="'+p.id+'" role="button" tabindex="0" aria-label="'+tileLabel+'">'
         + '<img class="daylayout-roster-tile-avatar" src="' + portraitImgFor(p) + '" alt="">'
         + deathTint
         + '<img class="daylayout-roster-tile-frame" src="' + frameSrc + '" alt="">'
         + '<div class="daylayout-roster-tile-name">' + escapeHtmlMp(p.name) + '</div>'
+        + check
         + '</div>';
     } else {
       html += '<div class="daylayout-roster-tile"><img class="daylayout-roster-tile-frame" src="' + DAYTIME_IMG.cardFrameTight + '" alt=""></div>';
     }
   }
   document.getElementById('daylayout-roster-grid').innerHTML = html;
+  var prev = document.getElementById('roster-prev-btn'), next = document.getElementById('roster-next-btn');
+  if(prev) prev.disabled = rosterPage <= 0;
+  if(next) next.disabled = rosterPage >= pages - 1;
+  var label = document.getElementById('roster-page-label');
+  if(label) label.textContent = (rosterPage + 1) + ' / ' + pages;
+  var nav = document.getElementById('daylayout-roster-nav');
+  if(nav) nav.style.visibility = pages > 1 ? 'visible' : 'hidden';
+  updateQuickVoteBtn();
 }
+document.getElementById('roster-prev-btn').addEventListener('click', function(){ rosterPage--; SoundFX.click(); if(latestView) renderRosterGrid(latestView); });
+document.getElementById('roster-next-btn').addEventListener('click', function(){ rosterPage++; SoundFX.click(); if(latestView) renderRosterGrid(latestView); });
+document.getElementById('day-quick-vote-btn').addEventListener('click', function(){
+  if(!latestView || latestView.phase !== 'day-vote') return;
+  var me = meFromView(latestView);
+  if(!me || !me.alive) return;
+  quickVoteMode = !quickVoteMode;
+  renderRosterGrid(latestView);
+});
 // Clicking a roster card ("the game icons on the player grid") opens that
 // player's notebook page directly - your own tile still opens your role
-// card instead, same as it always has.
+// card instead. While "Vote for..." is armed, clicking a living player's
+// icon casts the vote for them instead.
 document.getElementById('daylayout-roster-grid').addEventListener('click', function(e){
   var tile = e.target.closest('.daylayout-roster-tile[data-id]');
   if(!tile) return;
   var id = tile.getAttribute('data-id');
+  if(quickVoteMode && tile.classList.contains('qv-target')){
+    quickVoteMode = false;
+    selectVoteTarget(id);     // also re-renders the grid and the ballot
+    return;
+  }
   if(id===myPlayerId){ openRoleCardModal(); return; }
   openNotebookModalToPlayer(id);
 });
@@ -9176,7 +9278,7 @@ function renderStagePanel(){
     daylayoutPolaroid.classList.add('has-speaker');
     daylayoutTimerRow.classList.add('has-speaker');
   }
-  for(var daylayoutQi=0; daylayoutQi<3; daylayoutQi++){
+  for(var daylayoutQi=0; daylayoutQi<5; daylayoutQi++){
     var daylayoutQEl = document.getElementById('daylayout-stage-queue-text-'+(daylayoutQi+1));
     var daylayoutQId = s.queue[daylayoutQi];
     if(daylayoutQId){
@@ -10682,7 +10784,7 @@ var DAYTIME_IMG = {
     'watch-hand-hour': 'watchHourHand', 'watch-hand-minute': 'watchMinuteHand',
     'watch-glow': 'watchGlow', 'role-envelope-sprite': 'envClosed',
     'cabinet-bulletin-bg': 'cabinetBulletin', 'cabinet-stage-bg': 'cabinetStage', 'cabinet-voting-bg': 'cabinetVoting',
-    'vote-confirmed-seal': 'ballotWaxSeal', 'daylayout-news-notification-seal': 'notificationSeal', 'daylayout-cabinet-full': 'cabinetFull', 'daylayout-roster-frame': 'rosterFrame',
+    'vote-confirmed-seal': 'ballotWaxSeal', 'daylayout-news-notification-seal': 'notificationSeal', 'daylayout-cabinet-full': 'cabinetFull', 'daylayout-roster-frame': 'chatPanelFrame',
     'daylayout-timer-bar': 'timerBar', 'daylayout-game-title': 'gameTitle', 'daylayout-chat-frame': 'chatPanelFrame',
     'daylayout-desk-newspaper': 'deskNewspaper', 'daylayout-desk-casefile': 'deskCaseFile',
     'daylayout-desk-notebook': 'deskNotebook', 'daylayout-desk-gear': 'deskGear',
