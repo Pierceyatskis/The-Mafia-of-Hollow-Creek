@@ -400,6 +400,9 @@ async function testPlayAgainSameLobby() {
   const host = await createRoom('PA1');
   const players = [host];
   for (let i = 2; i <= 6; i++) players.push(await joinRoom(host.roomCode, 'PA' + i));
+  const lobbySaid = once(host.ws, m => m.type === 'lobbyChatMsg' && m.text === 'chatter from game one', 3000);
+  send(host.ws, { type: 'lobbyChat', text: 'chatter from game one' });
+  await lobbySaid;
 
   const roles = { Godfather: false, DoubleAgent: false, Detective: false, Doctor: false, Miller: false, BountyHunter: false, CrazyGranny: false, Coward: false, Farmer: false, NavySeal: false };
   const started = Promise.all(players.map(p => once(p.ws, m => m.type === 'gameState')));
@@ -434,8 +437,10 @@ async function testPlayAgainSameLobby() {
   assert(/only the host/i.test(rejection.message || ''), 'Task-PlayAgain: a non-host sending playAgain is rejected with a clear error, not silently honored');
 
   const returnPromise = Promise.all(players.map(p => once(p.ws, m => m.type === 'returnToLobby', 5000)));
+  const lobbyCleared = once(players[1].ws, m => m.type === 'lobbyChatLog', 5000);
   send(host.ws, { type: 'playAgain' });
   const returns = await returnPromise;
+  assert((await lobbyCleared).entries.length === 0, 'Lobby chat is wiped when the room goes back to the lobby: nothing carries over from the previous game');
   assert(returns.every(r => r.roomCode === host.roomCode), 'Task-PlayAgain: every player is returned to the SAME room, not a new one');
   assert(returns.every(r => r.config && r.config.playerCount === 6 && r.config.mafiaCount === 1), 'Task-PlayAgain: the returned config matches the game that just ended (same presets)');
 

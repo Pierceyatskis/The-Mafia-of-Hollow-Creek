@@ -989,6 +989,15 @@ function analyzeChatMessage(text, playerNames, context){
   const qForM = t.match(/\bi have a question for\s+(.+)$/);
   if (qForM) return R('question', targetIn(qForM[1]));
 
+  // Doubting someone's guilt is DEFENDING them, not accusing them: "I don't think it's Joe",
+  // "no way Corky is the mafia", "I do not think Mabel did it". Checked before the accusation rules,
+  // which would otherwise see the name next to a guilt word and file the opposite.
+  const denyM = t.match(/\b(?:i (?:really |honestly |truly |just )?(?:do not|don'?t|dont) (?:think|believe|reckon|see)|i doubt|i highly doubt|no way|there'?s no way|i can'?t see|i cannot see)\b(.*)$/);
+  if (denyM && /\b(?:mafia|maf|killer|guilty|liar|lying|murderer|traitor|culprit|did it|it'?s|it is|its|behind|responsible|vote|voting|lynch|hang|kill|killed|cultist|wolf)\b/.test(denyM[1])) {
+    const who = targetIn(denyM[1]);
+    if (who) return R('defense', who);
+  }
+
   const accuseM = t.match(/\bi accuse\b(.*)$/);
   if (accuseM) return R('accusation', targetIn(accuseM[1]) || targetIn(t));
 
@@ -997,7 +1006,7 @@ function analyzeChatMessage(text, playerNames, context){
     // First few words after "it's", not just the first one - a titled name
     // ("Sister Agatha Pruitt", "Big Tom Yarrow") starts with a stopword that
     // never matches on its own.
-    const capWords = thinkItsMatch[1].trim().split(/\s+/);
+    const capWords = thinkItsMatch[1].trim().split(/\s*(?:[,;]|\band\b|\bbut\b)\s*/)[0].split(/\s+/);
     const cap = capWords.slice(0, 4).join(' ');
     const named = findName(cap) || (PRONOUN_RE.test(capWords[0]) ? mostRecentlyMentioned() : null);
     if (named) return R('accusation', named);
@@ -1037,6 +1046,13 @@ function analyzeChatMessage(text, playerNames, context){
       }
     }
   }
+  // Vouching for someone ("Corky is safe", "I think Joe is fine", "Mabel seems legit") - a defense of
+  // that person whether or not anyone has accused them. Skipped when negated ("is not safe").
+  const vouchM = t.match(/\b(?:is|seems|'s|looks|sounds|seem|are)\b[^.!?,;]*\b(?:innocent|clean|clear|safe|trustworthy|telling the truth|on our side|town|good|fine|legit|legitimate|okay|ok|cool|solid|honest|harmless|no threat|not (?:suspicious|sus)|not (?:the|a) (?:mafia|killer|traitor))\b/);
+  if (vouchM && subjectPresent(t)) {
+    const span = vouchM[0].replace(/not (?:suspicious|sus|the (?:mafia|killer|traitor)|a (?:mafia|killer|traitor))/g, '');
+    if (!NEG_RE.test(span)) return R('trust_statement', targetIn(t.slice(0, vouchM.index)) || targetIn(t));
+  }
   // Calling for a vote/execution of someone ("vote for Corky", "voting Tom",
   // "let's lynch Otis", "I'm going with Dot"). The old rule only matched the
   // literal "vote <word>" - "I'm voting Corky" or "lynch Corky" slipped past.
@@ -1057,10 +1073,8 @@ function analyzeChatMessage(text, playerNames, context){
 
   if (/\b(?:suspicious|sus|acting (?:weird|strange|off)|something'?s off|something is off|seems (?:off|weird|fishy)|why (?:did|would|were) you)\b/.test(t)) return R('suspicion');
 
-  const trustM = t.match(/\b(?:i trust|i vouch for|i believe in)\b(.*)$/);
+  const trustM = t.match(/\b(?:i trust|i vouch for|i believe in|we can trust|you can trust|i'?d trust|i would trust|i'?m trusting)\b(.*)$/);
   if (trustM) return R('trust_statement', targetIn(trustM[1]));
-  const clearM = t.match(/\b(?:is|seems|'s|looks)\b[^.!?]*\b(?:innocent|clean|clear|safe|trustworthy|telling the truth|on our side|town|good)\b/);
-  if (subjectPresent(t) && clearM) return R('trust_statement', targetIn(t.slice(0, clearM.index)) || targetIn(t));
 
   if (/\?\s*$/.test(t) || /^(?:who|what|why|where|when|how|did|do|does|are|is|can|could|would)\b/.test(t)) return R('question');
 

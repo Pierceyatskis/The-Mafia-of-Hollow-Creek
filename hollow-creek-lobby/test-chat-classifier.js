@@ -296,5 +296,21 @@ assert(analyze('he is the mafia', { recentTexts: ['I wonder about Corky'] }).tar
   assert(G.detectAgreementTarget(state, 'I agree', { name:'Ann', text:'I think its Corky' }, 'b') === null, 'D-dead: an accusation of someone since eliminated is not carried over by agreement');
 }
 
+// --- Defending someone never needs a prior accusation: vouching, or doubting their guilt ---
+{
+  const an = (text) => G.analyzeChatMessage(text, NAMES, {}); const cat = (text) => an(text).category;
+  ['I think Corky is safe', 'i think we can trust Corky', 'Corky seems fine to me', 'I think Corky is legit', 'Corky is okay',
+   'Corky is not suspicious', 'Corky is innocent, vote someone else'].forEach(t =>
+    assert(cat(t) === 'trust_statement' && an(t).target === 'Corky Wade', 'E-vouch: "' + t + '" is a defense of Corky even though nobody accused him'));
+  ['i dont think corky is mafia', 'I do not think Corky did it', 'No way Corky is mafia', 'I dont think its Corky'].forEach(t => {
+    const r = G.analyzeChatMessage(t, NAMES, {});
+    assert(r.category === 'defense' && r.target === 'Corky Wade', 'E-deny: "' + t + '" defends Corky (doubting guilt is not accusing)');
+  });
+  ['I think its Corky', 'Corky is the mafia', 'vote Corky', 'Corky did it'].forEach(t =>
+    assert(cat(t) === 'accusation', 'E-keep: "' + t + '" is still an accusation'));
+  assert(cat('Corky is not safe') !== 'trust_statement', 'E-neg: "Corky is not safe" is not a vouch');
+  assert(cat('I dont trust Corky') !== 'trust_statement', 'E-neg2: "I dont trust Corky" is not a vouch');
+}
+
 console.log('\n'+total+' checks run, '+(total-failed)+' passed, '+failed+' failed.');
 if (failed > 0) { console.error('\n'+failed+' FAILED.'); } else { console.log('\nAll classifyChatMessage checks passed.'); }

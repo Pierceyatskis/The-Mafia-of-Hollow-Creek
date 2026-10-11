@@ -1105,6 +1105,7 @@ wss.on('connection', (socket) => {
       }
 
       room.started = true;
+      room.lobbyChat = [];   // the lobby chat belongs to that waiting period only - never carries into a game or the next lobby
       room.state = state;
       room.cumulativeScores = {};
       room.lastNightResult = null;
@@ -1129,6 +1130,7 @@ wss.on('connection', (socket) => {
       room.cumulativeScores = {};
       room.lastNightResult = null;
       room.lastDayResult = null;
+      room.lobbyChat = [];   // fresh lobby chat for the next game
       // Same room, same players, same host - just back to the lobby with
       // last game's presets pre-filled so the host doesn't have to redo them.
       room.players.forEach(rp => {
@@ -1136,6 +1138,7 @@ wss.on('connection', (socket) => {
           rp.socket.send(JSON.stringify({ type: 'returnToLobby', roomCode: socket.roomCode, config: room.lastConfig || null }));
         }
       });
+      broadcastRoom(room, { type: 'lobbyChatLog', entries: [] });
       broadcastRoster(socket.roomCode);
       console.log(`Room ${socket.roomCode} returned to lobby for another round`);
     }
