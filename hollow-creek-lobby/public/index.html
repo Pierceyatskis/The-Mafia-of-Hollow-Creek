@@ -2765,7 +2765,6 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
       </div>
       <div class="poster-actions">
         <button class="btn" id="create-game-btn">Play</button>
-        <button class="btn" id="rejoin-game-btn" style="display:none;">Rejoin Game</button>
         <div class="poster-actions-row">
           <div class="coming-soon-toast" id="coming-soon-toast"></div>
           <button class="btn" id="howto-btn">How to Play</button>
@@ -6850,7 +6849,6 @@ document.getElementById('profile-btn').addEventListener('click', function(){
   renderProfileScreen();
   switchPanel('profile');
 });
-document.getElementById('rejoin-game-btn').addEventListener('click', rejoinLastGame);
 document.getElementById('mpentry-rejoin-btn').addEventListener('click', rejoinLastGame);
 document.getElementById('profile-save-btn').addEventListener('click', function(){
   var name = document.getElementById('profile-username-input').value.trim() || 'Player';
@@ -10042,9 +10040,7 @@ function loadLastGame(){
 }
 function updateRejoinButtons(){
   var g = loadLastGame();
-  var homeBtn = document.getElementById('rejoin-game-btn');
   var entryRow = document.getElementById('mpentry-rejoin');
-  if(homeBtn){ homeBtn.style.display = g ? '' : 'none'; if(g) homeBtn.textContent = 'Rejoin Game ('+g.roomCode+')'; }
   if(entryRow){ entryRow.style.display = g ? 'block' : 'none'; var c=document.getElementById('mpentry-rejoin-code'); if(c && g) c.textContent = g.roomCode; }
 }
 function rejoinLastGame(){
