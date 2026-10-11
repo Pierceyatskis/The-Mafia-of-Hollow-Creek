@@ -411,4 +411,82 @@ const ALL_OFF = {Godfather:false, DoubleAgent:false, Detective:false, Doctor:fal
   });
 })();
 
+// ============================================================
+// Continuous scoring (scoreRoundExtras): small steady points every round, so
+// scores are not "nothing or a ton".
+// ============================================================
+(function testContinuousScoring(){
+  function fresh(prefix){
+    const st = G.createGame(seats(prefix, 8), {playerCount: 8, mafiaCount: 2, roles: Object.assign({}, ALL_OFF)});
+    st.night = 1;
+    return st;
+  }
+  const rule = (scores, id, name) => (scores[id] ? scores[id].breakdown.filter(b => b.rule === name) : []);
+  const vote = (st, voter, target, t) => { G.recordDayVoteSubmission(st, voter.id, target.id); st.voteSubmissionOrder[st.voteSubmissionOrder.length - 1].submittedAt = t; };
+  const st = fresh('cs');
+  const town = st.players.filter(p => p.align === 'town'), mafia = st.players.filter(p => p.align === 'mafia');
+  const [t1, t2, t3] = town;
+  // t1 votes a mafia player the town did NOT lynch, t2 votes a fellow townsperson, t3 abstains but talks
+  vote(st, t1, mafia[0], 1000); vote(st, t2, t3, 2000);
+  [1, 2, 3, 4].forEach(i => st.chatLog.push({playerId: t1.id, name: t1.name, text: 'line ' + i, night: 1}));
+  st.chatLog.push({playerId: t3.id, name: t3.name, text: 'hmm', night: 1});
+  G.recordAccusation(st, t1.id, mafia[0].id);
+  const sc = Scoring.scoreRoundExtras(st, {night: 1, nightResult: {}, dayResult: {lead: t3}});
+  assert(rule(sc, t1.id, 'vote-cast').length === 1 && rule(sc, t2.id, 'vote-cast').length === 1 && rule(sc, t3.id, 'vote-cast').length === 0, 'Extras: voting earns a point, abstaining does not');
+  assert(rule(sc, t1.id, 'spoke-up')[0].points === 2 && rule(sc, t3.id, 'spoke-up')[0].points === 1, 'Extras: talking earns 1 point, a busy discussion 2');
+  assert(rule(sc, t1.id, 'good-read').length === 1 && rule(sc, t1.id, 'good-read')[0].points === 8, 'Extras: voting a guilty player earns a good-read even though the town lynched someone else');
+  assert(rule(sc, t2.id, 'good-read').length === 0, 'Extras: voting a fellow townsperson is not a good read');
+  assert(rule(sc, t1.id, 'sharp-accusation')[0].points === 5, 'Extras: accusing a guilty player (and being first) earns 3 + 2');
+  assert(rule(sc, t1.id, 'survival').length === 1 && rule(sc, mafia[0].id, 'survival').length === 0, 'Extras: living town players earn survival points each round (the mafia have their own curve)');
+  // a lynched mafia player is paid by the town baseline, not paid again as a "good read"
+  const st2 = fresh('cs2');
+  const m2 = st2.players.filter(p => p.align === 'mafia'), tw2 = st2.players.filter(p => p.align === 'town');
+  vote(st2, tw2[0], m2[0], 1000); m2[0].alive = false;
+  const sc2 = Scoring.scoreRoundExtras(st2, {night: 1, nightResult: {}, dayResult: {lead: m2[0]}});
+  assert(rule(sc2, tw2[0].id, 'good-read').length === 0, 'Extras: a successful lynch is not double-paid as a good read');
+  // mafia pressure: the mafia accuses a townsperson the town then piles onto
+  const st3 = fresh('cs3');
+  const m3 = st3.players.filter(p => p.align === 'mafia'), tw3 = st3.players.filter(p => p.align === 'town');
+  G.recordAccusation(st3, m3[0].id, tw3[0].id);
+  vote(st3, tw3[1], tw3[0], 1000); vote(st3, tw3[2], tw3[0], 2000);
+  const sc3 = Scoring.scoreRoundExtras(st3, {night: 1, nightResult: {}, dayResult: {lead: tw3[0]}});
+  assert(rule(sc3, m3[0].id, 'mafia-pressure')[0].points === 3, 'Extras: a mafia player who accused a townsperson the town then piled onto earns pressure points');
+  // defending a friend who is under pressure
+  const st4 = fresh('cs4');
+  const tw4 = st4.players.filter(p => p.align === 'town');
+  G.recordAccusation(st4, st4.players.find(p => p.align === 'mafia').id, tw4[0].id);
+  st4.chatLog.push({playerId: tw4[1].id, name: tw4[1].name, text: 'safe', defendedId: tw4[0].id, night: 1});
+  st4.chatLog.push({playerId: tw4[1].id, name: tw4[1].name, text: 'really safe', defendedId: tw4[0].id, night: 1});
+  st4.chatLog.push({playerId: tw4[2].id, name: tw4[2].name, text: 'safe', defendedId: tw4[3].id, night: 1});   // nobody was after tw4[3]
+  const sc4 = Scoring.scoreRoundExtras(st4, {night: 1, nightResult: {}, dayResult: {}});
+  assert(rule(sc4, tw4[1].id, 'good-defense').length === 1, 'Extras: defending a teammate who was accused earns defence points (once per friend)');
+  assert(rule(sc4, tw4[2].id, 'good-defense').length === 0, 'Extras: defending someone nobody was after earns nothing');
+  // weathering a hot day
+  const st5 = fresh('cs5');
+  const tw5 = st5.players.filter(p => p.align === 'town');
+  tw5.slice(1, 6).forEach(p => G.recordAccusation(st5, p.id, tw5[0].id));
+  const hot = G.computeHeat(st5, tw5[0].id);
+  const sc5 = Scoring.scoreRoundExtras(st5, {night: 1, nightResult: {}, dayResult: {}});
+  assert(hot.level >= 3 && rule(sc5, tw5[0].id, 'weathered-the-storm').length === 1, 'Extras: surviving a Hot day earns storm points (ties into the Heat thermometer)');
+  // winning
+  const st6 = fresh('cs6');
+  st6.gameOver = true; st6.winner = 'town';
+  const sc6 = Scoring.scoreRoundExtras(st6, {night: 3, nightResult: {}, dayResult: {}});
+  const tw6 = st6.players.filter(p => p.align === 'town'), m6 = st6.players.filter(p => p.align === 'mafia');
+  assert(tw6.every(p => rule(sc6, p.id, 'win').length === 1 && rule(sc6, p.id, 'survived-to-win').length === 1), 'Extras: every living winner gets the win bonus and the survived-to-win bonus');
+  assert(m6.every(p => rule(sc6, p.id, 'win').length === 0), 'Extras: the losing side gets no win bonus');
+  const sc6b = Scoring.scoreRoundExtras(st6, {night: 3, nightResult: {}, dayResult: {}});
+  assert(tw6.every(p => rule(sc6b, p.id, 'win').length === 0), 'Extras: the win bonus is only paid once');
+  // merge
+  const merged = Scoring.mergeScores({a: {total: 5, breakdown: [{rule: 'x', points: 5, detail: ''}]}}, {a: {total: 2, breakdown: [{rule: 'y', points: 2, detail: ''}]}, b: {total: 1, breakdown: []}});
+  assert(merged.a.total === 7 && merged.a.breakdown.length === 2 && merged.b.total === 1, 'Extras: merging adds the totals and keeps every breakdown line');
+  // the curve no longer snowballs
+  assert(Scoring.survivalCurvePoints(5) === 43 && Scoring.survivalCurvePoints(9) - Scoring.survivalCurvePoints(5) === 16, 'Extras: mafia survival is 3, 8, 17, 28, 43, then only +4 a round');
+  // an ordinary quiet civilian now scores something every round
+  const st7 = fresh('cs7');
+  const civ = st7.players.find(p => p.align === 'town');
+  const sc7 = Scoring.scoreRoundExtras(st7, {night: 2, nightResult: {}, dayResult: {}});
+  assert(sc7[civ.id] && sc7[civ.id].total > 0, 'Extras: even a player who did nothing but survive earns something every round (no more all-or-nothing)');
+})();
+
 console.log('\nAll scoring.js checks completed.');

@@ -617,9 +617,9 @@ function resolveNightPhase(room) {
 // Each real player gets ONLY their own breakdown - never anyone else's.
 function finishRoundScoring(room, dayResult, revengeResult) {
   const night = room.state.night;
-  const roundScores = Scoring.scoreRound(room.state, {
-    night, nightResult: room.lastNightResult || {}, dayResult, revengeResult: revengeResult || null
-  });
+  const roundInput = { night, nightResult: room.lastNightResult || {}, dayResult, revengeResult: revengeResult || null };
+  // the big, rare payouts plus the steady per-round streams (taking part, good reads, defending, surviving, winning)
+  const roundScores = Scoring.mergeScores(Scoring.scoreRound(room.state, roundInput), Scoring.scoreRoundExtras(room.state, roundInput));
   // every seat's running total after this round - the end-of-game points graph is drawn from these
   room.allCum = room.allCum || {}; room.scoreRounds = room.scoreRounds || [];
   Object.keys(roundScores).forEach(id => { room.allCum[id] = (room.allCum[id] || 0) + (roundScores[id] ? roundScores[id].total : 0); });

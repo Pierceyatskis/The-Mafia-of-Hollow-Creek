@@ -41,7 +41,9 @@ function scaleMafiaBonus(baseValue, totalPlayers){
 
 // Accelerating on purpose - round 4 survival matters a lot more than round 1.
 function survivalCurvePoints(night){
-  return Math.round(3 * night * night);
+  // 3, 8, 17, 28, 43 (was 3n^2: 3, 12, 27, 48, 75), then only +4 a round: a long game no longer snowballs a surviving mafia player's total
+  const n = Math.min(night, 5);
+  return Math.round(1.5 * n * n + n) + Math.max(0, night - 5) * 4;
 }
 
 // Decays with round number - an early, effective misdirection is worth far
@@ -221,4 +223,129 @@ function scoreRound(state, round){
   return scores;
 }
 
-module.exports = { scoreRound, survivalCurvePoints, misdirectionPoints, scaleMafiaBonus, MAFIA_BONUS_REFERENCE_PLAYER_COUNT };
+// =====================================================================
+// Continuous scoring: points for the many small things a player does well
+// EVERY round, not only the one big payout. scoreRound() above pays big, rare
+// amounts (a correct lynch, a lucky save, a late mafia survival); on its own it
+// left most town players on 0 for most rounds and a few players on a lot. These
+// streams sit alongside it (never replacing it) and are merged by the caller:
+//   - taking part: voting, talking
+//   - reading the table: voting for / accusing / first spotting a guilty player even when the
+//     town didn't finish the job; the mafia applying pressure to a town player the town then piled on
+//   - standing up for your own side when it is under pressure
+//   - staying alive, and weathering a hot day (ties into the Heat thermometer)
+//   - winning: a bonus for the winning side at game end (and for surviving to see it)
+// Returns the same shape as scoreRound: { [playerId]: { total, breakdown } }.
+// =====================================================================
+const PARTICIPATION_VOTE = 1;
+const PARTICIPATION_TALK = 1, PARTICIPATION_TALK_BUSY = 2, TALK_BUSY_LINES = 4;
+const GOOD_READ_VOTE = 8;
+const SHARP_ACCUSATION = 3, FIRST_TO_SPOT_BONUS = 2, MAFIA_PRESSURE = 3, ACCUSATION_CAP = 9;
+const GOOD_DEFENSE = 2, DEFENSE_CAP = 6;
+const HEAT_SURVIVAL = { 2: 2, 3: 4, 4: 7 };
+const WIN_BONUS = 15, SURVIVED_TO_WIN_BONUS = 5;
+function survivalPoints(night){ return Math.round(1 + 0.8 * night); }   // 2, 3, 3, 4, 5, 6
+
+function scoreRoundExtras(state, round){
+  const night = round.night;
+  const lead = (round.dayResult && round.dayResult.lead) || null;
+  const scores = {};
+  const isEnemyOf = (p, t) => t && p && ((p.align === 'town' && (t.align === 'mafia' || t.align === 'cult')));
+  // each player's single final vote this day
+  const latestVote = new Map();
+  state.voteSubmissionOrder.filter(v => v.night === night).forEach(v => { latestVote.set(v.playerId, v); });
+  const finalVotes = Array.from(latestVote.values());
+  const votesAgainst = {};
+  finalVotes.forEach(v => { if(v.targetId) votesAgainst[v.targetId] = (votesAgainst[v.targetId] || 0) + 1; });
+  // who talked
+  const lines = {};
+  (state.chatLog || []).forEach(e => { if(e && !e.kind && e.night === night && e.playerId) lines[e.playerId] = (lines[e.playerId] || 0) + 1; });
+  // accusations this day, one per accuser per target (an "I agree" accusation is not an original read)
+  const accusations = new Map();
+  (state.accusationLog || []).forEach(e => {
+    if(e.night !== night || e.agreedWithId || e.accuserId === e.targetId) return;
+    accusations.set(e.accuserId + '>' + e.targetId, e);
+  });
+  const accusedThisDay = new Set(Array.from(accusations.values()).map(e => e.targetId));
+  const accusedAny = new Set((state.accusationLog || []).filter(e => e.night === night).map(e => e.targetId));
+
+  // taking part
+  finalVotes.forEach(v => {
+    if(v.targetId) addPoints(scores, v.playerId, PARTICIPATION_VOTE, 'vote-cast', 'Cast a vote');
+  });
+  Object.keys(lines).forEach(id => {
+    const pts = lines[id] >= TALK_BUSY_LINES ? PARTICIPATION_TALK_BUSY : PARTICIPATION_TALK;
+    addPoints(scores, id, pts, 'spoke-up', 'Took part in the discussion');
+  });
+
+  // reading the table: a vote for a guilty player that did not become the lynch
+  finalVotes.forEach(v => {
+    const voter = G.byId(state, v.playerId), target = v.targetId ? G.byId(state, v.targetId) : null;
+    if(!voter || !isEnemyOf(voter, target)) return;
+    if(lead && lead.id === target.id) return;            // a successful lynch is paid by the town baseline
+    addPoints(scores, voter.id, GOOD_READ_VOTE, 'good-read', 'Voted for a guilty player (the town did not finish the job)');
+  });
+  // accusations
+  const accPaid = {};
+  accusations.forEach(e => {
+    const accuser = G.byId(state, e.accuserId), target = G.byId(state, e.targetId);
+    if(!accuser || !target) return;
+    let pts = 0, rule = '', detail = '';
+    if(isEnemyOf(accuser, target)){
+      pts = SHARP_ACCUSATION; rule = 'sharp-accusation'; detail = 'Accused a guilty player';
+      const first = G.firstAccuserOf(state, target.id, night);
+      if(first && first.accuserId === accuser.id){ pts += FIRST_TO_SPOT_BONUS; detail = 'Was the first to accuse a guilty player'; }
+    } else if(accuser.align === 'mafia' && target.align === 'town' && (votesAgainst[target.id] || 0) >= 2){
+      pts = MAFIA_PRESSURE; rule = 'mafia-pressure'; detail = 'Pointed the town at a player it then piled onto';
+    }
+    if(!pts) return;
+    const room = ACCUSATION_CAP - (accPaid[accuser.id] || 0);
+    pts = Math.min(pts, room);
+    if(pts > 0){ accPaid[accuser.id] = (accPaid[accuser.id] || 0) + pts; addPoints(scores, accuser.id, pts, rule, detail); }
+  });
+  // standing up for your own side when it was under pressure
+  const defPaid = {}; const defSeen = new Set();
+  (state.chatLog || []).forEach(e => {
+    if(!e || e.kind || e.night !== night || !e.defendedId || e.defendedId === e.playerId) return;
+    const key = e.playerId + '>' + e.defendedId;
+    if(defSeen.has(key)) return; defSeen.add(key);
+    const me = G.byId(state, e.playerId), friend = G.byId(state, e.defendedId);
+    if(!me || !friend || me.align !== friend.align) return;
+    if(!accusedAny.has(friend.id) && !(votesAgainst[friend.id] > 0)) return;
+    const room = DEFENSE_CAP - (defPaid[me.id] || 0);
+    const pts = Math.min(GOOD_DEFENSE, room);
+    if(pts > 0){ defPaid[me.id] = (defPaid[me.id] || 0) + pts; addPoints(scores, me.id, pts, 'good-defense', 'Stood up for a player on your side who was under pressure'); }
+  });
+  // staying alive, and surviving a hot day
+  state.players.forEach(p => {
+    if(!p.alive) return;
+    if(p.align !== 'mafia') addPoints(scores, p.id, survivalPoints(night), 'survival', 'Survived round ' + night);
+    const h = G.computeHeat(state, p.id);
+    if(HEAT_SURVIVAL[h.level]) addPoints(scores, p.id, HEAT_SURVIVAL[h.level], 'weathered-the-storm', 'Survived a ' + G.HEAT_LEVELS[h.level] + ' day (' + h.percent + '% of the table against you)');
+  });
+  // the game is over: the winning side is rewarded, and so is living to see it
+  if(state.gameOver && !state.winBonusPaid){
+    state.winBonusPaid = true;
+    const w = state.winner;
+    state.players.forEach(p => {
+      const won = w === 'town' ? p.align === 'town' : w === 'mafia' ? p.align === 'mafia' : w === 'cult' ? p.align === 'cult' : w === 'bounty' ? p.role === 'BountyHunter' : false;
+      if(!won) return;
+      addPoints(scores, p.id, WIN_BONUS, 'win', 'Your side won the game');
+      if(p.alive) addPoints(scores, p.id, SURVIVED_TO_WIN_BONUS, 'survived-to-win', 'Survived to the end');
+    });
+  }
+  return scores;
+}
+
+// Adds b's points and breakdown lines into a (both in scoreRound's shape).
+function mergeScores(a, b){
+  const out = {};
+  [a, b].forEach(m => Object.keys(m || {}).forEach(id => {
+    if(!out[id]) out[id] = { total: 0, breakdown: [] };
+    out[id].total += m[id].total;
+    out[id].breakdown = out[id].breakdown.concat(m[id].breakdown);
+  }));
+  return out;
+}
+
+module.exports = { scoreRound, scoreRoundExtras, mergeScores, survivalCurvePoints, misdirectionPoints, scaleMafiaBonus, MAFIA_BONUS_REFERENCE_PLAYER_COUNT };
