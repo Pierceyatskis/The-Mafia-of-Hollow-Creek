@@ -1183,12 +1183,24 @@ body.force-reduced-motion .notebook-view.notebook-page-turn{animation:none;}
 .notebook-close-btn:hover{transform:scale(1.08); filter:brightness(1.15);}
 
 /* ---- Directory view ---- */
-.notebook-filter-bar{position:absolute; left:6.5%; top:9%; right:6.5%; display:flex; gap:0.5%;}
-.notebook-filter-tab{flex:1; min-width:0; aspect-ratio:2112/417; background-image:var(--notebook-filter-tab-img); background-size:100% 100%; background-repeat:no-repeat; background-color:transparent; border:none; cursor:pointer; font-family:var(--font-type); font-size:clamp(7px, 0.75vw, 11px); letter-spacing:0.5px; text-transform:uppercase; color:var(--parchment-dim); transition:filter .15s ease, transform .1s ease; padding:0;}
+.notebook-filter-bar{position:absolute; left:6.5%; top:9%; right:6.5%; display:flex; gap:0.4%;}
+.notebook-filter-tab{flex:0 0 14.1%; min-width:0; aspect-ratio:2112/330; background-image:var(--notebook-filter-tab-img); background-size:100% 100%; background-repeat:no-repeat; background-color:transparent; border:none; cursor:pointer; font-family:var(--font-type); font-size:clamp(7px, 0.75vw, 11px); letter-spacing:0.5px; text-transform:uppercase; color:var(--parchment-dim); transition:filter .15s ease, transform .1s ease; padding:0;}
+.notebook-filter-tab[data-filter="suspicious"]{margin-left:auto;}
 .notebook-filter-tab:hover{filter:brightness(1.15);}
 .notebook-filter-tab.active{color:var(--gold-bright); filter:drop-shadow(0 0 6px rgba(227,177,85,0.75)) brightness(1.2);}
 .notebook-filter-tab:focus-visible{outline:2px solid var(--gold-bright); outline-offset:2px;}
-.notebook-vote-banner{position:absolute; left:6%; top:12.1%; right:6%; margin:0; display:flex; align-items:center; justify-content:center; gap:8px; font-family:var(--font-type); font-size:clamp(9px,0.88vw,12px); line-height:1.1; color:#f2d9a0; letter-spacing:0.2px; background:rgba(34,22,12,0.92); border:1px solid var(--gold-dim); border-radius:3px; padding:1px 8px; z-index:3; pointer-events:auto; white-space:nowrap;}
+.notebook-vote-banner{position:absolute; left:6.5%; top:12.2%; right:6.5%; height:3%; margin:0; display:flex; justify-content:space-between; z-index:3; pointer-events:none;}
+.nvb-half{display:flex; align-items:center; gap:6px; pointer-events:auto;}
+.nvb-left{width:39%; justify-content:center;}
+.nvb-right{width:40%; justify-content:center; gap:8px;}
+#notebook-vote-day{-webkit-appearance:none; appearance:none; background:linear-gradient(45deg,transparent 50%,#3a2412 50%) calc(100% - 14px) 55%/6px 6px no-repeat, linear-gradient(-45deg,transparent 50%,#3a2412 50%) calc(100% - 8px) 55%/6px 6px no-repeat, rgba(236,222,190,0.95); color:#2a1708; border:1px solid #6b4a20; border-radius:3px; font-family:var(--font-ornate); font-weight:700; font-size:clamp(9px,0.95vw,14px); letter-spacing:1px; text-transform:uppercase; padding:1px 8px; height:100%; min-width:36%; cursor:pointer;}
+.nvb-mode{height:100%; padding:0 10px; background:rgba(236,222,190,0.92); color:#4a2e16; border:1px solid #8a6a3a; border-radius:3px; cursor:pointer; font-family:var(--font-ornate); font-weight:700; font-size:clamp(8px,0.78vw,12px); letter-spacing:.5px; text-transform:uppercase; white-space:nowrap; transition:filter .15s ease, transform .1s ease;}
+.nvb-mode:hover{filter:brightness(1.08);}
+.nvb-mode.active{background:#1f140b; color:#f3e3b8; border-color:#d9a441; box-shadow:0 0 0 1px #000 inset;}
+.notebook-vote-count{position:absolute; left:53%; right:6.5%; top:84.2%; text-align:center; font-family:var(--font-ornate); font-weight:700; font-size:clamp(9px,1vw,15px); letter-spacing:1.5px; text-transform:uppercase; color:#3a2412; pointer-events:none; z-index:3;}
+.notebook-vote-count[hidden]{display:none;}
+.notebook-card.notebook-voter, .notebook-card.notebook-target{background:linear-gradient(rgba(250,212,100,0.55), rgba(250,212,100,0.55)); border-radius:4px; width:calc(19.375% - 28px);}
+.notebook-card.notebook-voter .notebook-card-portrait-wrap, .notebook-card.notebook-target .notebook-card-portrait-wrap{filter:none;}
 .notebook-vote-banner[hidden]{display:none;}
 .name-tag{display:inline-block; margin-left:6px; padding:1px 6px; border-radius:3px; border:1.5px solid; font-family:var(--font-type); font-size:0.72em; font-weight:700; letter-spacing:1px; text-transform:uppercase; line-height:1.4; vertical-align:middle; white-space:nowrap;}
 .name-tag-host{color:#8fe0b0; border-color:#3f9a68; background:rgba(63,154,104,0.2);}
@@ -1208,7 +1220,7 @@ body.force-reduced-motion .notebook-view.notebook-page-turn{animation:none;}
 /* The "You've been eliminated" box with the red X is gone: the ghost chat and the dimmed tiles already say it. */
 #dead-notice{display:none !important;}
 #design-canvas.bg-day #daylayout-stage-request-btn{font-family:'Cinzel',Georgia,serif; font-size:11.5px; font-weight:700; letter-spacing:0.6px; text-transform:uppercase; line-height:40px; white-space:nowrap; text-align:center; box-sizing:border-box; padding:0 13px 0 35px; color:#f0d79b; text-shadow:0 1px 1px rgba(60,10,5,0.9), 0 0 3px rgba(60,10,5,0.6);}
-.notebook-vote-nav{background:none; border:1px solid var(--gold-dim); color:var(--gold-bright); border-radius:3px; cursor:pointer; font-size:8px; line-height:1; padding:2px 5px;}
+.notebook-vote-nav{background:linear-gradient(#3a2a1a,#1f140b); border:1px solid #d9a441; color:#f0c96a; border-radius:3px; cursor:pointer; font-size:10px; line-height:1; height:100%; padding:0 9px;}
 .notebook-vote-nav:hover:not(:disabled){background:rgba(227,177,85,0.2);}
 .notebook-vote-nav:disabled{opacity:0.3; cursor:default;}
 .notebook-vote-nav[hidden]{display:none;}
@@ -1309,14 +1321,45 @@ body.force-reduced-motion .notebook-view.notebook-page-turn{animation:none;}
 .notebook-dossier-action-btn:hover{filter:brightness(1.08);}
 .notebook-dossier-action-btn:disabled{opacity:0.4; cursor:default;}
 .notebook-pin-limit-msg{position:absolute; left:8.125%; top:91%; width:36.875%; margin:0; font-family:var(--font-type); font-size:11px; color:var(--danger); text-align:center;}
+/* Dossier right page: a clean parchment patch hides the old printed notes/timeline art so the tabbed panes sit on blank paper. */
+.notebook-rpage-cover{position:absolute; left:52.3%; top:9.4%; width:40.3%; height:75.6%; background:linear-gradient(#f7ebde,#f7ebde), url('assets/ui/parchment.webp'); background-blend-mode:multiply; background-size:100% 100%; -webkit-mask-image:linear-gradient(to right, transparent, #000 2.5%, #000 97.5%, transparent), linear-gradient(to bottom, transparent, #000 4%, #000 96%, transparent); -webkit-mask-composite:source-in; mask-image:linear-gradient(to right, transparent, #000 2.5%, #000 97.5%, transparent), linear-gradient(to bottom, transparent, #000 4%, #000 96%, transparent); mask-composite:intersect; pointer-events:none;}
+.notebook-dtabs{position:absolute; left:54.2%; top:6.3%; width:38.4%; display:flex; gap:0.6%; z-index:2;}
+.notebook-dtab{flex:1; min-width:0; height:4.4cqw; padding:0 4px; cursor:pointer; font-family:var(--font-ornate); font-weight:700; font-size:clamp(7px,0.82vw,12px); letter-spacing:.4px; text-transform:uppercase; color:#4a2e16; background:linear-gradient(#e2c995,#c9a96c); border:1px solid #8a6a3a; border-bottom:none; border-radius:6px 6px 0 0; box-shadow:0 -1px 0 rgba(255,255,255,0.4) inset; transition:filter .15s ease, transform .1s ease;}
+.notebook-dtab:hover{filter:brightness(1.08);}
+.notebook-dtab.active{background:linear-gradient(#8a1f1b,#5e100d); color:#f3e3b8; border-color:#d9a441; text-shadow:0 1px 2px #000; height:4.9cqw; margin-top:-0.5cqw; box-shadow:0 0 0 1px #3a0a08 inset, 0 2px 6px rgba(0,0,0,0.5);}
+.notebook-pane{position:absolute; left:55%; top:15.8%; width:37%; height:67%; display:flex; flex-direction:column; min-height:0;}
+.notebook-pane[hidden]{display:none;}
+.notebook-pane-title{margin:0; text-align:center; font-family:var(--font-ornate); font-weight:700; font-size:1.55cqw; letter-spacing:1px; text-transform:uppercase; color:#2a1708;}
+.notebook-pane-rule{height:1px; margin:0.5cqw 12% 0.4cqw; background:linear-gradient(90deg, transparent, #3a2412 15%, #3a2412 85%, transparent); position:relative;}
+.notebook-pane-rule i{position:absolute; left:50%; top:-3px; width:6px; height:6px; background:#3a2412; transform:translateX(-50%) rotate(45deg);}
+.notebook-pane-note{margin:0 0 0.8cqw; text-align:center; font-family:var(--font-body); font-style:italic; font-size:1.05cqw; color:#5a4a36;}
+.notebook-scroll{flex:1; min-height:0; overflow-y:auto; scrollbar-width:none; -ms-overflow-style:none; position:relative; padding-left:3.4cqw;}
+.notebook-scroll::-webkit-scrollbar{display:none;}
+.nvh-row{position:relative; display:flex; align-items:center; min-height:5.6cqw; border-bottom:1px solid rgba(58,36,18,0.35);}
+.nvh-row::after{content:''; position:absolute; left:-2.45cqw; top:0; bottom:-1px; width:2px; background:#2a1708;}
+.nvh-row:first-child::after{top:50%;}
+.nvh-row:last-child::after{bottom:50%;}
+.nvh-row::before{z-index:1;content:''; position:absolute; left:-2.9cqw; top:50%; width:0.9cqw; height:0.9cqw; margin-top:-0.45cqw; border:2px solid #2a1708; border-radius:50%; background:#ecd9b0;}
+.nvh-day{flex:0 0 26%; font-family:var(--font-ornate); font-weight:700; font-size:1.6cqw; letter-spacing:.5px; text-transform:uppercase; color:#1c1008;}
+.nvh-vote{flex:1; display:flex; align-items:center; gap:0.9cqw; padding-left:1.2cqw; border-left:1px solid rgba(58,36,18,0.5); min-height:4.4cqw; font-family:var(--font-ornate);}
+.nvh-lbl{white-space:nowrap; font-size:1cqw; letter-spacing:.8px; text-transform:uppercase; color:#3a2412; font-weight:700;}
+.nvh-arrow{font-size:1.5cqw; color:#2a1708;}
+.nvh-vote img{width:3.5cqw; height:3.5cqw; flex-shrink:0; object-fit:cover; object-position:center 15%; border:2px solid #5a3b1a; border-radius:3px; background:#1b130c;}
+.nvh-name{font-weight:700; font-size:1.15cqw; line-height:1.15; letter-spacing:.3px; text-transform:uppercase; color:#1c1008;}
+.nvq{position:relative; margin:0 0 1cqw; padding:0.9cqw 1.3cqw 0.8cqw 3cqw; background:linear-gradient(rgba(255,248,226,0.55),rgba(240,222,180,0.55)); border:1px solid rgba(138,106,58,0.55); border-radius:6px;}
+.nvq::before{content:'\201C'; position:absolute; left:0.7cqw; top:-0.4cqw; font-family:var(--font-ornate); font-size:3.6cqw; color:#7a5a30;}
+.nvq-text{margin:0; font-family:var(--font-body); font-size:1.35cqw; line-height:1.35; color:#2a1708;}
+.nvq-meta{margin:0.4cqw 0 0; text-align:right; font-family:var(--font-ornate); font-size:0.95cqw; letter-spacing:.6px; text-transform:uppercase; color:#5a4a36;}
+.notebook-empty-pane{margin:2cqw 1cqw; text-align:center; font-family:var(--font-body); font-style:italic; font-size:1.3cqw; color:#6b5a42;}
 .notebook-section-heading{margin:0 0 4px; font-family:var(--font-type); font-weight:400; font-size:12px; letter-spacing:2px; text-transform:uppercase; text-align:center; color:#7a6448;}
-.notebook-notes-section{position:absolute; left:54.75%; top:8.5%; width:37.6%; height:40.7%;}
+.notebook-notes-section{}
 /* Lines up with the ruled page art: each text line is exactly one rule apart (2.6cqw = 41.6px of the 1600px page). The padding is tuned so each line's baseline rests just above its rule instead of the rule cutting through the letters. */
-.notebook-notes-input{width:100%; height:23cqw; box-sizing:border-box; background:transparent; border:none; resize:none; outline:none; overflow-y:auto; scrollbar-width:none; font-family:'Special Elite','Segoe Script',cursive; font-size:1.15cqw; color:#2a2015; line-height:2.6cqw; padding:1.95cqw 0 0 0;}
+.notebook-notes-input{width:100%; height:100%; box-sizing:border-box; background:transparent; border:none; resize:none; outline:none; overflow-y:auto; scrollbar-width:none; font-family:'Special Elite','Segoe Script',cursive; font-size:1.15cqw; color:#2a2015; line-height:2.6cqw; padding:1.95cqw 0 0 0;}
 .notebook-notes-input::-webkit-scrollbar{display:none;}
+.notebook-notes-input{background-image:repeating-linear-gradient(to bottom, transparent 0, transparent calc(2.6cqw - 1px), rgba(58,36,18,0.35) calc(2.6cqw - 1px), rgba(58,36,18,0.35) 2.6cqw); background-attachment:local; padding-top:0.2cqw;}
 .notebook-notes-input::placeholder{color:#9a8a70;}
 .notebook-pencil-deco{position:absolute; right:-2%; bottom:-8%; width:30%; pointer-events:none;}
-.notebook-events-section{position:absolute; left:54.75%; top:52.3%; width:37.6%; height:31.6%; overflow-y:auto;}
+.notebook-events-section{overflow-y:auto;}
 .notebook-timeline{font-family:var(--font-type); font-size:clamp(9px, 0.9vw, 12px); color:#2a2015; line-height:1.9; padding-left:9.8%;}
 .notebook-timeline-empty{color:#6b5a42; font-style:italic;}
 .notebook-timeline-row::before{content:'●'; color:#8a6a3a; font-size:0.6em; margin-right:6px; vertical-align:middle;}
@@ -2459,10 +2502,13 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
         <button class="notebook-filter-tab" data-filter="eliminated" role="tab" aria-selected="false" aria-label="Filter to eliminated players">Eliminated</button>
         <button class="notebook-filter-tab" data-filter="suspicious" role="tab" aria-selected="false" aria-label="Filter to players marked suspicious">Suspicious</button>
         <button class="notebook-filter-tab" data-filter="trusted" role="tab" aria-selected="false" aria-label="Filter to players marked trusted">Trusted</button>
-        <button class="notebook-filter-tab" data-filter="notes" role="tab" aria-selected="false" aria-label="Filter to players with private notes">Notes</button>
-        <button class="notebook-filter-tab" data-filter="votes" role="tab" aria-selected="false" aria-label="Inspect who is voting for whom">Votes</button>
+        <button class="notebook-filter-tab" data-filter="votes" role="tab" aria-selected="false" aria-label="Look up who voted for whom">Vote Lookup</button>
       </div>
-      <div class="notebook-vote-banner" id="notebook-vote-banner" hidden><button type="button" class="notebook-vote-nav" id="notebook-vote-prev" aria-label="Previous day votes">&#9664;</button><span id="notebook-vote-banner-text"></span><button type="button" class="notebook-vote-nav" id="notebook-vote-next" aria-label="Next day votes">&#9654;</button></div>
+      <div class="notebook-vote-banner" id="notebook-vote-banner" hidden>
+        <div class="nvb-half nvb-left"><button type="button" class="notebook-vote-nav" id="notebook-vote-prev" aria-label="Previous day votes">&#9664;</button><select id="notebook-vote-day" aria-label="Choose which day's votes to look up"></select><button type="button" class="notebook-vote-nav" id="notebook-vote-next" aria-label="Next day votes">&#9654;</button></div>
+        <div class="nvb-half nvb-right"><button type="button" class="nvb-mode active" data-mode="for">Who voted for?</button><button type="button" class="nvb-mode" data-mode="by">Who did they vote for?</button></div>
+      </div>
+      <div class="notebook-vote-count" id="notebook-vote-banner-text" hidden></div>
       <div class="notebook-directory-grid" id="notebook-directory-grid"></div>
     </div>
 
@@ -2488,14 +2534,30 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
         <p class="notebook-pin-limit-msg" id="notebook-pin-limit-msg" role="status" hidden>Already pinned 3 - unpin one first.</p>
       </div>
       <div class="notebook-dossier-right">
-        <div class="notebook-notes-section">
-          <h4 class="notebook-section-heading">Private Notes</h4>
+        <div class="notebook-rpage-cover" aria-hidden="true"></div>
+        <div class="notebook-dtabs" id="notebook-dtabs" role="tablist" aria-label="Player notebook sections">
+          <button type="button" class="notebook-dtab active" data-dtab="notes" role="tab" aria-selected="true">Private Notes</button>
+          <button type="button" class="notebook-dtab" data-dtab="votes" role="tab" aria-selected="false">Vote History</button>
+          <button type="button" class="notebook-dtab" data-dtab="events" role="tab" aria-selected="false">Known Events</button>
+          <button type="button" class="notebook-dtab" data-dtab="quotes" role="tab" aria-selected="false">Saved Quotes</button>
+        </div>
+        <div class="notebook-pane notebook-notes-section" data-pane="notes">
           <textarea id="notebook-dossier-notes" class="notebook-notes-input" maxlength="600" aria-label="Private notes about this player" placeholder="Write what you've noticed..."></textarea>
           <img class="notebook-pencil-deco" src="" alt="" aria-hidden="true">
         </div>
-        <div class="notebook-events-section">
-          <h4 class="notebook-section-heading">Known Events</h4>
+        <div class="notebook-pane" data-pane="votes" hidden>
+          <h4 class="notebook-pane-title" id="notebook-votes-title"></h4>
+          <div class="notebook-pane-rule"><i></i></div>
+          <p class="notebook-pane-note">The player they voted for at the end of each day.</p>
+          <div id="notebook-dossier-votes" class="notebook-scroll"></div>
+        </div>
+        <div class="notebook-pane notebook-events-section" data-pane="events" hidden>
           <div id="notebook-dossier-events" class="notebook-timeline"></div>
+        </div>
+        <div class="notebook-pane" data-pane="quotes" hidden>
+          <h4 class="notebook-pane-title" id="notebook-quotes-title"></h4>
+          <div class="notebook-pane-rule"><i></i></div>
+          <div id="notebook-dossier-quotes" class="notebook-scroll"></div>
         </div>
       </div>
     </div>
@@ -10504,6 +10566,8 @@ function notebookKnownEvents(p){
 // never reveals them earlier), so "who voted for whom" is always about a
 // finished round. notebookVoteRound picks which one (null = the latest).
 var notebookVoteRound = null;
+var notebookVoteMode = 'for'; // 'for' = who voted for the picked player, 'by' = who the picked player voted for
+var notebookDossierTab = 'notes';
 function notebookVoteRounds(){
   var seen = {};
   (latestView && latestView.voteHistory || []).forEach(function(v){ seen[v.night] = true; });
@@ -10536,10 +10600,12 @@ function notebookVoteRelated(pid){
   var x = notebookVoteInspectId;
   if(!x) return true;
   if(pid===x) return true;
+  if(notebookVoteMode==='by'){
+    var xv = notebookVoteIn(x, night);
+    return !!(xv && xv.targetId===pid);                  // the one the picked player voted for
+  }
   var mine = notebookVoteIn(pid, night);
-  if(mine && mine.targetId===x) return true;            // voted for the inspected player
-  var xv = notebookVoteIn(x, night);
-  return !!(xv && xv.targetId===pid);                    // the one the inspected player voted for
+  return !!(mine && mine.targetId===x);                  // voted for the picked player
 }
 
 function notebookPortraitFor(p){ return portraitImgFor(p); }
@@ -10550,7 +10616,6 @@ function notebookCardMatchesFilter(p){
   if(notebookFilter==='eliminated') return !p.alive;
   if(notebookFilter==='suspicious') return notebookMarks[p.id]==='suspicious';
   if(notebookFilter==='trusted') return notebookMarks[p.id]==='trusted';
-  if(notebookFilter==='notes') return !!notebookNotes[p.id];
   if(notebookFilter==='votes') return notebookVoteRelated(p.id);
   return true;
 }
@@ -10569,9 +10634,7 @@ function notebookSortedPlayers(){
     var p = e.p;
     if(x){
       if(p.id===x) return 0;
-      var v = notebookVoteIn(p.id, night);
-      if(v && v.targetId===x) return 1;
-      return notebookVoteRelated(p.id) ? 2 : 3;
+      return notebookVoteRelated(p.id) ? 1 : 3;
     }
     return notebookCardMatchesFilter(p) ? 0 : 1;
   }
@@ -10601,11 +10664,13 @@ function notebookCardHTML(p, index){
   var hasNotes = !!notebookNotes[p.id];
   var night = notebookActiveRound();
   var vote = notebookVoteIn(p.id, night);
-  var voteLine = !vote ? '\u2014' : (vote.abstained ? '\u2192 no one' : '\u2192 '+escapeHtmlMp((byId(vote.targetId)||{}).name || ''));
+  var dayTag = night!==null ? 'Day '+night+' ' : '';
+  var voteLine = !vote ? dayTag+'\u2192 \u2014' : (vote.abstained ? dayTag+'\u2192 no one' : dayTag+'\u2192 '+escapeHtmlMp((byId(vote.targetId)||{}).name || ''));
   var votesMode = notebookFilter==='votes';
   var received = votesMode ? (notebookVoteTally(night)[p.id]||0) : 0;
   var focus = votesMode && notebookVoteInspectId===p.id;
-  var voter = votesMode && !!notebookVoteInspectId && !focus && !!vote && vote.targetId===notebookVoteInspectId;
+  var voter = votesMode && !!notebookVoteInspectId && !focus && notebookVoteMode==='for' && !!vote && vote.targetId===notebookVoteInspectId;
+  var target = votesMode && !!notebookVoteInspectId && !focus && notebookVoteMode==='by' && notebookVoteRelated(p.id);
   var matches = notebookCardMatchesFilter(p);
   var badges = '';
   if(pinned) badges += '<img src="'+DAYTIME_IMG.notebookPushpin+'" alt="Pinned">';
@@ -10614,7 +10679,7 @@ function notebookCardHTML(p, index){
   var statusLabel = p.alive ? 'Alive' : 'Eliminated';
   var left = NOTEBOOK_DIR_COLS_PCT[index % 4], top = NOTEBOOK_DIR_ROWS_PCT[Math.floor(index / 4)];
   var posStyle = ' style="left:'+left+'%; top:'+top+'%;"';
-  return '<button type="button" class="notebook-card'+(p.alive?'':' notebook-eliminated')+(matches?'':' notebook-dimmed')+(focus?' notebook-focus':'')+(voter?' notebook-voter':'')+(votesMode?' notebook-votes-mode':'')+'"'+posStyle+' data-player-id="'+p.id+'" aria-label="'+escapeHtmlMp(p.name)+', '+statusLabel+'. Open dossier.">'+
+  return '<button type="button" class="notebook-card'+(p.alive?'':' notebook-eliminated')+(matches?'':' notebook-dimmed')+(focus?' notebook-focus':'')+(voter?' notebook-voter':'')+(target?' notebook-target':'')+(votesMode?' notebook-votes-mode':'')+'"'+posStyle+' data-player-id="'+p.id+'" aria-label="'+escapeHtmlMp(p.name)+', '+statusLabel+'. Open dossier.">'+
     '<span class="notebook-card-portrait-wrap">'+
       '<img class="notebook-card-portrait" src="'+notebookPortraitFor(p)+'" alt="">'+
       '<span class="notebook-card-ribbon"></span>'+
@@ -10637,35 +10702,42 @@ function notebookTabCounts(){
   return {
     eliminated: players.filter(function(p){ return !p.alive; }).length,
     suspicious: players.filter(function(p){ return notebookMarks[p.id]==='suspicious'; }).length,
-    trusted: players.filter(function(p){ return notebookMarks[p.id]==='trusted'; }).length,
-    notes: players.filter(function(p){ return !!notebookNotes[p.id]; }).length
+    trusted: players.filter(function(p){ return notebookMarks[p.id]==='trusted'; }).length
   };
 }
 function renderNotebookVoteBanner(){
   var banner = document.getElementById('notebook-vote-banner');
   var textEl = document.getElementById('notebook-vote-banner-text');
   var prev = document.getElementById('notebook-vote-prev'), next = document.getElementById('notebook-vote-next');
-  if(notebookFilter!=='votes'){ banner.hidden = true; return; }
-  banner.hidden = false;
+  var sel = document.getElementById('notebook-vote-day');
+  if(notebookFilter!=='votes'){ banner.hidden = true; textEl.hidden = true; return; }
+  banner.hidden = false; textEl.hidden = false;
+  document.querySelectorAll('.nvb-mode').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-mode')===notebookVoteMode); });
   var rounds = notebookVoteRounds();
   var night = notebookActiveRound();
   if(night===null){
-    prev.hidden = next.hidden = true;
-    textEl.textContent = 'No votes revealed yet \u2014 each day\u2019s ballots show here once the vote ends.';
+    prev.hidden = next.hidden = true; sel.innerHTML = '<option>No votes yet</option>'; sel.disabled = true;
+    textEl.textContent = 'No votes revealed yet \u2014 each day\u2019s ballots show here once the vote ends';
     return;
   }
+  sel.disabled = false;
+  sel.innerHTML = rounds.map(function(r){ return '<option value="'+r+'"'+(r===night?' selected':'')+'>Day '+r+'</option>'; }).join('');
   var idx = rounds.indexOf(night);
   prev.hidden = next.hidden = rounds.length<2;
   prev.disabled = idx<=0; next.disabled = idx>=rounds.length-1;
-  var label = 'Day '+night;
   var x = notebookVoteInspectId && byId(notebookVoteInspectId);
+  var first = x ? x.name.split(' ')[0] : '';
   if(x){
-    var n = notebookVotersFor(x.id, night).length;
-    var xv = notebookVoteIn(x.id, night);
-    var theirs = xv ? (xv.abstained ? 'abstained' : 'voted for '+((byId(xv.targetId)||{}).name||'someone')) : 'cast no vote';
-    textEl.textContent = label+' \u00b7 '+x.name+': '+n+' vote'+(n===1?'':'s')+', '+theirs+' \u00b7 tap again to clear';
+    if(notebookVoteMode==='by'){
+      var xv = notebookVoteIn(x.id, night);
+      var tgt = xv && xv.targetId ? ((byId(xv.targetId)||{}).name||'someone') : null;
+      textEl.textContent = xv ? (tgt ? first+' voted for '+tgt+' on day '+night : first+' abstained on day '+night) : first+' cast no vote on day '+night;
+    } else {
+      var n = notebookVotersFor(x.id, night).length;
+      textEl.textContent = n+' voted for '+first+' on day '+night;
+    }
   } else {
-    textEl.textContent = label+' \u00b7 most votes first \u00b7 tap a player to see who voted for them';
+    textEl.textContent = 'Tap a player to look up their votes \u2014 day '+night;
   }
 }
 function renderNotebookDirectory(){
@@ -10713,6 +10785,45 @@ function notebookRenderDossierEvents(p){
   }).join('');
 }
 
+function notebookRenderDossierVotes(p){
+  var first = p.name.split(' ')[0];
+  document.getElementById('notebook-votes-title').textContent = p.name+'\u2019s Final Votes';
+  var rows = [];
+  notebookVoteRounds().forEach(function(r){
+    var v = notebookVoteIn(p.id, r);
+    if(!v) return;
+    var t = v.targetId ? byId(v.targetId) : null;
+    rows.push('<div class="nvh-row"><div class="nvh-day">Day '+r+'</div><div class="nvh-vote">'+
+      (t ? '<span class="nvh-lbl">Voted for</span><span class="nvh-arrow">\u2192</span><img src="'+notebookPortraitFor(t)+'" alt=""><span class="nvh-name">'+escapeHtmlMp(t.name)+'</span>'
+         : '<span class="nvh-lbl">Abstained</span><span class="nvh-arrow">\u2014</span>')+
+      '</div></div>');
+  });
+  document.getElementById('notebook-dossier-votes').innerHTML = rows.length ? rows.join('') : '<p class="notebook-empty-pane">No ballots from '+escapeHtmlMp(first)+' yet \u2014 they show here once each day\u2019s vote ends.</p>';
+}
+function notebookRenderDossierQuotes(p){
+  document.getElementById('notebook-quotes-title').textContent = p.name+'\u2019s Quotes';
+  var quotes = (latestView.chatLog||[]).filter(function(m){ return !m.kind && m.playerId===p.id && m.text; });
+  document.getElementById('notebook-dossier-quotes').innerHTML = quotes.length ? quotes.map(function(m){
+    return '<div class="nvq"><p class="nvq-text">'+escapeHtmlMp(m.text)+'</p><p class="nvq-meta">'+(m.night ? 'Day '+m.night+' \u00b7 ' : '')+escapeHtmlMp(p.name)+'</p></div>';
+  }).reverse().join('') : '<p class="notebook-empty-pane">Nothing said in the main chat yet.</p>';
+}
+function notebookShowDossierTab(tab){
+  notebookDossierTab = tab;
+  document.querySelectorAll('#notebook-dtabs .notebook-dtab').forEach(function(b){
+    var on = b.getAttribute('data-dtab')===tab;
+    b.classList.toggle('active', on); b.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
+  document.querySelectorAll('#notebook-dossier-view .notebook-pane').forEach(function(pane){ pane.hidden = pane.getAttribute('data-pane')!==tab; });
+}
+document.getElementById('notebook-dtabs').addEventListener('click', function(e){
+  var b = e.target.closest && e.target.closest('.notebook-dtab'); if(!b) return;
+  SoundFX.click(); notebookShowDossierTab(b.getAttribute('data-dtab'));
+});
+document.getElementById('notebook-vote-day').addEventListener('change', function(e){ notebookVoteRound = Number(e.target.value); renderNotebookDirectory(); });
+document.querySelectorAll('.nvb-mode').forEach(function(b){
+  b.addEventListener('click', function(){ SoundFX.click(); notebookVoteMode = b.getAttribute('data-mode'); renderNotebookDirectory(); });
+});
+
 function renderNotebookDossier(playerId){
   var p = byId(playerId);
   if(!p) return;
@@ -10753,6 +10864,9 @@ function renderNotebookDossier(playerId){
   document.getElementById('notebook-dossier-actions').hidden = isSelf;
 
   notebookRenderDossierEvents(p);
+  notebookRenderDossierVotes(p);
+  notebookRenderDossierQuotes(p);
+  notebookShowDossierTab(notebookDossierTab);
 }
 
 // Spotlight and host moderation (mute/kick) still live only in the old
@@ -10808,6 +10922,7 @@ function openNotebookModal(){
   notebookFilter = 'all';
   notebookVoteInspectId = null;
   notebookVoteRound = null;
+  notebookVoteMode = 'for';
   document.querySelectorAll('.notebook-filter-tab').forEach(function(btn){
     var active = btn.getAttribute('data-filter')==='all';
     btn.classList.toggle('active', active);
