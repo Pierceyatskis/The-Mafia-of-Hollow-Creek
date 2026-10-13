@@ -1183,23 +1183,38 @@ body.force-reduced-motion .notebook-view.notebook-page-turn{animation:none;}
 .notebook-close-btn:hover{transform:scale(1.08); filter:brightness(1.15);}
 
 /* ---- Directory view ---- */
-.notebook-filter-bar{position:absolute; left:6.5%; top:9%; right:6.5%; display:flex; gap:0.4%;}
+.notebook-filter-bar{position:absolute; left:6.5%; top:9%; right:6.5%; display:flex; gap:0.4%; z-index:5;}
 .notebook-filter-tab{flex:0 0 14.1%; min-width:0; aspect-ratio:2112/330; background-image:var(--notebook-filter-tab-img); background-size:100% 100%; background-repeat:no-repeat; background-color:transparent; border:none; cursor:pointer; font-family:var(--font-type); font-size:clamp(7px, 0.75vw, 11px); letter-spacing:0.5px; text-transform:uppercase; color:var(--parchment-dim); transition:filter .15s ease, transform .1s ease; padding:0;}
 .notebook-filter-tab[data-filter="suspicious"]{margin-left:auto;}
 .notebook-filter-tab:hover{filter:brightness(1.15);}
 .notebook-filter-tab.active{color:var(--gold-bright); filter:drop-shadow(0 0 6px rgba(227,177,85,0.75)) brightness(1.2);}
 .notebook-filter-tab:focus-visible{outline:2px solid var(--gold-bright); outline-offset:2px;}
-.notebook-vote-banner{position:absolute; left:6.5%; top:12.2%; right:6.5%; height:3%; margin:0; display:flex; justify-content:space-between; z-index:3; pointer-events:none;}
-.nvb-half{display:flex; align-items:center; gap:6px; pointer-events:auto;}
-.nvb-left{width:39%; justify-content:center;}
-.nvb-right{width:40%; justify-content:center; gap:8px;}
-#notebook-vote-day{-webkit-appearance:none; appearance:none; background:linear-gradient(45deg,transparent 50%,#3a2412 50%) calc(100% - 14px) 55%/6px 6px no-repeat, linear-gradient(-45deg,transparent 50%,#3a2412 50%) calc(100% - 8px) 55%/6px 6px no-repeat, rgba(236,222,190,0.95); color:#2a1708; border:1px solid #6b4a20; border-radius:3px; font-family:var(--font-ornate); font-weight:700; font-size:clamp(9px,0.95vw,14px); letter-spacing:1px; text-transform:uppercase; padding:1px 8px; height:100%; min-width:36%; cursor:pointer;}
-.nvb-mode{height:100%; padding:0 10px; background:rgba(236,222,190,0.92); color:#4a2e16; border:1px solid #8a6a3a; border-radius:3px; cursor:pointer; font-family:var(--font-ornate); font-weight:700; font-size:clamp(8px,0.78vw,12px); letter-spacing:.5px; text-transform:uppercase; white-space:nowrap; transition:filter .15s ease, transform .1s ease;}
-.nvb-mode:hover{filter:brightness(1.08);}
-.nvb-mode.active{background:#1f140b; color:#f3e3b8; border-color:#d9a441; box-shadow:0 0 0 1px #000 inset;}
-.notebook-vote-count{position:absolute; left:53%; right:6.5%; top:84.2%; text-align:center; font-family:var(--font-ornate); font-weight:700; font-size:clamp(9px,1vw,15px); letter-spacing:1.5px; text-transform:uppercase; color:#3a2412; pointer-events:none; z-index:3;}
+.notebook-vote-banner{position:absolute; left:8.4%; top:13.2%; right:7.4%; height:5.6%; margin:0; display:flex; justify-content:space-between; z-index:4; pointer-events:none;}
+.nvb-half{display:flex; align-items:center; gap:10px; pointer-events:auto;}
+.nvb-left{width:39.4%; justify-content:center;}
+.nvb-right{width:40%; justify-content:center; gap:14px;}
+#notebook-vote-day{-webkit-appearance:none; appearance:none; height:100%; min-width:46%; padding:0 34px 0 18px; text-align:center; text-align-last:center; cursor:pointer; font-family:var(--font-ornate); font-weight:700; font-size:clamp(14px,1.6vw,24px); letter-spacing:2px; text-transform:uppercase; color:#2a1708; border:2px solid #5a3b1a; border-radius:5px; background:linear-gradient(45deg,transparent 50%,#2a1708 50%) calc(100% - 20px) 55%/8px 8px no-repeat, linear-gradient(-45deg,transparent 50%,#2a1708 50%) calc(100% - 12px) 55%/8px 8px no-repeat, linear-gradient(#f0e2bd,#e2cf9f); box-shadow:inset 0 1px 0 rgba(255,255,255,0.6), 0 2px 4px rgba(0,0,0,0.3);}
+.nvb-mode{height:100%; flex:1; padding:0 8px; cursor:pointer; font-family:var(--font-ornate); font-weight:700; font-size:clamp(10px,1.08vw,16px); letter-spacing:1px; text-transform:uppercase; white-space:nowrap; color:#3a2412; border:2px solid #8a6a3a; border-radius:5px; background:linear-gradient(#efe0b8,#dcc794); box-shadow:inset 0 1px 0 rgba(255,255,255,0.6), 0 2px 4px rgba(0,0,0,0.3); transition:filter .15s ease, transform .1s ease;}
+.nvb-mode:hover{filter:brightness(1.08); transform:translateY(-1px);}
+.nvb-mode.active{color:#f3e3b8; border-color:#d9a441; background:linear-gradient(#2a1b0f,#150d06); box-shadow:inset 0 0 0 1px #000, 0 0 0 1px rgba(217,164,65,0.5), 0 3px 6px rgba(0,0,0,0.5);}
+.notebook-vote-count{position:absolute; left:52.6%; right:7.4%; top:19.2%; display:flex; align-items:center; justify-content:center; gap:12px; text-align:center; font-family:var(--font-ornate); font-weight:700; font-size:clamp(11px,1.2vw,18px); letter-spacing:2px; text-transform:uppercase; color:#2a1708; pointer-events:none; z-index:3;}
+.notebook-vote-count::before, .notebook-vote-count::after{content:''; flex:1; height:1px; background:linear-gradient(90deg, transparent, #3a2412);}
+.notebook-vote-count::after{background:linear-gradient(270deg, transparent, #3a2412);}
+.notebook-dcover{position:absolute; top:9.1%; height:75.9%; background:linear-gradient(#f7ebde,#f7ebde), url('assets/ui/parchment.webp'); background-blend-mode:multiply; background-size:100% 100%; -webkit-mask-image:linear-gradient(to right, transparent, #000 3%, #000 97%, transparent), linear-gradient(to bottom, transparent, #000 3%, #000 97%, transparent); -webkit-mask-composite:source-in; mask-image:linear-gradient(to right, transparent, #000 3%, #000 97%, transparent), linear-gradient(to bottom, transparent, #000 3%, #000 97%, transparent); mask-composite:intersect; pointer-events:none;}
+.notebook-dcover-l{left:7.1%; width:41.4%;}
+.notebook-dcover-r{left:51.6%; width:42%;}
+.notebook-dir-title{position:absolute; left:8.4%; right:7.4%; top:13.6%; display:flex; justify-content:space-between; pointer-events:none; z-index:3; font-family:var(--font-ornate); font-weight:700; letter-spacing:2px; text-transform:uppercase; color:#3a2412;}
+.notebook-dir-title span{width:39.4%; text-align:center; font-size:clamp(12px,1.3vw,20px);}
+.notebook-dir-title span + span{width:40%; font-size:clamp(10px,1vw,15px); color:#6b5a42;}
+.notebook-dir-title[hidden]{display:none;}
+.notebook-slot{position:absolute; width:19.9%; height:14%; box-sizing:border-box; border:1px solid rgba(88,60,32,0.5); border-radius:4px; background:rgba(255,248,226,0.16); pointer-events:none;}
+.notebook-slot::after{content:''; position:absolute; right:-4px; bottom:-4px; width:6px; height:6px; background:#4a3018; transform:rotate(45deg);}
+.notebook-slot.empty::before{content:''; position:absolute; left:3.4%; top:7%; width:41%; height:86%; border:2px solid rgba(110,80,40,0.55); border-radius:3px; background:rgba(120,90,50,0.07);}
+.notebook-slot.empty i, .notebook-slot.empty b{position:absolute; left:52%; width:40%; height:1px; background:rgba(88,60,32,0.45);}
+.notebook-slot.empty i{top:46%;}
+.notebook-slot.empty b{top:62%;}
 .notebook-vote-count[hidden]{display:none;}
-.notebook-card.notebook-voter, .notebook-card.notebook-target{background:linear-gradient(rgba(250,212,100,0.55), rgba(250,212,100,0.55)); border-radius:4px; width:calc(19.375% - 28px);}
+.notebook-card.notebook-voter, .notebook-card.notebook-target{background:linear-gradient(rgba(250,212,100,0.55), rgba(250,212,100,0.55)); border-radius:4px; width:19%;}
 .notebook-card.notebook-voter .notebook-card-portrait-wrap, .notebook-card.notebook-target .notebook-card-portrait-wrap{filter:none;}
 .notebook-vote-banner[hidden]{display:none;}
 .name-tag{display:inline-block; margin-left:6px; padding:1px 6px; border-radius:3px; border:1.5px solid; font-family:var(--font-type); font-size:0.72em; font-weight:700; letter-spacing:1px; text-transform:uppercase; line-height:1.4; vertical-align:middle; white-space:nowrap;}
@@ -1221,6 +1236,7 @@ body.force-reduced-motion .notebook-view.notebook-page-turn{animation:none;}
 #dead-notice{display:none !important;}
 #design-canvas.bg-day #daylayout-stage-request-btn{font-family:'Cinzel',Georgia,serif; font-size:11.5px; font-weight:700; letter-spacing:0.6px; text-transform:uppercase; line-height:40px; white-space:nowrap; text-align:center; box-sizing:border-box; padding:0 13px 0 35px; color:#f0d79b; text-shadow:0 1px 1px rgba(60,10,5,0.9), 0 0 3px rgba(60,10,5,0.6);}
 .notebook-vote-nav{background:linear-gradient(#3a2a1a,#1f140b); border:1px solid #d9a441; color:#f0c96a; border-radius:3px; cursor:pointer; font-size:10px; line-height:1; height:100%; padding:0 9px;}
+.nvb-left .notebook-vote-nav{width:clamp(34px,3.1vw,48px); padding:0; font-size:clamp(12px,1.3vw,19px); border:2px solid #d9a441; border-radius:5px; background:linear-gradient(#3a2a1a,#1a0f07); box-shadow:inset 0 1px 0 rgba(255,220,150,0.25), 0 2px 4px rgba(0,0,0,0.4);}
 .notebook-vote-nav:hover:not(:disabled){background:rgba(227,177,85,0.2);}
 .notebook-vote-nav:disabled{opacity:0.3; cursor:default;}
 .notebook-vote-nav[hidden]{display:none;}
@@ -1244,7 +1260,7 @@ body.force-reduced-motion .notebook-view.notebook-page-turn{animation:none;}
    banner in paint order and silently eats their clicks despite being
    invisible there. */
 .notebook-directory-grid{position:absolute; inset:0; pointer-events:none;}
-.notebook-card{position:absolute; display:flex; align-items:flex-start; gap:8px; width:19.375%; height:12.93%; padding:0; background:none; border:none; cursor:pointer; text-align:left; font-family:inherit; transition:opacity .2s ease, filter .2s ease; pointer-events:auto;}
+.notebook-card{position:absolute; display:flex; align-items:flex-start; gap:8px; width:19%; height:12.9%; padding:0; background:none; border:none; cursor:pointer; text-align:left; font-family:inherit; transition:opacity .2s ease, filter .2s ease; pointer-events:auto;}
 .notebook-card:hover{filter:brightness(1.08);}
 .notebook-card:focus-visible{outline:2px solid var(--gold-bright); outline-offset:2px;}
 .notebook-card.notebook-dimmed{opacity:0.32;}
@@ -1263,12 +1279,12 @@ body.force-reduced-motion .notebook-view.notebook-page-turn{animation:none;}
 .notebook-card-badges{position:absolute; top:-10px; right:-8px; display:flex; flex-direction:column; gap:2px;}
 .notebook-card-badges img{width:15px; height:15px; object-fit:contain; filter:drop-shadow(0 1px 2px rgba(0,0,0,0.8));}
 .notebook-card-info{min-width:0; flex:1; font-family:var(--font-type); color:#2a2015; padding-top:2px;}
-.notebook-card-name{font-size:clamp(9px, 0.95vw, 13px); font-weight:700; letter-spacing:0.3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
-.notebook-card-status-row{display:flex; align-items:center; gap:4px; font-size:clamp(7px, 0.7vw, 10px); letter-spacing:0.5px; text-transform:uppercase; margin-top:3px;}
+.notebook-card-name{font-size:clamp(10px, 1.1vw, 16px); font-weight:700; letter-spacing:0.3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.notebook-card-status-row{display:flex; align-items:center; gap:4px; font-size:clamp(8px, 0.8vw, 12px); letter-spacing:0.5px; text-transform:uppercase; margin-top:3px;}
 .notebook-card-status-row img{width:12px; height:12px; object-fit:contain;}
 .notebook-card-status-row .alive{color:#3c6e4f;}
 .notebook-card-status-row .dead{color:#6b6258;}
-.notebook-card-vote-line{font-size:clamp(7px, 0.68vw, 10px); color:#5a4a36; margin-top:3px; font-style:italic; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.notebook-card-vote-line{font-size:clamp(8px, 0.8vw, 12px); color:#5a4a36; margin-top:3px; font-style:italic; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
 .notebook-card-note-preview{font-size:clamp(6.5px, 0.62vw, 9px); color:#6b5a42; margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%;}
 
 /* ---- Dossier view ---- */
@@ -1324,9 +1340,27 @@ body.force-reduced-motion .notebook-view.notebook-page-turn{animation:none;}
 /* Dossier right page: a clean parchment patch hides the old printed notes/timeline art so the tabbed panes sit on blank paper. */
 .notebook-rpage-cover{position:absolute; left:52.3%; top:9.4%; width:40.3%; height:75.6%; background:linear-gradient(#f7ebde,#f7ebde), url('assets/ui/parchment.webp'); background-blend-mode:multiply; background-size:100% 100%; -webkit-mask-image:linear-gradient(to right, transparent, #000 2.5%, #000 97.5%, transparent), linear-gradient(to bottom, transparent, #000 4%, #000 96%, transparent); -webkit-mask-composite:source-in; mask-image:linear-gradient(to right, transparent, #000 2.5%, #000 97.5%, transparent), linear-gradient(to bottom, transparent, #000 4%, #000 96%, transparent); mask-composite:intersect; pointer-events:none;}
 .notebook-dtabs{position:absolute; left:54.2%; top:6.3%; width:38.4%; display:flex; gap:0.6%; z-index:2;}
-.notebook-dtab{flex:1; min-width:0; height:4.4cqw; padding:0 4px; cursor:pointer; font-family:var(--font-ornate); font-weight:700; font-size:clamp(7px,0.82vw,12px); letter-spacing:.4px; text-transform:uppercase; color:#4a2e16; background:linear-gradient(#e2c995,#c9a96c); border:1px solid #8a6a3a; border-bottom:none; border-radius:6px 6px 0 0; box-shadow:0 -1px 0 rgba(255,255,255,0.4) inset; transition:filter .15s ease, transform .1s ease;}
-.notebook-dtab:hover{filter:brightness(1.08);}
-.notebook-dtab.active{background:linear-gradient(#8a1f1b,#5e100d); color:#f3e3b8; border-color:#d9a441; text-shadow:0 1px 2px #000; height:4.9cqw; margin-top:-0.5cqw; box-shadow:0 0 0 1px #3a0a08 inset, 0 2px 6px rgba(0,0,0,0.5);}
+/* Dossier tabs: parchment index tabs with stitched edges and an icon; the active one is oxblood leather with a gold inlay. */
+.notebook-dtab{position:relative; flex:1; min-width:0; height:4.3cqw; padding:0 4px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-family:var(--font-ornate); font-weight:700; font-size:clamp(7px,0.72vw,11px); letter-spacing:.2px; text-transform:uppercase; white-space:nowrap; color:#4a2e16; text-shadow:0 1px 0 rgba(255,255,255,0.55); background:linear-gradient(180deg,#f0dfb4 0%,#dcc28b 60%,#c9a76b 100%); border:1px solid #6e4f24; border-bottom:none; border-radius:10px 10px 0 0; box-shadow:inset 0 1px 0 rgba(255,255,255,0.7), inset 0 -6px 8px rgba(120,84,36,0.25), 0 -3px 6px rgba(0,0,0,0.3); transition:filter .15s ease, transform .12s ease;}
+.notebook-dtab::after{content:''; position:absolute; inset:3px 3px 0 3px; border:1px dashed rgba(90,60,30,0.45); border-bottom:none; border-radius:7px 7px 0 0; pointer-events:none;}
+.notebook-dtab::before{content:''; flex:0 0 auto; width:1cqw; height:1cqw; margin-right:0.35cqw; background:currentColor; -webkit-mask:var(--ic) center/contain no-repeat; mask:var(--ic) center/contain no-repeat; opacity:0.85;}
+.notebook-dtab[data-dtab="notes"]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 21l1.2-5L16 4.2a2 2 0 012.8 0l1 1a2 2 0 010 2.8L8 19.8 3 21zm13-14.3l1.3 1.3'/%3E%3C/svg%3E");}
+.notebook-dtab[data-dtab="votes"]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 3h16v18H4zM8 12.5l3 3 5-6.5'/%3E%3C/svg%3E");}
+.notebook-dtab[data-dtab="events"]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill-rule='evenodd' d='M12 2a10 10 0 100 20 10 10 0 000-20zm1 5h-2v6l5 3 1-1.7-4-2.3z'/%3E%3C/svg%3E");}
+.notebook-dtab[data-dtab="quotes"]{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 6h8v7H7c0 2 1 3 4 3v3c-5 0-8-2-8-7V6zm10 0h8v7h-4c0 2 1 3 4 3v3c-5 0-8-2-8-7V6z'/%3E%3C/svg%3E");}
+.notebook-dtab:hover{filter:brightness(1.1); transform:translateY(-2px);}
+.notebook-dtab.active{height:4.9cqw; margin-top:-0.6cqw; color:#f3deaa; text-shadow:0 1px 2px #000; background:linear-gradient(180deg,#a8272a 0%,#7a1517 55%,#520d0f 100%); border-color:#e0b050; box-shadow:inset 0 1px 0 rgba(255,200,180,0.4), inset 0 -8px 10px rgba(0,0,0,0.35), 0 0 0 1px #2a0605, 0 -3px 10px rgba(0,0,0,0.55), 0 0 12px rgba(224,176,80,0.35);}
+.notebook-dtab.active::after{border-color:rgba(240,200,120,0.75);}
+.notebook-dtab.active::before{opacity:1;}
+/* Vote History extras: latest statement + reminder strip */
+.nvh-extra{margin-top:1cqw; flex:0 0 auto;}
+.nvh-extra-head{display:flex; align-items:center; gap:0.8cqw; font-family:var(--font-ornate); font-weight:700; font-size:1.2cqw; letter-spacing:1px; text-transform:uppercase; color:#2a1708; margin-bottom:0.6cqw;}
+.nvh-extra-head::after{content:''; flex:1; height:1px; background:linear-gradient(90deg,#3a2412,transparent);}
+.nvh-pill{order:2; font-size:0.95cqw; letter-spacing:.5px; color:#e8ecf2; background:linear-gradient(#4a6584,#34506f); border:1px solid #243a52; border-radius:3px; padding:0.2cqw 0.8cqw;}
+.nvh-reminder{display:flex; align-items:center; gap:0.9cqw; margin-top:1cqw; padding:0.7cqw 1cqw; cursor:pointer; border:1px solid rgba(90,60,30,0.45); border-radius:5px; background:rgba(255,248,226,0.3); font-family:var(--font-body); font-size:1.25cqw; color:#3a2a18; transition:background .15s ease;}
+.nvh-reminder:hover{background:rgba(255,248,226,0.55);}
+.nvh-reminder .plus{flex:0 0 2cqw; height:2cqw; border-radius:50%; background:#1f140b; color:#e0b050; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:1.5cqw; line-height:1;}
+.nvh-reminder .txt{flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-style:italic;}
 .notebook-pane{position:absolute; left:55%; top:15.8%; width:37%; height:67%; display:flex; flex-direction:column; min-height:0;}
 .notebook-pane[hidden]{display:none;}
 .notebook-pane-title{margin:0; text-align:center; font-family:var(--font-ornate); font-weight:700; font-size:1.55cqw; letter-spacing:1px; text-transform:uppercase; color:#2a1708;}
@@ -2509,6 +2543,9 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
         <div class="nvb-half nvb-right"><button type="button" class="nvb-mode active" data-mode="for">Who voted for?</button><button type="button" class="nvb-mode" data-mode="by">Who did they vote for?</button></div>
       </div>
       <div class="notebook-vote-count" id="notebook-vote-banner-text" hidden></div>
+      <div class="notebook-dcover notebook-dcover-l" aria-hidden="true"></div>
+      <div class="notebook-dcover notebook-dcover-r" aria-hidden="true"></div>
+      <div class="notebook-dir-title" id="notebook-dir-title"><span id="notebook-dir-title-l"></span><span id="notebook-dir-title-r"></span></div>
       <div class="notebook-directory-grid" id="notebook-directory-grid"></div>
     </div>
 
@@ -2550,6 +2587,8 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
           <div class="notebook-pane-rule"><i></i></div>
           <p class="notebook-pane-note">The player they voted for at the end of each day.</p>
           <div id="notebook-dossier-votes" class="notebook-scroll"></div>
+          <div class="nvh-extra" id="notebook-votes-statement"></div>
+          <div class="nvh-reminder" id="notebook-votes-reminder" role="button" tabindex="0"></div>
         </div>
         <div class="notebook-pane notebook-events-section" data-pane="events" hidden>
           <div id="notebook-dossier-events" class="notebook-timeline"></div>
@@ -10656,8 +10695,16 @@ function notebookSortedPlayers(){
 // x=150/475/975/1300px, 4 rows at y=175/375/575/775px, each card frame
 // 150px square. Row-major across all 4 columns (not "fill the left page
 // then the right"), matching the reading order in the filled mockup.
-var NOTEBOOK_DIR_COLS_PCT = [147/1600*100, 469/1600*100, 868/1600*100, 1180/1600*100];
-var NOTEBOOK_DIR_ROWS_PCT = [165/1067*100, 350/1067*100, 540/1067*100, 724/1067*100];
+var NOTEBOOK_DIR_COLS_PCT = [8.7, 28.2, 53.1, 72.9];   // card x inside each slot (slots sit 0.5% left/above of these)
+var NOTEBOOK_DIR_ROWS_PCT = [22.9, 37.8, 52.7, 67.6];
+function notebookSlotsHTML(filled){
+  var out = '';
+  for(var i=0;i<16;i++){
+    var left = NOTEBOOK_DIR_COLS_PCT[i % 4] - 0.5, top = NOTEBOOK_DIR_ROWS_PCT[Math.floor(i / 4)] - 0.6;
+    out += '<div class="notebook-slot'+(i>=filled?' empty':'')+'" style="left:'+left+'%; top:'+top+'%;">'+(i>=filled?'<i></i><b></b>':'')+'</div>';
+  }
+  return out;
+}
 function notebookCardHTML(p, index){
   var mark = notebookMarks[p.id] || 'unknown';
   var pinned = notebookPinned.indexOf(p.id) !== -1;
@@ -10747,7 +10794,12 @@ function renderNotebookDirectory(){
   var before = {};
   Array.prototype.forEach.call(grid.querySelectorAll('.notebook-card'), function(c){ var r=c.getBoundingClientRect(); before[c.getAttribute('data-player-id')] = {x:r.left, y:r.top}; });
   var players = notebookSortedPlayers().slice(0, 16);
-  grid.innerHTML = players.map(function(p, i){ return notebookCardHTML(p, i); }).join('');
+  grid.innerHTML = notebookSlotsHTML(players.length) + players.map(function(p, i){ return notebookCardHTML(p, i); }).join('');
+  var titleEl = document.getElementById('notebook-dir-title');
+  titleEl.hidden = notebookFilter==='votes';
+  var alive = (latestView.players||[]).filter(function(p){ return p.alive; }).length;
+  document.getElementById('notebook-dir-title-l').textContent = 'Town Directory';
+  document.getElementById('notebook-dir-title-r').textContent = alive+' alive \u00b7 '+((latestView.players||[]).length-alive)+' eliminated';
   var animate = !document.body.classList.contains('force-reduced-motion') && !matchMedia('(prefers-reduced-motion: reduce)').matches;
   if(animate){
     var moved = [];
@@ -10798,6 +10850,12 @@ function notebookRenderDossierVotes(p){
          : '<span class="nvh-lbl">Abstained</span><span class="nvh-arrow">\u2014</span>')+
       '</div></div>');
   });
+  var qs = (latestView.chatLog||[]).filter(function(m){ return !m.kind && m.playerId===p.id && m.text; });
+  var lastQ = qs.length ? qs[qs.length-1] : null;
+  document.getElementById('notebook-votes-statement').innerHTML = lastQ ?
+    '<div class="nvh-extra-head">Latest Statement'+(lastQ.night ? '<span class="nvh-pill">Day '+lastQ.night+'</span>' : '')+'</div><div class="nvq"><p class="nvq-text">'+escapeHtmlMp(lastQ.text)+'</p><p class="nvq-meta">'+escapeHtmlMp(p.name)+'</p></div>' : '';
+  var note = notebookNotes[p.id];
+  document.getElementById('notebook-votes-reminder').innerHTML = '<span class="plus">+</span><span class="txt">'+(note ? escapeHtmlMp(note.split('\n')[0]) : 'Add a reminder about '+escapeHtmlMp(first)+'\u2026')+'</span>';
   document.getElementById('notebook-dossier-votes').innerHTML = rows.length ? rows.join('') : '<p class="notebook-empty-pane">No ballots from '+escapeHtmlMp(first)+' yet \u2014 they show here once each day\u2019s vote ends.</p>';
 }
 function notebookRenderDossierQuotes(p){
@@ -10819,6 +10877,7 @@ document.getElementById('notebook-dtabs').addEventListener('click', function(e){
   var b = e.target.closest && e.target.closest('.notebook-dtab'); if(!b) return;
   SoundFX.click(); notebookShowDossierTab(b.getAttribute('data-dtab'));
 });
+document.getElementById('notebook-votes-reminder').addEventListener('click', function(){ notebookShowDossierTab('notes'); document.getElementById('notebook-dossier-notes').focus(); });
 document.getElementById('notebook-vote-day').addEventListener('change', function(e){ notebookVoteRound = Number(e.target.value); renderNotebookDirectory(); });
 document.querySelectorAll('.nvb-mode').forEach(function(b){
   b.addEventListener('click', function(){ SoundFX.click(); notebookVoteMode = b.getAttribute('data-mode'); renderNotebookDirectory(); });
