@@ -908,19 +908,58 @@ body.force-reduced-motion .ballot-box-seal.playing{animation:none !important; op
 #design-canvas.bg-night #game-folder{position:absolute; left:50%; top:52%; transform:translate(-50%,-50%); width:1500px; max-width:calc(100% - 380px); margin:0; max-height:calc(100% - 330px); overflow-y:auto;}
 #design-canvas.bg-night #panel-night{padding-top:22px;}
 /* Night "town sleeps" card - shown to players with no night action, and to acting players once their choice is locked in. The panel art is 9-sliced so the frame can be stretched down to fit the content. */
-#design-canvas.bg-night #game-folder:has(#night-sleep-card){background:none; box-shadow:none; border:none; overflow:visible;}
-#panel-night:has(#night-sleep-card) > h2.sec, #panel-night:has(#night-sleep-card) > .night-progress{display:none !important;}
-#night-sleep-card{position:relative; width:1000px; max-width:100%; min-height:600px; margin:0 auto; box-sizing:border-box; border:48px solid transparent; border-image:url('assets/ui/night-panel.webp') 96 fill / 48px stretch; padding:0 6px 6px; text-align:center; color:#2a1708; filter:drop-shadow(0 14px 30px rgba(0,0,0,0.7));}
-#night-sleep-card .nsc-title{margin:-6px 0 0; font-family:var(--font-ornate); font-weight:700; font-size:50px; line-height:1.1; letter-spacing:1px; color:#2a1708; display:flex; align-items:center; justify-content:center; gap:22px;}
-#night-sleep-card .nsc-title::before, #night-sleep-card .nsc-title::after{content:''; flex:0 0 90px; height:2px; background:linear-gradient(90deg, transparent, #3a2412);}
-#night-sleep-card .nsc-title::after{background:linear-gradient(270deg, transparent, #3a2412);}
-#night-sleep-card .nsc-rule{width:420px; max-width:80%; height:1px; margin:6px auto; background:linear-gradient(90deg, transparent, #3a2412 20%, #3a2412 80%, transparent);}
+#design-canvas.bg-night #game-folder:has(#night-sleep-card), #design-canvas.bg-night #game-folder:has(#night-actions-card){background:none; box-shadow:none; border:none; overflow:visible;}
+#panel-night:has(#night-sleep-card) > h2.sec, #panel-night:has(#night-sleep-card) > .night-progress, #panel-night:has(#night-actions-card) > h2.sec, #panel-night:has(#night-actions-card) > .night-progress{display:none !important;}
+#night-sleep-card, #night-actions-card{position:relative; width:1000px; max-width:100%; min-height:600px; margin:0 auto; box-sizing:border-box; border:48px solid transparent; border-image:url('assets/ui/night-panel.webp') 96 fill / 48px stretch; padding:0 6px 6px; text-align:center; color:#2a1708; filter:drop-shadow(0 14px 30px rgba(0,0,0,0.7));}
+#night-sleep-card .nsc-title, #night-actions-card .nsc-title{margin:-6px 0 0; font-family:var(--font-ornate); font-weight:700; font-size:50px; line-height:1.1; letter-spacing:1px; color:#2a1708; display:flex; align-items:center; justify-content:center; gap:22px;}
+#night-sleep-card .nsc-title::before, #night-sleep-card .nsc-title::after, #night-actions-card .nsc-title::before, #night-actions-card .nsc-title::after{content:''; flex:0 0 90px; height:2px; background:linear-gradient(90deg, transparent, #3a2412);}
+#night-sleep-card .nsc-title::after, #night-actions-card .nsc-title::after{background:linear-gradient(270deg, transparent, #3a2412);}
+#night-sleep-card .nsc-rule, #night-actions-card .nsc-rule{width:420px; max-width:80%; height:1px; margin:6px auto; background:linear-gradient(90deg, transparent, #3a2412 20%, #3a2412 80%, transparent);}
 #night-sleep-card .nsc-art{display:block; width:640px; max-width:92%; margin:6px auto 0; mix-blend-mode:multiply; -webkit-mask-image:radial-gradient(ellipse 50% 50% at 50% 50%, #000 62%, transparent 100%); mask-image:radial-gradient(ellipse 50% 50% at 50% 50%, #000 62%, transparent 100%);}
 #night-sleep-card .nsc-main{margin:10px 0 2px; font-family:var(--font-body); font-weight:700; font-size:32px; color:#1c1008;}
 #night-sleep-card .nsc-sub{margin:0 0 8px; font-family:var(--font-body); font-size:19px; color:#3a2412;}
 #night-sleep-card .nsc-wait{margin:10px 0 12px; font-family:var(--font-ornate); font-weight:700; font-size:26px; font-variant:small-caps; letter-spacing:1px; color:#1c1008; display:flex; align-items:center; justify-content:center; gap:16px;}
 #night-sleep-card .nsc-wait::before, #night-sleep-card .nsc-wait::after{content:''; flex:0 0 120px; height:1px; background:linear-gradient(90deg, transparent, #3a2412);}
 #night-sleep-card .nsc-wait::after{background:linear-gradient(270deg, transparent, #3a2412);}
+/* Night action panel: one column per action, banner plates 9-sliced so they stretch to any width. */
+#night-actions-card .na-pre{margin:2px 0 0; font-family:var(--font-body); font-size:16px; color:#3a2412;}
+#night-actions-card .na-pre p{margin:2px 0;}
+#night-actions-card .na-pre .ally{font-family:var(--font-body); font-size:17px; color:#6b1d12; font-weight:700;}
+#night-actions-card .na-cols{display:flex; align-items:stretch; justify-content:center; gap:0; margin:14px 0 6px; position:relative;}
+#night-actions-card .na-col{flex:1 1 0; max-width:430px; padding:0 22px; display:flex; flex-direction:column; align-items:stretch; gap:12px;}
+#night-actions-card .na-cols-2 .na-col + .na-col{border-left:1px solid rgba(58,36,18,0.55);}
+#night-actions-card .na-head, #night-actions-card .na-select, #night-actions-card .na-confirm, #night-actions-card .na-count, #night-actions-card .na-back{box-sizing:border-box; border-style:solid; border-color:transparent; border-width:15px 24px; display:flex; align-items:center; justify-content:center; height:56px; width:100%; font-family:var(--font-ornate); font-weight:700; font-variant:small-caps; letter-spacing:.6px; font-size:22px; line-height:1; white-space:nowrap; color:#f3e3b8; text-shadow:0 2px 3px rgba(0,0,0,0.85); background:none; padding:0; margin:0;}
+#night-actions-card .na-head{border-image:url('assets/ui/plate-red-header.webp') 66 100 fill / 15px 24px stretch; height:60px; font-size:24px;}
+#night-actions-card .na-hint{margin:0; font-family:var(--font-body); font-size:17px; color:#2a1708; text-align:center; height:48px; overflow:hidden;}
+#night-actions-card .na-select, #night-actions-card .na-count, #night-actions-card .na-back, #night-actions-card .na-confirm.off, #night-actions-card .na-confirm.done{border-image:url('assets/ui/plate-dark.webp') 62 100 fill / 15px 24px stretch;}
+#night-actions-card .na-confirm.on{border-image:url('assets/ui/plate-red.webp') 60 100 fill / 15px 24px stretch;}
+#night-actions-card .na-select{cursor:pointer; justify-content:flex-start; gap:12px; font-family:var(--font-body); font-variant:normal; font-weight:400; font-size:18px; color:#e8dfc7; position:relative; padding:0 28px 0 4px; transition:filter .15s ease, transform .12s ease;}
+#night-actions-card .na-select img{width:28px; height:28px; border-radius:50%; object-fit:cover; border:1px solid #d9a441; flex-shrink:0;}
+#night-actions-card .na-select .na-ph{color:#a89878;}
+#night-actions-card .na-select::after{content:''; position:absolute; right:12px; top:50%; margin-top:-3px; border-left:7px solid transparent; border-right:7px solid transparent; border-top:9px solid #d9a441;}
+#night-actions-card .na-select.locked{cursor:default; filter:saturate(0.6) brightness(0.85);}
+#night-actions-card .na-select.locked::after{display:none;}
+#night-actions-card .na-confirm{cursor:pointer; transition:filter .15s ease, transform .12s ease;}
+#night-actions-card .na-confirm.off{cursor:not-allowed; color:#7d7058; text-shadow:none; filter:grayscale(0.6) brightness(0.85);}
+#night-actions-card .na-confirm.done{color:#e3b855;}
+#night-actions-card .na-select:not(.locked):hover, #night-actions-card .na-confirm.on:hover, #night-actions-card .na-confirm.done:hover, #night-actions-card .na-back:hover{filter:brightness(1.22); transform:translateY(-2px);}
+#night-actions-card .na-confirm.on:active, #night-actions-card .na-select:active{transform:translateY(0) scale(0.98);}
+#night-actions-card .na-skip{align-self:center; margin:-4px 0 0; padding:2px 6px; background:none; border:none; cursor:pointer; font-family:var(--font-body); font-style:italic; font-size:15px; color:#4a2e16; text-decoration:underline;}
+#night-actions-card .na-skip:hover{color:#8a1c14;}
+#night-actions-card .na-count{width:520px; max-width:90%; margin:8px auto 4px; font-size:21px;}
+#night-actions-card .na-foot{margin:6px 0 0; font-family:var(--font-body); font-style:italic; font-size:16px; color:#3a2412; display:flex; align-items:center; justify-content:center; gap:14px;}
+#night-actions-card .na-foot::before, #night-actions-card .na-foot::after{content:''; flex:0 0 110px; height:1px; background:linear-gradient(90deg, transparent, #3a2412);}
+#night-actions-card .na-foot::after{background:linear-gradient(270deg, transparent, #3a2412);}
+#night-actions-card .na-sub{margin:0 0 6px; font-family:var(--font-body); font-size:18px; color:#3a2412;}
+#night-actions-card .na-grid{display:flex; flex-wrap:wrap; justify-content:center; gap:16px 22px; padding:10px 18px 4px;}
+#night-actions-card .na-person{display:flex; flex-direction:column; align-items:center; gap:6px; padding:0; background:none; border:none; cursor:pointer; transition:transform .12s ease, filter .15s ease;}
+#night-actions-card .na-person img{width:100px; height:100px; object-fit:cover; object-position:center 15%; border-radius:8px; border:3px solid #5a3b1a; box-shadow:0 3px 8px rgba(0,0,0,0.45); background:#1b130c;}
+#night-actions-card .na-person span{font-family:var(--font-ornate); font-weight:700; font-size:15px; color:#2a1708; max-width:112px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+#night-actions-card .na-person:hover{transform:translateY(-4px); filter:brightness(1.1);}
+#night-actions-card .na-person:hover img{border-color:#d9a441;}
+#night-actions-card .na-person.sel img{border-color:#d9a441; box-shadow:0 0 0 2px #8a1c14, 0 0 14px 4px rgba(217,164,65,0.8);}
+#night-actions-card .na-backrow{display:flex; justify-content:center; margin-top:14px;}
+#night-actions-card .na-back{width:220px; cursor:pointer;}
 #night-sleep-card .nsc-btns{display:grid; grid-template-columns:repeat(3, 1fr); gap:10px;}
 #night-sleep-card .nsc-btn{display:block; padding:0; border:none; background:none; cursor:pointer; border-radius:7px; transition:filter .15s ease, transform .12s ease, box-shadow .15s ease;}
 #night-sleep-card .nsc-btn img{display:block; width:100%; height:auto; border-radius:7px;}
@@ -5155,59 +5194,6 @@ function stopNightKillTimer(){
   SoundFX.stopClockTickSound();
 }
 
-function renderMafiaVoteUI(h, opts){
-  opts = opts || {};
-  var area = document.getElementById('night-action');
-  var teammateIds = mafiaTeammateIdsOf(h);
-  var killOpts = otherLivingOptions([h.id].concat(teammateIds));
-  var allyLine = (opts.preHTML||'') + renderAllyLine(h);
-  var introText = opts.introText || 'Vote for who the family eliminates tonight. If the family can\'t agree, it comes down to a coin flip.';
-  var silenceBlock = opts.silence ? '<p style="font-size:13px; color:var(--parchment-dim); margin-top:12px;">Optionally, silence someone for tomorrow.</p><div class="chipgrid" id="grid-b"></div>' : '';
-  // Framer's frame-target ability is separate from (and required alongside)
-  // the shared kill vote above - unlike silence, this is the role's own
-  // defining ability, not an optional extra.
-  var frameBlock = opts.frame ? '<p style="font-size:13px; color:var(--parchment-dim); margin-top:12px;">Choose someone to alter tonight\'s investigation read for. Frame a townsperson guilty, or shield one of your own innocent.</p><div class="chipgrid" id="grid-c"></div>' : '';
-  var consBlock = opts.consigliere ? '<p style="font-size:13px; color:var(--parchment-dim); margin-top:12px;">Also choose someone outside the family to look into tonight. You\'ll learn exactly who they are.</p><div class="chipgrid" id="grid-d"></div>' : '';
-  area.innerHTML = allyLine+'<p style="font-size:13px; color:var(--parchment-dim);">'+introText+'</p><div class="chipgrid" id="grid-a"></div>'+silenceBlock+frameBlock+consBlock+
-    '<button class="btn" id="night-confirm-btn" style="margin-top:12px;">Confirm</button>';
-  document.getElementById('grid-a').innerHTML = chipGridHTML(killOpts,'pick-a');
-  wireSingleSelect(document.getElementById('grid-a'), 'pick-a', function(id){
-    pendingNightAction.kill=id;
-    if(opts.silence) renderSilenceGrid();
-  });
-  function renderSilenceGrid(){
-    // PREBETA Task 1: silence must have no alignment restriction - a
-    // Godfather who can only ever silence town players makes being
-    // silenced itself a tell that mechanically confirms you're not mafia.
-    // Only the current kill pick is excluded (silencing someone who'll be
-    // dead by morning is a wasted pick, not an alignment leak) - self and
-    // teammates are valid targets now, same as anyone else.
-    var silOpts = otherLivingOptions([pendingNightAction.kill].filter(Boolean));
-    document.getElementById('grid-b').innerHTML = chipGridHTML(silOpts,'pick-b');
-    wireSingleSelect(document.getElementById('grid-b'), 'pick-b', function(id){pendingNightAction.silence=id;});
-  }
-  if(opts.silence) renderSilenceGrid();
-  if(opts.frame){
-    // Independent of the kill pick - unlike Consigliere, targeting a
-    // teammate here is real, useful functionality (shields them with an
-    // innocent read this round), so only self is excluded.
-    var frameOpts = otherLivingOptions([h.id]);
-    document.getElementById('grid-c').innerHTML = chipGridHTML(frameOpts,'pick-c');
-    wireSingleSelect(document.getElementById('grid-c'), 'pick-c', function(id){pendingNightAction.frameTarget=id;});
-  }
-  if(opts.consigliere){
-    // Her own ability, alongside the shared kill vote: cannot target family (already visible to her).
-    document.getElementById('grid-d').innerHTML = chipGridHTML(otherLivingOptions([h.id].concat(teammateIds)),'pick-d');
-    wireSingleSelect(document.getElementById('grid-d'), 'pick-d', function(id){pendingNightAction.consigliereInvestigate=id;});
-  }
-  document.getElementById('night-confirm-btn').addEventListener('click', function(){
-    if(opts.consigliere && !pendingNightAction.consigliereInvestigate){document.getElementById('night-error').textContent='Choose someone to look into first.'; document.getElementById('night-error').style.display='block'; return;}
-    if(!pendingNightAction.kill){document.getElementById('night-error').textContent='Choose someone to eliminate first.'; document.getElementById('night-error').style.display='block'; return;}
-    if(opts.frame && !pendingNightAction.frameTarget){document.getElementById('night-error').textContent='Choose someone to frame or shield first.'; document.getElementById('night-error').style.display='block'; return;}
-    submitNightAction();
-  });
-}
-
 function lockMafiaVoteGrids(){
   lockChipGrid('grid-a');
   lockChipGrid('grid-b');
@@ -5296,6 +5282,131 @@ function renderNightSleepCard(area, later){
   document.getElementById('nsc-notebook').addEventListener('click', function(){ SoundFX.playCaseFileOpen(); openNotebookModal(); });
 }
 
+// ---- Night actions panel: one reusable UI for every role's night choice ----
+// A config lists the role's actions; each one is "pick a player" (via the
+// portrait picker) then "confirm". Once every action is confirmed (or an
+// optional one skipped) the whole choice goes to the server in one message.
+var nightUI = {night:null, sel:{}, done:{}, picking:null, armed:null, submitting:false};
+function nightPlayerChoice(id){ return byId(id); }
+function nightActionConfig(h){
+  var teammates = mafiaTeammateIdsOf(h);
+  var killOpts = function(){ return otherLivingOptions([h.id].concat(teammates)); };
+  var KILL = {key:'kill', field:'kill', title:'Choose a Player to Kill', hint:'Vote for who the family eliminates tonight. If the family can\'t agree, it\'s a coin flip.', confirm:'Confirm Kill', options:killOpts};
+  var pre = '';
+  var role = h.role;
+  if(h.align==='mafia' || h.align==='cult') pre = renderAllyLine(h);
+  if(role==='Detective'){
+    var lr = (latestView.detectiveLog && latestView.detectiveLog.length) ? latestView.detectiveLog[latestView.detectiveLog.length-1] : null;
+    if(lr) pre = '<p>Last night, <b>'+escapeHtmlMp(lr.name)+'</b> read <span class="detective-log-read detective-log-'+lr.read+'">'+lr.read+'</span>.</p>';
+    return {pre:pre, actions:[{key:'inv', field:'investigate', title:'Investigate a Player', hint:'Choose one player to investigate tonight.', confirm:'Confirm Investigation', options:function(){return otherLivingOptions([h.id]);}}]};
+  }
+  if(role==='Doctor') return {pre:pre, actions:[{key:'prot', field:'protect', title:'Protect a Player', hint:'Choose one player to protect tonight.', confirm:'Confirm Protection', options:function(){return living();}}]};
+  if(role==='Coward') return {pre:pre, actions:[{key:'hide', field:'hideBehind', title:'Hide Behind a Player', hint:'If the mafia comes for you, they\'ll find them instead.', confirm:'Confirm Hiding Place', options:function(){return otherLivingOptions([h.id]);}}]};
+  if(role==='Godfather') return {pre:pre, actions:[KILL, {key:'sil', field:'silence', title:'Silence a Player', hint:'Optional: silence someone for tomorrow.', confirm:'Confirm Silence', optional:true, skipLabel:'No silence tonight', options:function(sel){return otherLivingOptions([sel.kill].filter(Boolean));}}]};
+  if(role==='Mafia' || role==='DoubleAgent' || (role==='CrazyGranny' && h.align==='mafia')) return {pre:pre, actions:[role==='CrazyGranny' ? Object.assign({}, KILL, {hint:'The last of the mafia. Choose who to eliminate tonight.'}) : KILL]};
+  if(role==='Framer') return {pre:pre, actions:[KILL, {key:'frame', field:'frameTarget', title:'Frame or Shield a Player', hint:'Alter tonight\'s investigation read: frame a townsperson, or shield one of your own.', confirm:'Confirm Frame', options:function(){return otherLivingOptions([h.id]);}}]};
+  if(role==='Consigliere'){
+    var ll = (latestView.consigliereLog && latestView.consigliereLog.length) ? latestView.consigliereLog[latestView.consigliereLog.length-1] : null;
+    if(ll) pre += '<p>Last night, <b>'+escapeHtmlMp(ll.name)+'</b> turned out to be <span class="detective-log-read detective-log-guilty">'+ROLE_SHORT[ll.role]+'</span>.</p>';
+    return {pre:pre, actions:[KILL, {key:'look', field:'consigliereInvestigate', title:'Look Into a Player', hint:'Choose someone outside the family. You\'ll learn exactly who they are.', confirm:'Confirm Investigation', options:function(){return otherLivingOptions([h.id].concat(teammates));}}]};
+  }
+  if(role==='BountyHunter'){
+    var cb = latestView.bountyTarget ? byId(latestView.bountyTarget) : null;
+    if(cb) pre = '<p>Currently bountied: <b>'+escapeHtmlMp(cb.name)+'</b>'+(cb.alive?'':' (already collected)')+'. Keep them, or pick someone new tonight.</p>';
+    return {pre:pre, actions:[{key:'bounty', field:'bounty', title:'Place a Bounty', hint:'Choose who to put a bounty on tonight.', confirm:'Confirm Bounty', options:function(){return living();}}]};
+  }
+  if(role==='Mortician'){
+    var le = (latestView.morticianLog && latestView.morticianLog.length) ? latestView.morticianLog[latestView.morticianLog.length-1] : null;
+    if(le) pre = '<p>Last night, <b>'+escapeHtmlMp(le.name)+'</b> turned out to be <span class="detective-log-read detective-log-guilty">'+ROLE_SHORT[le.role]+'</span>.</p>';
+    var cands = latestView.morticianCandidates || [];
+    if(!cands.length) return null;
+    return {pre:pre, actions:[{key:'exam', field:'morticianInvestigate', title:'Examine the Dead', hint:'Choose which of last night\'s dead to examine.', confirm:'Confirm Examination', options:function(){return cands.map(function(c){return byId(c.id) || c;});}, includeDead:true}]};
+  }
+  if(role==='CultLeader'){
+    var cultIds = latestView.players.filter(function(q){return q.align==='cult';}).map(function(q){return q.id;});
+    return {pre:pre, actions:[{key:'cult', field:'cultConvert', title:'Bring One Into the Fold', hint:'They\'ll learn everything the moment it takes.', confirm:'Confirm Conversion', options:function(){return otherLivingOptions([h.id].concat(cultIds));}}]};
+  }
+  if(role==='Vigilante'){
+    if(h.usedVigilanteShot) return null;
+    return {pre:pre, actions:[{key:'vig', field:'vigilanteKill', title:'Take Your Shot', hint:'One shot for the whole game. Choose wrong and it isn\'t just them who pays.', confirm:'Take the Shot', optional:true, skipLabel:'Hold your shot', arm:true, options:function(){return otherLivingOptions([h.id]);}}]};
+  }
+  return null;
+}
+
+function renderNightActionsPanel(h, cfg){
+  var area = document.getElementById('night-action');
+  if(nightUI.night !== latestView.night){ nightUI = {night:latestView.night, sel:{}, done:{}, picking:null, armed:null, submitting:false}; }
+  var acts = cfg.actions, N = acts.length;
+  // keep the legacy pending object in step so submitNightAction sends it
+  acts.forEach(function(a){ if(nightUI.sel[a.key] && !nightUI.done[a.key+'_skip']) pendingNightAction[a.field] = nightUI.sel[a.key]; else delete pendingNightAction[a.field]; });
+  function actByKey(k){ return acts.filter(function(a){return a.key===k;})[0]; }
+  function chosenPlayer(a){ return nightUI.sel[a.key] ? byId(nightUI.sel[a.key]) : null; }
+  function render(){
+    if(nightUI.picking){
+      var a = actByKey(nightUI.picking);
+      var opts = a.options(nightUI.sel);
+      area.innerHTML = '<div id="night-actions-card"><h2 class="nsc-title">Choose a Player</h2><div class="nsc-rule"></div>'+
+        '<p class="na-sub" style="text-align:center">'+a.title+'</p>'+
+        '<div class="na-grid">'+opts.map(function(p){
+          var label = (p.id===myPlayerId) ? p.name+' (You)' : p.name;
+          return '<button type="button" class="na-person'+(nightUI.sel[a.key]===p.id?' sel':'')+'" data-id="'+p.id+'"><img src="'+portraitImgFor(p)+'" alt=""><span title="'+escapeHtmlMp(label)+'">'+escapeHtmlMp(label)+'</span></button>';
+        }).join('')+'</div>'+
+        '<div class="na-backrow"><button type="button" class="na-back" data-act="back">Back</button></div></div>';
+      return;
+    }
+    var doneCount = acts.filter(function(a){return nightUI.done[a.key];}).length;
+    var cols = acts.map(function(a){
+      var p = chosenPlayer(a), done = !!nightUI.done[a.key], skipped = !!nightUI.done[a.key+'_skip'];
+      var sel = p ? '<img src="'+portraitImgFor(p)+'" alt=""><span>'+escapeHtmlMp(p.id===myPlayerId ? p.name+' (You)' : p.name)+'</span>' : '<span class="na-ph">'+(skipped ? 'Skipped' : 'Choose a player')+'</span>';
+      var cls, label;
+      if(done){ cls='done'; label = '&#10003; '+(skipped ? 'Skipped' : 'Confirmed'); }
+      else if(p){ cls='on'; label = (a.arm && nightUI.armed===a.key) ? 'Click again to fire' : a.confirm; }
+      else { cls='off'; label = a.confirm; }
+      return '<div class="na-col"><div class="na-head">'+a.title+'</div><p class="na-hint">'+a.hint+'</p>'+
+        '<button type="button" class="na-select'+(done?' locked':'')+'" data-act="pick" data-key="'+a.key+'">'+sel+'</button>'+
+        '<button type="button" class="na-confirm '+cls+'" data-act="confirm" data-key="'+a.key+'">'+label+'</button>'+
+        (a.optional && !done ? '<button type="button" class="na-skip" data-act="skip" data-key="'+a.key+'">'+a.skipLabel+'</button>' : '')+'</div>';
+    }).join('');
+    area.innerHTML = '<div id="night-actions-card"><h2 class="nsc-title">Your Night Action'+(N>1?'s':'')+'</h2><div class="nsc-rule"></div>'+
+      (cfg.pre ? '<div class="na-pre">'+cfg.pre+'</div>' : '')+
+      '<div class="na-cols na-cols-'+N+'">'+cols+'</div>'+
+      '<div class="na-count">'+doneCount+' of '+N+' action'+(N>1?'s':'')+' confirmed</div>'+
+      '<p class="na-foot">Your actions remain private.</p></div>';
+  }
+  function finishIfComplete(){
+    if(nightUI.submitting) return;
+    if(acts.every(function(a){return nightUI.done[a.key];})){
+      nightUI.submitting = true;
+      setTimeout(function(){ submitNightAction(); }, 450);
+    }
+  }
+  area.onclick = function(e){
+    var t = e.target.closest('[data-act], .na-person'); if(!t || nightUI.submitting) return;
+    if(t.classList.contains('na-person')){
+      var a0 = actByKey(nightUI.picking); SoundFX.click();
+      nightUI.sel[a0.key] = t.dataset.id;
+      // the kill pick can't also be the silence pick
+      acts.forEach(function(o){ if(o!==a0 && o.key==='sil' && nightUI.sel.sil===t.dataset.id && a0.key==='kill') delete nightUI.sel.sil; });
+      nightUI.picking = null; nightUI.armed = null;
+    } else {
+      var act = t.dataset.act, key = t.dataset.key, a = key ? actByKey(key) : null;
+      if(act==='back'){ nightUI.picking = null; }
+      else if(act==='pick'){ if(nightUI.done[key]) return; SoundFX.click(); nightUI.picking = key; }
+      else if(act==='skip'){ SoundFX.click(); delete nightUI.sel[key]; nightUI.done[key] = true; nightUI.done[key+'_skip'] = true; nightUI.armed = null; }
+      else if(act==='confirm'){
+        if(nightUI.done[key]){ SoundFX.click(); delete nightUI.done[key]; delete nightUI.done[key+'_skip']; nightUI.armed = null; }
+        else if(nightUI.sel[key]){
+          if(a.arm && nightUI.armed!==key){ nightUI.armed = key; SoundFX.click(); }
+          else { SoundFX.confirm(); nightUI.done[key] = true; nightUI.armed = null; }
+        }
+      }
+    }
+    acts.forEach(function(o){ if(nightUI.sel[o.key] && !nightUI.done[o.key+'_skip']) pendingNightAction[o.field] = nightUI.sel[o.key]; else delete pendingNightAction[o.field]; });
+    render(); finishIfComplete();
+  };
+  render();
+}
+
 function renderNightAction(){
   var h = you();
   var area = document.getElementById('night-action');
@@ -5329,10 +5440,11 @@ function renderNightAction(){
     document.getElementById('cult-chat-section').style.display='none';
   }
 
-  // No night action at all: show the sleeping-town card and quietly lock in
-  // the (empty) action so they never have to press Continue.
-  var actsAtNight = ['Detective','Doctor','Coward','Godfather','Mafia','DoubleAgent','BountyHunter','Consigliere','Mortician','Framer','CultLeader','Vigilante'].indexOf(h.role) >= 0 || (h.role==='CrazyGranny' && h.align==='mafia');
-  if(!actsAtNight){
+  // Roles with a night choice get the action panel; everyone else (and acting
+  // roles that happen to have nothing to do tonight) gets the sleeping-town
+  // card and is quietly locked in so they never have to press Continue.
+  var nightCfg = nightActionConfig(h);
+  if(!nightCfg){
     renderNightSleepCard(area, false);
     if(!mpNightSubmitted) submitNightAction();
     return;
@@ -5341,149 +5453,7 @@ function renderNightAction(){
     renderNightSleepCard(area, true);
     return;
   }
-
-  if(h.role==='Detective'){
-    var lastRead = (latestView.detectiveLog && latestView.detectiveLog.length) ? latestView.detectiveLog[latestView.detectiveLog.length-1] : null;
-    var lastReadHTML = lastRead ? '<p class="detective-last-read">Last night, <b>'+lastRead.name+'</b> read <span class="detective-log-read detective-log-'+lastRead.read+'">'+lastRead.read+'</span>.</p>' : '';
-    area.innerHTML = lastReadHTML+'<p style="font-size:13px; color:var(--parchment-dim);">Choose someone to investigate tonight.</p><div class="chipgrid" id="grid-a"></div><button class="btn" id="night-confirm-btn">Confirm</button>';
-    var opts = otherLivingOptions([h.id]);
-    document.getElementById('grid-a').innerHTML = chipGridHTML(opts,'pick-a');
-    wireSingleSelect(document.getElementById('grid-a'), 'pick-a', function(id){pendingNightAction.investigate=id;});
-    document.getElementById('night-confirm-btn').addEventListener('click', function(){
-      if(!pendingNightAction.investigate){document.getElementById('night-error').textContent='Choose someone to investigate first.'; document.getElementById('night-error').style.display='block'; return;}
-      submitNightAction();
-    });
-  } else if(h.role==='Doctor'){
-    area.innerHTML = '<p style="font-size:13px; color:var(--parchment-dim);">Choose someone to protect tonight.</p><div class="chipgrid" id="grid-a"></div><button class="btn" id="night-confirm-btn">Confirm</button>';
-    var opts2 = living();
-    document.getElementById('grid-a').innerHTML = chipGridHTML(opts2,'pick-a');
-    wireSingleSelect(document.getElementById('grid-a'), 'pick-a', function(id){pendingNightAction.protect=id;});
-    document.getElementById('night-confirm-btn').addEventListener('click', function(){
-      if(!pendingNightAction.protect){document.getElementById('night-error').textContent='Choose someone to protect first.'; document.getElementById('night-error').style.display='block'; return;}
-      submitNightAction();
-    });
-  } else if(h.role==='Coward'){
-    area.innerHTML = '<p style="font-size:13px; color:var(--parchment-dim);">Choose someone to hide behind tonight. If the mafia comes for you, they\'ll find them instead.</p><div class="chipgrid" id="grid-a"></div><button class="btn" id="night-confirm-btn">Confirm</button>';
-    var opts5 = otherLivingOptions([h.id]);
-    document.getElementById('grid-a').innerHTML = chipGridHTML(opts5,'pick-a');
-    wireSingleSelect(document.getElementById('grid-a'), 'pick-a', function(id){pendingNightAction.hideBehind=id;});
-    document.getElementById('night-confirm-btn').addEventListener('click', function(){
-      if(!pendingNightAction.hideBehind){document.getElementById('night-error').textContent='Choose someone to hide behind first.'; document.getElementById('night-error').style.display='block'; return;}
-      submitNightAction();
-    });
-  } else if(h.role==='Godfather'){
-    renderMafiaVoteUI(h, {silence:true});
-  } else if(h.role==='Mafia'){
-    renderMafiaVoteUI(h, {silence:false});
-  } else if(h.role==='DoubleAgent'){
-    renderMafiaVoteUI(h, {silence:false});
-  } else if(h.role==='CrazyGranny' && h.align==='mafia'){
-    renderMafiaVoteUI(h, {silence:false, introText:'The last of the mafia. Choose who to eliminate tonight.'});
-  } else if(h.role==='BountyHunter'){
-    // Re-aim every night, not a one-time pick - matches the role's own
-    // description ("place a bounty on someone each night").
-    var currentBounty = latestView.bountyTarget ? byId(latestView.bountyTarget) : null;
-    var bountyIntro = currentBounty
-      ? 'Currently bountied: <b>'+escapeHtmlMp(currentBounty.name)+'</b>'+(currentBounty.alive?'':' (already collected)')+'. Keep the same target, or pick someone new for tonight.'
-      : 'Place your bounty for tonight.';
-    area.innerHTML = '<p style="font-size:13px; color:var(--parchment-dim);">'+bountyIntro+'</p><div class="chipgrid" id="grid-a"></div><button class="btn" id="night-confirm-btn">Confirm</button>';
-    var opts3 = living();
-    document.getElementById('grid-a').innerHTML = chipGridHTML(opts3,'pick-a');
-    wireSingleSelect(document.getElementById('grid-a'), 'pick-a', function(id){pendingNightAction.bounty=id;});
-    document.getElementById('night-confirm-btn').addEventListener('click', function(){
-      if(!pendingNightAction.bounty){document.getElementById('night-error').textContent='Place a bounty first.'; document.getElementById('night-error').style.display='block'; return;}
-      submitNightAction();
-    });
-  } else if(h.role==='Consigliere'){
-    // Votes on the night kill like every other mafia member (she was the one
-    // family role missing it), plus her own look-into ability.
-    var lastLooked = (latestView.consigliereLog && latestView.consigliereLog.length) ? latestView.consigliereLog[latestView.consigliereLog.length-1] : null;
-    var lastLookedHTML = lastLooked ? '<p class="detective-last-read">Last night, <b>'+escapeHtmlMp(lastLooked.name)+'</b> turned out to be <span class="detective-log-read detective-log-guilty">'+ROLE_SHORT[lastLooked.role]+'</span>.</p>' : '';
-    renderMafiaVoteUI(h, {consigliere:true, preHTML:lastLookedHTML});
-  } else if(h.role==='Mortician'){
-    var lastExamined = (latestView.morticianLog && latestView.morticianLog.length) ? latestView.morticianLog[latestView.morticianLog.length-1] : null;
-    var lastExaminedHTML = lastExamined ? '<p class="detective-last-read">Last night, <b>'+lastExamined.name+'</b> turned out to be <span class="detective-log-read detective-log-guilty">'+ROLE_SHORT[lastExamined.role]+'</span>.</p>' : '';
-    var candidates = latestView.morticianCandidates || [];
-    if(!candidates.length){
-      area.innerHTML = lastExaminedHTML+'<p style="font-size:13px; color:var(--parchment-dim);">Nobody died last night. Nothing to examine tonight.</p><button class="btn" id="night-confirm-btn">Continue</button>';
-      document.getElementById('night-confirm-btn').addEventListener('click', function(){ submitNightAction(); });
-    } else {
-      area.innerHTML = lastExaminedHTML+'<p style="font-size:13px; color:var(--parchment-dim);">Choose which of last night\'s dead to examine.</p><div class="chipgrid" id="grid-a"></div><button class="btn" id="night-confirm-btn">Confirm</button>';
-      document.getElementById('grid-a').innerHTML = chipGridHTML(candidates,'pick-a');
-      wireSingleSelect(document.getElementById('grid-a'), 'pick-a', function(id){pendingNightAction.morticianInvestigate=id;});
-      document.getElementById('night-confirm-btn').addEventListener('click', function(){
-        if(!pendingNightAction.morticianInvestigate){document.getElementById('night-error').textContent='Choose someone to examine first.'; document.getElementById('night-error').style.display='block'; return;}
-        submitNightAction();
-      });
-    }
-  } else if(h.role==='Framer'){
-    // Same dual-ability shape as Godfather: an equal vote on who the family
-    // eliminates, plus his own separate frame-target ability (parallel to
-    // Godfather's silence) - see renderMafiaVoteUI's frame option.
-    renderMafiaVoteUI(h, {frame:true});
-  } else if(h.role==='CultLeader'){
-    // Can target anyone including a mafia-aligned player - only self and
-    // EXISTING cult members are excluded, since converting someone already
-    // in the fold is meaningless. A blocked conversion (Doctor-protected
-    // target) gets no distinct feedback here, same "no confirmation either
-    // way" treatment Doctor's own protect already gets.
-    area.innerHTML = renderAllyLine(h)+'<p style="font-size:13px; color:var(--parchment-dim);">Choose someone to bring into the fold tonight. They\'ll learn everything the moment it takes.</p><div class="chipgrid" id="grid-a"></div><button class="btn" id="night-confirm-btn">Confirm</button>';
-    var cultOpts = otherLivingOptions([h.id].concat(latestView.players.filter(function(p){return p.align==='cult';}).map(function(p){return p.id;})));
-    document.getElementById('grid-a').innerHTML = chipGridHTML(cultOpts,'pick-a');
-    wireSingleSelect(document.getElementById('grid-a'), 'pick-a', function(id){pendingNightAction.cultConvert=id;});
-    document.getElementById('night-confirm-btn').addEventListener('click', function(){
-      if(!pendingNightAction.cultConvert){document.getElementById('night-error').textContent='Choose someone first.'; document.getElementById('night-error').style.display='block'; return;}
-      submitNightAction();
-    });
-  } else if(h.role==='Vigilante'){
-    // Once per game, not every night - "may choose," not "must choose."
-    // The shot is spent the moment they submit a real target (see game.js's
-    // resolveNight), so once usedVigilanteShot flips true there's nothing
-    // left to offer.
-    if(h.usedVigilanteShot){
-      area.innerHTML = '<p style="font-size:13px; color:var(--parchment-dim);">You already fired your shot earlier this game. Nothing left to do tonight but wait it out.</p><button class="btn" id="night-confirm-btn">Continue</button>';
-      document.getElementById('night-confirm-btn').addEventListener('click', function(){ submitNightAction(); });
-    } else {
-      area.innerHTML = '<p style="font-size:13px; color:var(--parchment-dim);">You get one shot, for the whole game. Take it tonight, or hold it for later - your call. Choose wrong and it isn\'t just them who pays for it.</p><div class="chipgrid" id="grid-a"></div>'+
-        '<button class="btn" id="night-confirm-btn" style="margin-top:12px;">Confirm</button>'+
-        '<div id="vigilante-confirm-warning" style="display:none; margin-top:12px;">'+
-          '<p class="msg err" style="margin-bottom:8px;">You can only do this once for the whole game. Are you sure you want to use it tonight?</p>'+
-          '<button class="btn danger" id="vigilante-confirm-yes-btn">Yes, take the shot</button>'+
-          '<button class="btn ghost" id="vigilante-confirm-cancel-btn">Cancel</button>'+
-        '</div>';
-      var opts6 = otherLivingOptions([h.id]);
-      document.getElementById('grid-a').innerHTML = chipGridHTML(opts6,'pick-a');
-      wireSingleSelect(document.getElementById('grid-a'), 'pick-a', function(id){
-        pendingNightAction.vigilanteKill=id;
-        // Changing the target after the warning already showed shouldn't
-        // silently submit the OLD target - back out to a fresh Confirm.
-        document.getElementById('vigilante-confirm-warning').style.display = 'none';
-        document.getElementById('night-confirm-btn').style.display = 'inline-block';
-      });
-      document.getElementById('night-confirm-btn').addEventListener('click', function(){
-        // Irreversible and once-per-game - a stray click shouldn't spend it
-        // without a deliberate second confirmation, unlike every other
-        // night action in this game.
-        if(pendingNightAction.vigilanteKill){
-          document.getElementById('night-confirm-btn').style.display = 'none';
-          document.getElementById('vigilante-confirm-warning').style.display = 'block';
-          return;
-        }
-        submitNightAction();
-      });
-      document.getElementById('vigilante-confirm-yes-btn').addEventListener('click', function(){ submitNightAction(); });
-      document.getElementById('vigilante-confirm-cancel-btn').addEventListener('click', function(){
-        document.getElementById('vigilante-confirm-warning').style.display = 'none';
-        document.getElementById('night-confirm-btn').style.display = 'inline-block';
-      });
-    }
-  } else {
-    var flavor = h.role==='CrazyGranny' ? "Just an ordinary grandmother tonight. Nothing to do but sleep."
-      : h.role==='Hitman' ? "No family chat reaches you, no vote on tonight's kill - you work alone, and nobody's watching your back either. Nothing to do tonight but wait."
-      : "You have no special power tonight. Try to get some rest, or don't.";
-    area.innerHTML = '<p style="font-size:13px; color:var(--parchment-dim);">'+flavor+'</p><button class="btn" id="night-confirm-btn">Continue</button>';
-    document.getElementById('night-confirm-btn').addEventListener('click', function(){ submitNightAction(); });
-  }
+  renderNightActionsPanel(h, nightCfg);
 }
 
 async function submitHumanNight(){
