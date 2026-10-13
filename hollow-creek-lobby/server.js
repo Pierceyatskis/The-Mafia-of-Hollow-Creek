@@ -22,6 +22,8 @@ const PORT = process.env.PORT || 8080;
 const NIGHT_DURATION_MS = Number(process.env.NIGHT_DURATION_MS) || 60000;
 const DAY_DISCUSS_DURATION_MS = Number(process.env.DAY_DISCUSS_DURATION_MS) || 90000;
 // Once every living player has locked in their night choice, hold the night screen this long before resolving so the change to morning is a clean transition instead of an instant flash.
+// Same idea for the day vote: results appear this long after the last vote is cast.
+const DAY_VOTE_EARLY_RESOLVE_DELAY_MS = process.env.DAY_VOTE_EARLY_RESOLVE_DELAY_MS !== undefined ? Number(process.env.DAY_VOTE_EARLY_RESOLVE_DELAY_MS) : 1000;
 const NIGHT_EARLY_RESOLVE_DELAY_MS = process.env.NIGHT_EARLY_RESOLVE_DELAY_MS !== undefined ? Number(process.env.NIGHT_EARLY_RESOLVE_DELAY_MS) : 3000;
 const DAY_VOTE_DURATION_MS = Number(process.env.DAY_VOTE_DURATION_MS) || 105000; // was 45s - extended by an extra minute of actual voting time
 const DAY_REVEAL_DURATION_MS = Number(process.env.DAY_REVEAL_DURATION_MS) || 12000;
@@ -607,7 +609,21 @@ function maybeEarlyResolve(room) {
     // before broadcastDayVoteProgress ever ran. Their own checkmark on the
     // town board never appeared as a result.
     broadcastDayVoteProgress(room);
-    if (eligible.every(p => room.dayVoteSubmitted.has(p.id))) { resolveDayVotePhase(room); return; }
+    if (eligible.every(p => room.dayVoteSubmitted.has(p.id))) {
+      if (DAY_VOTE_EARLY_RESOLVE_DELAY_MS <= 0) { resolveDayVotePhase(room); return; }
+      // Everyone is in: give the last ballot a beat to land in the box before the results appear.
+      if (!room.dayVoteEarlyPending) {
+        const token = room.dayVoteSubmitted;
+        room.dayVoteEarlyPending = token;
+        setTimeout(() => {
+          if (room.dayVoteEarlyPending === token) room.dayVoteEarlyPending = null;
+          // Still the same vote phase, and nobody changed their mind into an unfinished state meanwhile.
+          if (room.started && room.state && room.state.phase === 'day-vote' && room.dayVoteSubmitted === token
+              && connectedLivingHumans(room).every(p => room.dayVoteSubmitted.has(p.id))) resolveDayVotePhase(room);
+        }, DAY_VOTE_EARLY_RESOLVE_DELAY_MS);
+      }
+      return;
+    }
   }
 }
 
@@ -676,6 +692,7 @@ function beginDayVotePhase(room) {
   const voteMs = room.voteMs || DAY_VOTE_DURATION_MS;
   room.state.phase = 'day-vote';
   room.dayVoteSubmitted = new Set();
+  room.dayVoteEarlyPending = null;
   room.phaseEndsAt = Date.now() + voteMs;
   clearPhaseTimer(room);
   room.timer = setTimeout(() => resolveDayVotePhase(room), voteMs);
