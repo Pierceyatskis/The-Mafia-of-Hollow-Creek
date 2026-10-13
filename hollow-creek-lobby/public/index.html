@@ -816,11 +816,18 @@ header p{font-family:var(--font-type); font-size:12px; letter-spacing:3px; text-
    full canvas instead of its real content - see build-daytime-assets.js's
    own comment on ballotClosed for that history, even though the asset
    itself is unused now). */
+.ballot-fly{position:fixed; left:0; top:0; z-index:400; width:92px; height:124px; margin:0; padding:6px 6px 5px; box-sizing:border-box; pointer-events:none; text-align:center; background:linear-gradient(#f6ead0,#e4d1a6); border:1px solid #6b4a20; border-radius:3px; box-shadow:0 8px 18px rgba(0,0,0,0.55); font-family:var(--font-type); will-change:transform,opacity;}
+.ballot-fly img{display:block; width:100%; height:84px; object-fit:cover; object-position:center 15%; border:1px solid #3a2a18; background:#1b130c;}
+.ballot-fly span{display:block; margin-top:4px; font-size:10px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#2a1708; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.ballot-fly::after{content:'VOTE'; position:absolute; right:-6px; top:-8px; padding:1px 5px; font-size:9px; letter-spacing:1px; font-weight:700; color:#f3e3b8; background:#8a1c14; border-radius:2px; transform:rotate(8deg);}
+.ballot-box.thump{animation:ballotThump .45s ease;}
+@keyframes ballotThump{0%{transform:translateY(0) scale(1);} 25%{transform:translateY(3px) scale(0.97,1.03);} 55%{transform:translateY(-2px) scale(1.03,0.98);} 100%{transform:translateY(0) scale(1);}}
+body.force-reduced-motion .ballot-box.thump{animation:none;}
 .ballot-box{position:relative; width:139px; height:109px; flex-shrink:0; cursor:pointer; transition:transform .15s ease; overflow:hidden;}
 .ballot-box:hover{transform:translateY(-2px);}
 .ballot-box-img{width:100%; height:100%; object-fit:cover; display:block; visibility:hidden;}
 .ballot-box-seal{position:absolute; width:52px; height:52px; left:50%; top:50%; margin:-26px 0 0 -26px; object-fit:contain; opacity:0; pointer-events:none;}
-.ballot-box-seal.playing{animation:ballotSealPop .8s ease forwards;}
+.ballot-box-seal.playing{animation:ballotSealPop .8s ease 0.95s forwards;}
 @keyframes ballotSealPop{0%{opacity:0; transform:scale(2.2) rotate(-18deg);} 35%{opacity:1; transform:scale(1.05) rotate(4deg);} 55%{opacity:1; transform:scale(1) rotate(0deg);} 100%{opacity:0; transform:scale(1) rotate(0deg);}}
 body.force-reduced-motion .ballot-box-seal.playing{animation:none !important; opacity:0 !important;}
 /* LAYOUT_AND_ASSETS Task 6 - bottom nav row, themed object icons + plain
@@ -2187,6 +2194,7 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
   .feature img, .feature .noimg{margin:0 auto;}
 }
 </style>
+<link rel="stylesheet" href="tutorial.css?v=1">
 </head>
 <body>
 <div id="boot-loading">
@@ -2692,7 +2700,7 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
     <h2 class="intro-modal-title">First Time in Hollow Creek?</h2>
     <p class="intro-modal-text">Every round has a night phase, where secret roles act, and a day phase, where the town talks it over and votes someone out. Here's a quick rundown before you dive in.</p>
     <div class="intro-modal-actions">
-      <button class="btn" id="intro-modal-howto-btn">Show Me How to Play</button>
+      <button class="btn" id="intro-modal-howto-btn">Take the Interactive Tutorial</button>
       <button class="btn ghost" id="intro-modal-skip-btn">Skip, I've Got It</button>
     </div>
   </div>
@@ -2936,6 +2944,7 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
         <button class="btn" id="create-game-btn">Play</button>
         <div class="poster-actions-row">
           <div class="coming-soon-toast" id="coming-soon-toast"></div>
+          <button class="btn" id="tutorial-btn">Tutorial</button>
           <button class="btn" id="howto-btn">How to Play</button>
           <button class="btn" id="achievements-btn">Achievements</button>
           <button class="btn" id="leaderboard-btn">Leaderboard</button>
@@ -3687,6 +3696,43 @@ function selectVoteTarget(id){
   sendDayVoteNow(true);
   if(latestView) renderRosterGrid(latestView);
 }
+// Casting a vote: a paper ballot with the chosen player's face lifts off their tile (or the ballot
+// paper), arcs over to the ballot box, tips and drops through the slot; the box thumps and the wax seal
+// pops. Purely cosmetic - the vote itself was already sent.
+function playBallotDrop(targetId){
+  try{
+    var p = targetId ? byId(targetId) : null;
+    var box = document.getElementById('ballot-box');
+    if(!p || !box || box.offsetParent === null) return;
+    var reduced = document.body.classList.contains('force-reduced-motion') || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+    if(reduced){ box.classList.remove('thump'); void box.offsetWidth; box.classList.add('thump'); return; }
+    var srcEl = document.querySelector('#daylayout-roster-grid .daylayout-roster-tile[data-id="'+targetId+'"]') || document.getElementById('ballot-paper') || box;
+    var a = srcEl.getBoundingClientRect(), b = box.getBoundingClientRect();
+    var card = document.createElement('div');
+    card.className = 'ballot-fly';
+    card.innerHTML = '<img src="'+portraitImgFor(p)+'" alt=""><span>'+escapeHtmlMp(p.name)+'</span>';
+    document.body.appendChild(card);
+    var w = card.offsetWidth, h = card.offsetHeight;
+    var sx = a.left + a.width/2 - w/2, sy = a.top + a.height/2 - h/2;
+    var mx = (sx + (b.left + b.width/2 - w/2)) / 2, my = Math.min(sy, b.top) - 90;       // top of the arc
+    var hx = b.left + b.width/2 - w/2, hy = b.top - h*0.55;                               // hovering over the slot
+    var dy = b.top + b.height*0.30 - h/2;                                                  // sunk into the slot
+    SoundFX.click();
+    var anim = card.animate([
+      { transform:'translate('+sx+'px,'+sy+'px) scale(0.9) rotate(-5deg)', opacity:0 },
+      { transform:'translate('+sx+'px,'+(sy-14)+'px) scale(1.08) rotate(-3deg)', opacity:1, offset:0.14 },
+      { transform:'translate('+mx+'px,'+my+'px) scale(0.92) rotate(4deg)', opacity:1, offset:0.5 },
+      { transform:'translate('+hx+'px,'+hy+'px) scale(0.62) rotate(0deg)', opacity:1, offset:0.78 },
+      { transform:'translate('+hx+'px,'+dy+'px) scale(0.5,0.18) rotate(0deg)', opacity:0.9, offset:0.94 },
+      { transform:'translate('+hx+'px,'+dy+'px) scale(0.5,0.05) rotate(0deg)', opacity:0 }
+    ], { duration:1050, easing:'cubic-bezier(.35,.1,.35,1)', fill:'forwards' });
+    anim.onfinish = function(){
+      card.remove();
+      box.classList.remove('thump'); void box.offsetWidth; box.classList.add('thump');
+      SoundFX.confirm();
+    };
+  }catch(e){}
+}
 function sendDayVoteNow(flourish){
   if(!latestView || latestView.phase!=='day-vote') return;
   var me = meFromView(latestView);
@@ -3695,6 +3741,7 @@ function sendDayVoteNow(flourish){
   sendWS({type:'dayVote', targetId: pendingDayVoteId || null, revealMayor: !!(cb && cb.checked)});
   var err = document.getElementById('day-error'); if(err) err.style.display = 'none';
   if(flourish && pendingDayVoteId){
+    playBallotDrop(pendingDayVoteId);
     var seal = document.getElementById('ballot-box-seal');
     if(seal){ seal.src = DAYTIME_IMG.ballotWaxSeal; seal.classList.remove('playing'); void seal.offsetWidth; seal.classList.add('playing'); }
   }
@@ -6132,6 +6179,7 @@ document.getElementById('day-confirm-btn').addEventListener('click', function(){
   var revealCheckbox = document.getElementById('mayor-reveal-checkbox');
   var revealMayor = !!(revealCheckbox && revealCheckbox.checked);
   sendWS({type:'dayVote', targetId: pendingDayVoteId, revealMayor: revealMayor});
+  playBallotDrop(pendingDayVoteId);
   mpVoteSubmitted = true;
   lockTownBoard();
   renderDayPanel();
@@ -6876,8 +6924,13 @@ document.getElementById('create-game-btn').addEventListener('click', function(){
 });
 document.getElementById('intro-modal-howto-btn').addEventListener('click', function(){
   document.getElementById('intro-modal').style.display = 'none';
-  openHowToTour(proceedToCreateGame);
+  if(window.Tutorial) window.Tutorial.start(function(){ proceedToCreateGame(); });
+  else openHowToTour(proceedToCreateGame);
 });
+document.getElementById('tutorial-btn').addEventListener('click', function(){
+  if(window.Tutorial) window.Tutorial.start();
+});
+(function(){ var b = document.getElementById('tutorial-btn'); try{ if(b && !localStorage.getItem('hc-tutorial-done')) b.classList.add('is-new'); }catch(e){} })();
 document.getElementById('intro-modal-skip-btn').addEventListener('click', function(){
   document.getElementById('intro-modal').style.display = 'none';
   proceedToCreateGame();
@@ -11885,5 +11938,6 @@ initGame();
   }).catch(function(){});
 })();
 </script>
+<script src="tutorial.js?v=1"></script>
 </body>
 </html>

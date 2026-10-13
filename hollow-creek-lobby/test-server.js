@@ -879,6 +879,29 @@ async function testSixteenPlayerLobby() {
   players.forEach(p => { try { p.ws.close(); } catch (e) {} });
 }
 
+// ============================================================
+// Lobby chat belongs to one lobby: a brand-new room starts with an empty chat log, and a second
+// room never sees what was said in the first. Static files ignore a ?query string.
+// ============================================================
+async function testLobbyChatIsPerRoom() {
+  const a = await connect();
+  const pCreatedA = once(a, m => m.type === 'created'), pLogA = once(a, m => m.type === 'lobbyChatLog');
+  send(a, { type: 'create', name: 'RoomA' });
+  const createdA = await pCreatedA, logA = await pLogA;
+  assert(Array.isArray(logA.entries) && logA.entries.length === 0, 'Lobby chat: a newly created room is sent an empty chat log');
+  const pMsg = once(a, m => m.type === 'lobbyChatMsg' && m.text === 'secret of room A');
+  send(a, { type: 'lobbyChat', text: 'secret of room A' });
+  await pMsg;
+  const b = await connect();
+  const pCreatedB = once(b, m => m.type === 'created'), pLogB = once(b, m => m.type === 'lobbyChatLog');
+  send(b, { type: 'create', name: 'RoomB' });
+  const createdB = await pCreatedB, logB = await pLogB;
+  assert(createdA.roomCode !== createdB.roomCode && logB.entries.length === 0, 'Lobby chat: a different room does not inherit another lobby\'s messages');
+  a.close(); b.close();
+  const res = await new Promise((resolve) => require('http').get('http://localhost:' + PORT + '/index.html?v=123', r => { r.resume(); resolve(r.statusCode); }));
+  assert(res === 200, 'Static files: a cache-busting ?query string still serves the file');
+}
+
 async function main() {
   await testUndercapacityStartRejected();
   await testCustomRolesEnabled();
@@ -903,6 +926,7 @@ async function main() {
   await testGhostChatScoping();
   await testSoloDisconnectSurvivesRoom();
   await testDayChatInferredAccusationAndAgreement();
+  await testLobbyChatIsPerRoom();
 
   console.log('\n' + (failures === 0 ? 'All server.js integration checks passed.' : failures + ' CHECK(S) FAILED.'));
   process.exit(failures === 0 ? 0 : 1);

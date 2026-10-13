@@ -1,0 +1,72 @@
+/* Coach layer for the interactive tutorial (see tutorial.js). Sits above every other screen. */
+#tut-layer{position:fixed; inset:0; z-index:2147483000; pointer-events:none; font-family:var(--font-body, Georgia, serif);}
+#tut-layer .tut-block{position:fixed; display:none; background:rgba(6,4,3,0.74); pointer-events:auto; transition:background .25s ease;}
+#tut-layer .tut-ring{position:fixed; display:none; box-sizing:border-box; border:2px solid #e3b855; border-radius:10px; box-shadow:0 0 0 2px rgba(0,0,0,0.5), 0 0 22px 4px rgba(227,184,85,0.55); pointer-events:none; animation:tutRing 1.8s ease-in-out infinite; transition:left .25s ease, top .25s ease, width .25s ease, height .25s ease;}
+@keyframes tutRing{0%,100%{box-shadow:0 0 0 2px rgba(0,0,0,0.5), 0 0 14px 2px rgba(227,184,85,0.4);} 50%{box-shadow:0 0 0 2px rgba(0,0,0,0.5), 0 0 30px 8px rgba(227,184,85,0.75);}}
+
+#tut-layer .tut-card{position:fixed; width:min(400px, calc(100vw - 20px)); box-sizing:border-box; padding:16px 18px 14px; color:#2a1708; pointer-events:auto; border:2px solid #6b4a20; border-radius:10px;
+  background:linear-gradient(rgba(255,244,214,0.96), rgba(236,214,166,0.97)), url('assets/ui/parchment.webp') center/cover; box-shadow:0 18px 44px rgba(0,0,0,0.7), inset 0 0 0 1px rgba(255,255,255,0.45), inset 0 0 40px rgba(120,80,30,0.25);}
+#tut-layer .tut-card.centered{width:min(520px, calc(100vw - 20px)); padding:22px 26px 18px;}
+#tut-layer .tut-card.pop{animation:tutPop .28s ease;}
+@keyframes tutPop{from{opacity:0; transform:translateY(8px) scale(0.97);} to{opacity:1; transform:none;}}
+#tut-layer .tut-card::before{content:''; position:absolute; width:16px; height:16px; background:#ecd6a6; border:2px solid #6b4a20; transform:rotate(45deg); display:none;}
+#tut-layer .tut-card.arrow-l::before{display:block; left:-10px; top:50%; margin-top:-8px; border-right:none; border-top:none;}
+#tut-layer .tut-card.arrow-r::before{display:block; right:-10px; top:50%; margin-top:-8px; border-left:none; border-bottom:none;}
+#tut-layer .tut-card.arrow-t::before{display:block; top:-10px; left:50%; margin-left:-8px; border-right:none; border-bottom:none;}
+#tut-layer .tut-card.arrow-b::before{display:block; bottom:-10px; left:50%; margin-left:-8px; border-left:none; border-top:none;}
+
+.tut-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;}
+.tut-count{font-family:var(--font-type, monospace); font-size:11px; letter-spacing:1.4px; text-transform:uppercase; color:#6b4a20;}
+.tut-skip{background:none; border:none; padding:2px 0; cursor:pointer; font-family:var(--font-type, monospace); font-size:11px; letter-spacing:.4px; color:#7a3a2a; text-decoration:underline;}
+.tut-skip:hover{color:#a31d14;}
+.tut-bar{height:4px; margin-bottom:10px; border-radius:2px; background:rgba(90,60,30,0.25); overflow:hidden;}
+.tut-bar i{display:block; height:100%; width:0; background:linear-gradient(90deg,#8a1c14,#d9a441); border-radius:2px; transition:width .35s ease;}
+.tut-title{margin:0 0 6px; font-family:var(--font-ornate, Georgia, serif); font-weight:700; font-size:21px; line-height:1.15; letter-spacing:.3px; color:#2a1208;}
+.tut-card.centered .tut-title{font-size:26px; text-align:center;}
+.tut-text{font-size:15px; line-height:1.45; color:#2a1708;}
+.tut-card.centered .tut-text{font-size:16px;}
+.tut-text b{color:#1c0e05;}
+.tut-red{color:#8a1c14 !important;} .tut-green{color:#2f6a43 !important;}
+.tut-try{display:none; margin-top:10px; padding:7px 10px; font-size:14px; border:1px dashed #8a1c14; border-radius:6px; background:rgba(138,28,20,0.08); color:#5a1410;}
+.tut-hand{display:inline-block; animation:tutHand 1.1s ease-in-out infinite;} @keyframes tutHand{0%,100%{transform:translateX(0);} 50%{transform:translateX(5px);}}
+.tut-check{color:#2f6a43; font-weight:700;}
+.tut-nav{display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:14px;}
+.tut-nav button{cursor:pointer; font-family:var(--font-ornate, Georgia, serif); font-weight:700; letter-spacing:.5px;}
+.tut-back{padding:7px 14px; font-size:14px; color:#4a2e16; background:none; border:1px solid #8a6a3a; border-radius:5px;}
+.tut-back:hover{background:rgba(120,80,30,0.12);}
+.tut-next{padding:9px 22px; font-size:16px; color:#f3e3b8; text-shadow:0 1px 2px #000; background:linear-gradient(#a8272a,#6e1214); border:2px solid #d9a441; border-radius:6px; box-shadow:0 2px 6px rgba(0,0,0,0.5); transition:filter .15s ease, transform .1s ease;}
+.tut-next:hover:not(:disabled){filter:brightness(1.18); transform:translateY(-1px);}
+.tut-next:disabled{cursor:not-allowed; color:#a89878; background:linear-gradient(#4a3a2a,#2a1f14); border-color:#6b5638; text-shadow:none; box-shadow:none;}
+.tut-next.pulse:not(:disabled){animation:tutNext 1.6s ease-in-out infinite;}
+@keyframes tutNext{0%,100%{box-shadow:0 2px 6px rgba(0,0,0,0.5), 0 0 0 0 rgba(217,164,65,0);} 50%{box-shadow:0 2px 6px rgba(0,0,0,0.5), 0 0 16px 5px rgba(217,164,65,0.7);}}
+.tut-skipstep button{background:none; border:none; cursor:pointer; padding:0; font-family:var(--font-body, Georgia, serif); font-style:italic; font-size:13px; color:#6b4a20; text-decoration:underline;}
+.tut-skipstep button:hover{color:#8a1c14;}
+
+/* intro cards */
+.tut-halves{display:flex; gap:14px; margin:6px 0 12px;}
+.tut-halves > div{flex:1; padding:10px 12px; border:1px solid rgba(90,60,30,0.45); border-radius:8px; background:rgba(255,248,226,0.5); font-size:14px; text-align:center; line-height:1.4;}
+.tut-halves b{font-family:var(--font-ornate, Georgia, serif); font-size:17px;}
+.tut-moon,.tut-sun{display:block; font-size:34px; line-height:1.1; margin-bottom:2px;}
+.tut-moon{color:#34466e;} .tut-sun{color:#c27a14;}
+.tut-finish ul{margin:6px 0 10px 18px; padding:0;} .tut-finish li{margin:3px 0; font-size:15px;}
+
+/* leave-tutorial confirmation */
+.tut-ask{position:absolute; inset:0; padding:22px 20px; box-sizing:border-box; display:flex; flex-direction:column; justify-content:center; gap:10px; border-radius:8px; background:rgba(246,232,196,0.98); z-index:3; text-align:center;}
+.tut-ask p{margin:0 0 6px; font-size:15px; color:#2a1708;}
+.tut-ask button{cursor:pointer; padding:9px 16px; font-family:var(--font-ornate, Georgia, serif); font-weight:700; font-size:15px; border-radius:6px;}
+.tut-yes{color:#f3e3b8; background:linear-gradient(#a8272a,#6e1214); border:2px solid #d9a441;}
+.tut-no{color:#4a2e16; background:none; border:1px solid #8a6a3a;}
+
+/* the player portraits the demo points at */
+.na-person.tut-pulse img{animation:tutPick 1.2s ease-in-out infinite;}
+@keyframes tutPick{0%,100%{box-shadow:0 3px 8px rgba(0,0,0,0.45); border-color:#5a3b1a;} 50%{box-shadow:0 0 0 3px #d9a441, 0 0 18px 6px rgba(217,164,65,0.85); border-color:#d9a441;}}
+
+/* keep game popups usable but beneath the coach while it is dimming them */
+body.tut-on .role-card-overlay{z-index:1000;}
+
+/* home-screen entry */
+#tutorial-btn{position:relative;}
+#tutorial-btn.is-new::after{content:'NEW'; position:absolute; right:-8px; top:-10px; padding:2px 7px; font-size:10px; letter-spacing:1px; color:#2a1208; background:linear-gradient(#f7d77a,#d9a441); border-radius:8px; box-shadow:0 2px 5px rgba(0,0,0,0.6); animation:tutNew 1.6s ease-in-out infinite;}
+@keyframes tutNew{0%,100%{transform:scale(1);} 50%{transform:scale(1.12);}}
+body.force-reduced-motion #tut-layer *{animation:none !important;}
+@media (max-width:700px){ #tut-layer .tut-card{width:calc(100vw - 20px);} .tut-halves{flex-direction:column;} }

@@ -1224,15 +1224,15 @@ function computeRawHeat(state, playerId){
 // some accusations and votes, so the pile only means danger if you are near the top of it. Once
 // someone at the table is properly hot (raw score >= 0.3) every other player's heat is scaled by
 // how close they are to that hottest player - the hottest keeps their full heat, someone at half
-// of it keeps about two thirds, someone far behind drops toward a third. A mid-tier player next to
+// of it keeps about half, someone far behind drops toward a quarter. A mid-tier player next to
 // a runaway target is therefore not really in danger. At a quiet table nothing is scaled.
-const HEAT_RELATIVE_FLOOR = 0.3, HEAT_RELATIVE_MIN_FACTOR = 0.35;
+const HEAT_RELATIVE_FLOOR = 0.3, HEAT_RELATIVE_MIN_FACTOR = 0.25;
 function computeHeat(state, playerId){
   const raw = computeRawHeat(state, playerId);
   let maxRaw = raw.score;
   state.players.forEach(p => { if(p.alive && p.id !== playerId){ const r = computeRawHeat(state, p.id).score; if(r > maxRaw) maxRaw = r; } });
   const ratio = maxRaw > 0 ? raw.score / maxRaw : 1;
-  const factor = maxRaw < HEAT_RELATIVE_FLOOR ? 1 : HEAT_RELATIVE_MIN_FACTOR + (1 - HEAT_RELATIVE_MIN_FACTOR) * ratio;
+  const factor = maxRaw < HEAT_RELATIVE_FLOOR ? 1 : HEAT_RELATIVE_MIN_FACTOR + (1 - HEAT_RELATIVE_MIN_FACTOR) * Math.pow(ratio, 1.5);
   const score = Math.round(raw.score * factor * 1000) / 1000;
   return Object.assign({}, raw, { score, percent: Math.round(score * 100), level: heatLevelFor(score), rawScore: raw.score, relative: Math.round(ratio * 100) / 100, hottest: ratio >= 0.999 && maxRaw > 0 });
 }

@@ -67,8 +67,13 @@ const server = http.createServer((req, res) => {
     res.end(JSON.stringify({ sha: GIT_SHA || null, short: GIT_SHA ? GIT_SHA.slice(0, 7) : null }));
     return;
   }
-  let filePath = req.url === '/' ? '/index.html' : req.url;
-  filePath = path.join(__dirname, 'public', filePath);
+  // Ignore any ?query (cache-busting like tutorial.js?v=2) and never serve outside public/.
+  let urlPath = '/';
+  try { urlPath = decodeURIComponent((req.url || '/').split('?')[0].split('#')[0]); } catch (e) { urlPath = '/'; }
+  if (urlPath === '/') urlPath = '/index.html';
+  const publicDir = path.join(__dirname, 'public');
+  const filePath = path.join(publicDir, urlPath);
+  if (filePath !== publicDir && !filePath.startsWith(publicDir + path.sep)) { res.writeHead(403); res.end('Forbidden'); return; }
   fs.readFile(filePath, (err, data) => {
     if (err) {
       res.writeHead(404);
@@ -76,7 +81,7 @@ const server = http.createServer((req, res) => {
       return;
     }
     const ext = path.extname(filePath);
-    const MIME_TYPES = { '.js': 'application/javascript', '.mp3': 'audio/mpeg', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.css': 'text/css' };
+    const MIME_TYPES = { '.js': 'application/javascript', '.mp3': 'audio/mpeg', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.css': 'text/css', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.json': 'application/json' };
     const type = MIME_TYPES[ext] || 'text/html';
     res.writeHead(200, { 'Content-Type': type });
     res.end(data);
@@ -245,7 +250,7 @@ function createRoom(socket, name, isPublic, avatarKey, color, initialVoiceEnable
   socket.roomCode = code;
   socket.playerId = id;
   socket.send(JSON.stringify({ type: 'created', roomCode: code, playerId: id }));
-  socket.send(JSON.stringify({ type: 'lobbyChatLog', entries: room.lobbyChat }));   // a brand-new lobby starts with an empty chat, never the previous room's
+  socket.send(JSON.stringify({ type: 'lobbyChatLog', entries: rooms[code].lobbyChat }));   // a brand-new lobby starts with an empty chat, never the previous room's
   broadcastRoster(code);
   return code;
 }
