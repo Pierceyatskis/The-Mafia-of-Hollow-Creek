@@ -112,7 +112,7 @@ body.game-mode{height:100%; overflow:hidden;}
    shift (nested #daylayout-roster-cluster below), not the cabinet. */
 #daylayout-top-cluster{display:contents;}
 #design-canvas.bg-day #daylayout-top-cluster{display:block; position:absolute; inset:0; pointer-events:none;}
-#design-canvas.bg-day #daylayout-stage-mute-btn, #design-canvas.bg-day #daylayout-stage-request-btn, #design-canvas.bg-day #daylayout-stage-give-time-btn{pointer-events:auto;}
+#design-canvas.bg-day #daylayout-stage-mute-btn, #design-canvas.bg-day #daylayout-stage-request-btn, #design-canvas.bg-day #daylayout-stage-give-time-btn, #design-canvas.bg-day #daylayout-stage-kick-btn{pointer-events:auto;}
 /* Roster cards are now real click targets (open that player's notebook
    page) - same override pattern as the chat sidebar below. */
 #design-canvas.bg-day #daylayout-roster-grid{pointer-events:auto;}
@@ -663,6 +663,11 @@ body.force-reduced-motion #daylayout-heat.heat-pulse, body.force-reduced-motion 
    Speaker, vertically centered on that same row. Only shown once someone
    is actually on stage. */
 #design-canvas.bg-day #daylayout-stage-give-time-btn{left:723px; top:700px; width:52px; height:52px;}
+#daylayout-stage-kick-btn{display:none;}
+/* Kick Speaker plaque - mirror of the give-time/leave-stage plaque across the stage's centre (x=960): 1920-723-52 = 1145. The red fill rises with the room's kick votes; it empties itself when the speaker is removed (votes reset server-side). */
+#design-canvas.bg-day #daylayout-stage-kick-btn{display:block; position:absolute; z-index:2; left:1145px; top:700px; width:52px; height:52px; padding:0; border:2px solid var(--gold-dim); border-radius:8px; overflow:hidden; background-color:#2a1c10; background-size:100% 100%; background-repeat:no-repeat; color:var(--parchment); font-family:var(--font-type); font-size:22px; line-height:48px; cursor:pointer;}
+#daylayout-stage-kick-btn .kick-fill{position:absolute; left:0; right:0; bottom:0; height:0; background:rgba(200,30,30,0.6); transition:height .35s ease; pointer-events:none;}
+#daylayout-stage-kick-btn .kick-glyph{position:relative; pointer-events:none;}
 #design-canvas.bg-day #daylayout-stage-give-time-btn.used{cursor:default; filter:grayscale(0.7) brightness(0.6);}
 #design-canvas.bg-day #daylayout-stage-give-time-btn.used:hover, #design-canvas.bg-day #daylayout-stage-give-time-btn.used:active{filter:grayscale(0.7) brightness(0.6); transform:none;}
 /* TEMP day-layout-rebuild step 8 - the speaker polaroid + timer (left) and
@@ -2131,6 +2136,7 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
   <div class="daylayout-stage-queue-row"><span class="daylayout-stage-queue-num">5</span><span id="daylayout-stage-queue-text-5" class="daylayout-stage-queue-text"></span></div>
 </div>
 <button id="daylayout-stage-give-time-btn" class="daylayout-btn-fx" type="button" aria-label="Give time to speaker" style="display:none;"></button>
+<button id="daylayout-stage-kick-btn" class="daylayout-btn-fx" type="button" aria-label="Vote to kick the speaker" style="display:none;"><span class="kick-fill"></span><span class="kick-glyph">&#x1F97E;</span></button>
 <button id="daylayout-stage-mute-btn" class="daylayout-btn-fx" type="button" aria-label="Mute speaker">Mute Speaker</button>
 <button id="daylayout-stage-request-btn" class="daylayout-btn-fx" type="button" aria-label="Request to speak">Request to Speak</button>
 <!-- Ballot area - overlaid on the cabinet's own painted bottom drawer/box
@@ -3779,6 +3785,8 @@ function handleServerMessage(msg){
   } else if(msg.type==='spotlightCounts'){
     latestSpotlightCounts = msg.counts || {};
     renderTownBoard();
+  } else if(msg.type==='stageKicked'){
+    SoundFX.playGavel();
   } else if(msg.type==='stageState'){
     latestStageState = msg;
     if(document.getElementById('stage-panel').style.display==='block') renderStagePanel();
@@ -9864,6 +9872,17 @@ function renderStagePanel(){
     giveTimeBtn.style.display = 'none';
     document.getElementById('daylayout-stage-subtitle').textContent = 'Eliminated players can only listen.';
     joinBtn.disabled = true;
+  }
+  var kickBtn = document.getElementById('daylayout-stage-kick-btn');
+  var canKick = !!s.speakerId && !iAmSpeaker && !deadStageViewer;
+  kickBtn.style.display = canKick ? 'block' : 'none';
+  if(canKick){
+    var kickFrac = s.voteOffStageThreshold ? Math.min(1, s.voteOffStageCount / s.voteOffStageThreshold) : 0;
+    kickBtn.querySelector('.kick-fill').style.height = (kickFrac * 100) + '%';
+    var kicked = !!(s.you && s.you.votedOffStage);
+    kickBtn.title = (kicked ? 'Retract kick vote' : 'Vote to kick the speaker') + ' (' + s.voteOffStageCount + ' of ' + s.voteOffStageThreshold + ')';
+    kickBtn.setAttribute('aria-label', kickBtn.title);
+    kickBtn.onclick = function(){ sendWS({type: kicked ? 'retractVoteOffStage' : 'voteOffStage'}); };
   }
   var micToggleBtn = document.getElementById('self-mic-toggle-btn');
   if(h && !deadStageViewer){

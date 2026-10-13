@@ -456,7 +456,7 @@ function stageLivingCount(room) {
   return G.living(room.state).length;
 }
 function stageVoteOffThreshold(room) {
-  return Math.ceil(stageLivingCount(room) * 0.75);
+  return Math.floor(stageLivingCount(room) / 2) + 1; // simple majority of the living
 }
 
 // Clears the current turn's timer and per-turn tallies without touching who's
@@ -990,6 +990,7 @@ wss.on('connection', (socket) => {
       if (!sp || !sp.alive) return;
       room.stage.voteOffStageVotes.add(player.id);
       if (room.stage.voteOffStageVotes.size >= stageVoteOffThreshold(room)) {
+        room.players.forEach(rp => { if (rp.socket.readyState === WebSocket.OPEN) rp.socket.send(JSON.stringify({ type: 'stageKicked', speakerId: room.stage.speakerId })); });
         endSpeakerTurn(room);
       } else {
         broadcastStageState(room);
