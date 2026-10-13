@@ -991,9 +991,10 @@ body.force-reduced-motion .ballot-box-seal.playing{animation:none !important; op
 #silence-screen{position:fixed; inset:0; z-index:300; overflow:hidden; background:#000;}
 #silence-screen .silence-bg{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; filter:grayscale(10%) sepia(8%); animation:silenceZoom 9s ease-out forwards;}
 #silence-screen .silence-overlay{position:absolute; inset:0; background:radial-gradient(ellipse at center, rgba(20,15,4,0.25) 0%, rgba(10,7,3,0.9) 100%);}
-#silence-screen .silence-content{position:relative; z-index:2; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:24px;}
+#silence-screen .silence-content{position:relative; z-index:2; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; text-align:center; padding:24px 24px 9vh;}
+#silence-screen .silence-overlay{background:radial-gradient(ellipse at 50% 35%, rgba(20,15,4,0.1) 0%, rgba(10,7,3,0.55) 60%, rgba(10,7,3,0.92) 100%), linear-gradient(to top, rgba(6,4,2,0.92) 0%, rgba(6,4,2,0) 55%);}
 #silence-title{font-family:var(--font-display); font-weight:700; font-size:52px; letter-spacing:3px; margin:0 0 16px; color:var(--gold-bright); text-shadow:0 0 10px rgba(227,177,85,0.5), 0 0 34px rgba(227,177,85,0.35), 0 4px 16px rgba(0,0,0,0.9); opacity:0; animation:silenceTextIn 1.5s ease-out 0.5s forwards;}
-#silence-subtitle{font-family:var(--font-type); font-size:13px; letter-spacing:1.5px; text-transform:uppercase; color:var(--parchment-dim); margin:0 0 36px; max-width:440px; line-height:1.6; opacity:0; animation:silenceTextIn 1.5s ease-out 1.4s forwards;}
+#silence-subtitle{font-family:var(--font-type); font-size:16px; letter-spacing:1.5px; text-transform:uppercase; color:var(--parchment); text-shadow:0 2px 10px rgba(0,0,0,0.95); margin:0 0 30px; max-width:560px; line-height:1.6; opacity:0; animation:silenceTextIn 1.5s ease-out 1.4s forwards;}
 #silence-continue-btn{opacity:0; animation:silenceTextIn 1.2s ease-out 2.3s forwards;}
 @keyframes silenceZoom{from{transform:scale(1.02);} to{transform:scale(1.1);}}
 @keyframes silenceTextIn{from{opacity:0; transform:translateY(18px);} to{opacity:1; transform:translateY(0);}}
@@ -1001,7 +1002,7 @@ body.force-reduced-motion .ballot-box-seal.playing{animation:none !important; op
 #nightkill-screen .nightkill-bg{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; filter:grayscale(20%); animation:deathZoom 9s ease-out forwards;}
 #nightkill-screen .nightkill-overlay{position:absolute; inset:0; background:radial-gradient(ellipse at center, rgba(8,6,5,0.35) 0%, rgba(6,4,3,0.93) 100%);}
 #nightkill-screen .nightkill-content{position:relative; z-index:2; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:24px;}
-.nightkill-eyebrow{font-family:var(--font-type); font-size:13px; letter-spacing:4px; text-transform:uppercase; color:var(--parchment-dim); margin:0 0 22px; opacity:0; animation:deathTextIn 1.0s ease-out 0.3s forwards;}
+.nightkill-eyebrow{font-family:var(--font-type); font-size:15px; letter-spacing:4px; text-transform:uppercase; color:var(--parchment); text-shadow:0 2px 10px rgba(0,0,0,0.95); margin:0 0 22px; opacity:0; animation:deathTextIn 1.0s ease-out 0.3s forwards;}
 /* PREBETA Task 5: one or more of these render side by side - a single
    victim still lands centered exactly as before (this wraps with no other
    layout change), two wrap onto their own row on narrow screens instead of
@@ -1018,7 +1019,7 @@ body.force-reduced-motion .ballot-box-seal.playing{animation:none !important; op
 .nightkill-card .nightkill-stamp{position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) rotate(-14deg) scale(0.6); opacity:0; font-family:var(--font-type); font-size:16px; font-weight:700; letter-spacing:4px; text-transform:uppercase; padding:6px 18px; border:2px solid var(--danger); color:var(--danger); background:rgba(10,7,6,0.55); text-shadow:0 0 10px rgba(193,39,45,0.5); white-space:nowrap; animation:stampSlam 0.5s cubic-bezier(.34,1.56,.64,1) 2.6s forwards;}
 .nightkill-name{font-family:var(--font-display); font-weight:700; font-size:40px; letter-spacing:2px; margin:0 0 6px; color:var(--gold-bright); text-shadow:0 0 10px rgba(227,177,85,0.5), 0 0 34px rgba(227,177,85,0.3), 0 4px 16px rgba(0,0,0,0.9); opacity:0; animation:deathTextIn 0.8s ease-out 2.7s forwards;}
 .nightkill-role{font-family:var(--font-type); font-size:13px; letter-spacing:3px; text-transform:uppercase; color:var(--parchment-dim); margin:0 0 18px; opacity:0; animation:deathTextIn 0.8s ease-out 3.6s forwards;}
-.nightkill-flavor{font-family:var(--font-type); font-size:13px; color:var(--parchment-dim); max-width:440px; line-height:1.6; margin:0 0 30px; opacity:0; animation:deathTextIn 0.8s ease-out 3.8s forwards;}
+.nightkill-flavor{font-family:var(--font-type); font-size:15px; color:var(--parchment); text-shadow:0 2px 10px rgba(0,0,0,0.95); max-width:440px; line-height:1.6; margin:0 0 30px; opacity:0; animation:deathTextIn 0.8s ease-out 3.8s forwards;}
 #nightkill-continue-btn{opacity:0; animation:deathTextIn 0.7s ease-out 4.8s forwards;}
 @keyframes nightkillCardIn{0%{opacity:0; transform:scale(0.8) translateY(10px);} 60%{opacity:1;} 100%{opacity:1; transform:scale(1) translateY(0);}}
 @keyframes stampSlam{0%{opacity:0; transform:translate(-50%,-50%) rotate(-14deg) scale(0.6);} 60%{opacity:1; transform:translate(-50%,-50%) rotate(-14deg) scale(1.12);} 100%{opacity:1; transform:translate(-50%,-50%) rotate(-14deg) scale(1);}}
@@ -1028,9 +1029,9 @@ body.force-reduced-motion .ballot-box-seal.playing{animation:none !important; op
 #victory-screen .victory-bg{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; animation:deathZoom 12s ease-out forwards;}
 #victory-screen .victory-overlay{position:absolute; inset:0; background:radial-gradient(ellipse at center, rgba(8,6,5,0.25) 0%, rgba(6,4,3,0.88) 100%);}
 #victory-screen .victory-content{position:relative; z-index:2; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:24px;}
-.victory-eyebrow{font-family:var(--font-type); font-size:13px; letter-spacing:4px; text-transform:uppercase; color:var(--parchment-dim); margin:0 0 18px; opacity:0; animation:deathTextIn 1.2s ease-out 0.3s forwards;}
+.victory-eyebrow{font-family:var(--font-type); font-size:13px; letter-spacing:4px; text-transform:uppercase; color:var(--parchment); text-shadow:0 2px 10px rgba(0,0,0,0.95); margin:0 0 18px; opacity:0; animation:deathTextIn 1.2s ease-out 0.3s forwards;}
 .victory-title{font-family:var(--font-display); font-weight:700; font-size:52px; letter-spacing:2px; margin:0 0 18px; color:var(--gold-bright); text-shadow:0 0 10px rgba(227,177,85,0.5), 0 0 40px rgba(227,177,85,0.3), 0 4px 16px rgba(0,0,0,0.9); opacity:0; animation:deathTextIn 1.4s ease-out 0.9s forwards;}
-.victory-flavor{font-family:var(--font-type); font-size:14px; color:var(--parchment-dim); max-width:460px; line-height:1.7; margin:0 0 34px; opacity:0; animation:deathTextIn 1.3s ease-out 1.6s forwards;}
+.victory-flavor{font-family:var(--font-type); font-size:16px; color:var(--parchment); text-shadow:0 2px 12px rgba(0,0,0,0.95), 0 0 24px rgba(0,0,0,0.8); max-width:460px; line-height:1.7; margin:0 0 34px; opacity:0; animation:deathTextIn 1.3s ease-out 1.6s forwards;}
 #victory-continue-btn{opacity:0; animation:deathTextIn 1.2s ease-out 2.1s forwards;}
 #victory-screen.outcome-town .victory-title{color:var(--town); text-shadow:0 0 10px rgba(92,150,128,0.5), 0 0 40px rgba(92,150,128,0.3), 0 4px 16px rgba(0,0,0,0.9);}
 #victory-screen.outcome-mafia .victory-title{color:var(--danger); text-shadow:0 0 10px rgba(193,84,75,0.55), 0 0 40px rgba(193,84,75,0.35), 0 4px 16px rgba(0,0,0,0.9);}
@@ -2463,7 +2464,7 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
   <div class="silence-overlay"></div>
   <div class="silence-content">
     <h2 id="silence-title">Silenced</h2>
-    <p class="silence-sub" id="silence-subtitle">The family has marked you for silence today. You cannot speak or vote.</p>
+    <p class="silence-sub" id="silence-subtitle">The family has marked you for silence today. You cannot speak, but you can still vote.</p>
     <button class="btn" id="silence-continue-btn">Continue</button>
   </div>
 </div>
@@ -4130,6 +4131,7 @@ function updateRoundStatusBar(phaseStartMs){
     var dotIdx = phaseText.indexOf(' · ');
     var dayLabel = dotIdx>=0 ? phaseText.slice(0,dotIdx) : phaseText;
     var phaseLabel = dotIdx>=0 ? phaseText.slice(dotIdx+3) : '';
+    if(!phaseLabel && /^night/i.test(dayLabel)) phaseLabel = 'Actions';   // the plaque has three slots - never leave the middle one blank
     daylayoutDayEl.textContent = dayLabel;
     daylayoutPhaseEl.textContent = phaseLabel;
     daylayoutTimeEl.innerHTML = timerHTML;
@@ -8722,6 +8724,8 @@ function renderFromServerView(view){
   // makes justLeftNight/justEnteredReveal true again on every subsequent
   // update, re-triggering "you died" over and over instead of ever settling.
   previousView = view;
+  // The vote-results popup belongs to day-reveal only: if it was left open, it must not follow the player into the night.
+  if(view.phase!=='day-reveal'){ var vrm = document.getElementById('vote-reveal-modal'); if(vrm) vrm.style.display = 'none'; }
 
   var phaseKey = view.phase+':'+view.night;
   var prevPhaseKey = prev ? (prev.phase+':'+prev.night) : null;
