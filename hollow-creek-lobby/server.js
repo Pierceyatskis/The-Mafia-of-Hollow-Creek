@@ -21,6 +21,8 @@ const PORT = process.env.PORT || 8080;
 // defaults a room falls back to until the host picks something else.
 const NIGHT_DURATION_MS = Number(process.env.NIGHT_DURATION_MS) || 60000;
 const DAY_DISCUSS_DURATION_MS = Number(process.env.DAY_DISCUSS_DURATION_MS) || 90000;
+// Once every living player has locked in their night choice, hold the night screen this long before resolving so the change to morning is a clean transition instead of an instant flash.
+const NIGHT_EARLY_RESOLVE_DELAY_MS = process.env.NIGHT_EARLY_RESOLVE_DELAY_MS !== undefined ? Number(process.env.NIGHT_EARLY_RESOLVE_DELAY_MS) : 3000;
 const DAY_VOTE_DURATION_MS = Number(process.env.DAY_VOTE_DURATION_MS) || 105000; // was 45s - extended by an extra minute of actual voting time
 const DAY_REVEAL_DURATION_MS = Number(process.env.DAY_REVEAL_DURATION_MS) || 12000;
 const FARMER_REVENGE_DURATION_MS = Number(process.env.FARMER_REVENGE_DURATION_MS) || 30000;
@@ -573,7 +575,20 @@ function handlePlayerLeftStage(room, playerId) {
 function maybeEarlyResolve(room) {
   if (!room.started || !room.state) return;
   if (room.state.phase === 'night') {
-    if (connectedLivingHumans(room).every(p => room.nightSubmitted.has(p.id))) { resolveNightPhase(room); return; }
+    if (connectedLivingHumans(room).every(p => room.nightSubmitted.has(p.id))) {
+      if (NIGHT_EARLY_RESOLVE_DELAY_MS <= 0) { resolveNightPhase(room); return; }
+      // The token is this night's own submission set: if the normal night timer wins the race (or a new night begins) the delayed resolve below is a no-op.
+      if (!room.nightEarlyPending) {
+        const token = room.nightSubmitted;
+        room.nightEarlyPending = token;
+        setTimeout(() => {
+          if (room.nightEarlyPending === token) room.nightEarlyPending = null;
+          if (room.started && room.state && room.state.phase === 'night' && room.nightSubmitted === token) resolveNightPhase(room);
+        }, NIGHT_EARLY_RESOLVE_DELAY_MS);
+      }
+      broadcastNightProgress(room);
+      return;
+    }
     broadcastNightProgress(room);
   } else if (room.state.phase === 'day-vote') {
     // Silenced blocks speaking only, not voting - every living connected
@@ -593,6 +608,7 @@ function maybeEarlyResolve(room) {
 function beginNightPhase(room) {
   room.state.phase = 'night';
   room.nightSubmitted = new Set();
+  room.nightEarlyPending = null;
   room.phaseEndsAt = Date.now() + NIGHT_DURATION_MS;
   clearPhaseTimer(room);
   room.timer = setTimeout(() => resolveNightPhase(room), NIGHT_DURATION_MS);

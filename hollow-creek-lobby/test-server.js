@@ -12,6 +12,7 @@ process.env.PORT = PORT;
 // the moment everyone's submitted) - shrink it so tests don't have to sit
 // through the real 90s discussion timer to reach day-vote.
 process.env.DAY_DISCUSS_DURATION_MS = 300;
+process.env.NIGHT_EARLY_RESOLVE_DELAY_MS = 0; // production holds the night screen 3s once everyone is in; tests don't wait
 require('./server.js');
 
 let failures = 0;
