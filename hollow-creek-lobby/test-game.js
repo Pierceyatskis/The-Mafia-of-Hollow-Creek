@@ -910,6 +910,11 @@ assert(resCultF.cultConvertedPlayer === null, 'Phase2 Task5: resolveNight confir
   G.recordAccusation(stH, d.id, a.id); G.recordAccusation(stH, e.id, a.id);
   h = G.computeHeat(stH, a.id);
   assert(h.score === 0.7 && h.level === 4 && G.HEAT_LEVELS[h.level] === 'Scalding', 'Heat: four accusers of 5 others is Scalding');
+  // relative heat: with a runaway target at the table, a mid-tier player is scaled down toward Cool
+  G.recordAccusation(stH, c.id, b.id);
+  const hb = G.computeHeat(stH, b.id), ha = G.computeHeat(stH, a.id);
+  assert(hb.rawScore === 0.2 && hb.level < 2 && hb.score < 0.2, 'Heat: next to a Scalding player, a player with one accuser is scaled down (raw 0.2 -> '+hb.score+', no longer Warm)');
+  assert(ha.score === 0.7 && ha.hottest === true && ha.level === 4, 'Heat: the hottest player keeps their full heat');
   stH.chatLog.push({playerId: f.id, name: f.name, text: 'he is fine', defendedId: a.id, night: 2});
   stH.chatLog.push({playerId: f.id, name: f.name, text: 'really fine', defendedId: a.id, night: 2});
   h = G.computeHeat(stH, a.id);

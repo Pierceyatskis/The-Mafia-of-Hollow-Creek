@@ -245,6 +245,7 @@ function createRoom(socket, name, isPublic, avatarKey, color, initialVoiceEnable
   socket.roomCode = code;
   socket.playerId = id;
   socket.send(JSON.stringify({ type: 'created', roomCode: code, playerId: id }));
+  socket.send(JSON.stringify({ type: 'lobbyChatLog', entries: room.lobbyChat }));   // a brand-new lobby starts with an empty chat, never the previous room's
   broadcastRoster(code);
   return code;
 }

@@ -1173,7 +1173,7 @@ function heatLevelFor(score){
   for(let i=0;i<HEAT_THRESHOLDS.length;i++) if(score >= HEAT_THRESHOLDS[i]) lv = i;
   return lv;
 }
-function computeHeat(state, playerId){
+function computeRawHeat(state, playerId){
   const decay = night => Math.pow(0.5, Math.max(0, state.night - night));
   let score = 0, accusedEarlier = 0, votesLast = 0, votesEarlier = 0, nearMiss = false;
   const accusedToday = [];
@@ -1219,6 +1219,22 @@ function computeHeat(state, playerId){
   const others = Math.max(1, state.players.filter(p => p.alive && p.id !== playerId).length);
   score = Math.max(0, Math.round((score / others) * 1000) / 1000);
   return { score, percent: Math.round(score * 100), others, level: heatLevelFor(score), accusedToday, accusedEarlier, votesLast, votesEarlier, nearMiss, defenders, supporters };
+}
+// Heat is relative as well as absolute: by the end of a normal round nearly everyone has picked up
+// some accusations and votes, so the pile only means danger if you are near the top of it. Once
+// someone at the table is properly hot (raw score >= 0.3) every other player's heat is scaled by
+// how close they are to that hottest player - the hottest keeps their full heat, someone at half
+// of it keeps about two thirds, someone far behind drops toward a third. A mid-tier player next to
+// a runaway target is therefore not really in danger. At a quiet table nothing is scaled.
+const HEAT_RELATIVE_FLOOR = 0.3, HEAT_RELATIVE_MIN_FACTOR = 0.35;
+function computeHeat(state, playerId){
+  const raw = computeRawHeat(state, playerId);
+  let maxRaw = raw.score;
+  state.players.forEach(p => { if(p.alive && p.id !== playerId){ const r = computeRawHeat(state, p.id).score; if(r > maxRaw) maxRaw = r; } });
+  const ratio = maxRaw > 0 ? raw.score / maxRaw : 1;
+  const factor = maxRaw < HEAT_RELATIVE_FLOOR ? 1 : HEAT_RELATIVE_MIN_FACTOR + (1 - HEAT_RELATIVE_MIN_FACTOR) * ratio;
+  const score = Math.round(raw.score * factor * 1000) / 1000;
+  return Object.assign({}, raw, { score, percent: Math.round(score * 100), level: heatLevelFor(score), rawScore: raw.score, relative: Math.round(ratio * 100) / 100, hottest: ratio >= 0.999 && maxRaw > 0 });
 }
 // What one viewer is shown: their own heat while alive; once dead, the hottest living player's.
 function heatForView(state, viewerSeat){
