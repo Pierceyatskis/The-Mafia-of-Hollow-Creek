@@ -665,9 +665,9 @@ body.force-reduced-motion #daylayout-heat.heat-pulse, body.force-reduced-motion 
 #design-canvas.bg-day #daylayout-stage-give-time-btn{left:723px; top:700px; width:52px; height:52px;}
 #daylayout-stage-kick-btn{display:none;}
 /* Kick Speaker plaque - mirror of the give-time/leave-stage plaque across the stage's centre (x=960): 1920-723-52 = 1145. The red fill rises with the room's kick votes; it empties itself when the speaker is removed (votes reset server-side). */
-#design-canvas.bg-day #daylayout-stage-kick-btn{display:block; position:absolute; z-index:2; left:1145px; top:700px; width:52px; height:52px; padding:0; border:2px solid var(--gold-dim); border-radius:8px; overflow:hidden; background-color:#2a1c10; background-size:100% 100%; background-repeat:no-repeat; color:var(--parchment); font-family:var(--font-type); font-size:22px; line-height:48px; cursor:pointer;}
+#design-canvas.bg-day #daylayout-stage-kick-btn{display:block; position:absolute; z-index:2; left:1145px; top:700px; width:52px; height:52px; padding:0; border:none; border-radius:7px; overflow:hidden; background:url('assets/ui/kick-btn.webp') center/100% 100% no-repeat; background-repeat:no-repeat; color:var(--parchment); font-family:var(--font-type); font-size:22px; line-height:48px; cursor:pointer;}
 #daylayout-stage-kick-btn .kick-fill{position:absolute; left:0; right:0; bottom:0; height:0; background:rgba(200,30,30,0.6); transition:height .35s ease; pointer-events:none;}
-#daylayout-stage-kick-btn .kick-glyph{position:relative; pointer-events:none;}
+#daylayout-stage-kick-btn .kick-glyph{display:none;}
 #design-canvas.bg-day #daylayout-stage-give-time-btn.used{cursor:default; filter:grayscale(0.7) brightness(0.6);}
 #design-canvas.bg-day #daylayout-stage-give-time-btn.used:hover, #design-canvas.bg-day #daylayout-stage-give-time-btn.used:active{filter:grayscale(0.7) brightness(0.6); transform:none;}
 /* TEMP day-layout-rebuild step 8 - the speaker polaroid + timer (left) and
@@ -903,6 +903,25 @@ body.force-reduced-motion .ballot-box-seal.playing{animation:none !important; op
    padding to clear the bar when it hugged the top edge). */
 #design-canvas.bg-night #game-folder{position:absolute; left:50%; top:52%; transform:translate(-50%,-50%); width:1500px; max-width:calc(100% - 380px); margin:0; max-height:calc(100% - 330px); overflow-y:auto;}
 #design-canvas.bg-night #panel-night{padding-top:22px;}
+/* Night "town sleeps" card - shown to players with no night action, and to acting players once their choice is locked in. The panel art is 9-sliced so the frame can be stretched down to fit the content. */
+#design-canvas.bg-night #game-folder:has(#night-sleep-card){background:none; box-shadow:none; border:none; overflow:visible;}
+#panel-night:has(#night-sleep-card) > h2.sec, #panel-night:has(#night-sleep-card) > .night-progress{display:none !important;}
+#night-sleep-card{position:relative; width:1000px; max-width:100%; min-height:600px; margin:0 auto; box-sizing:border-box; border:48px solid transparent; border-image:url('assets/ui/night-panel.webp') 96 fill / 48px stretch; padding:0 6px 6px; text-align:center; color:#2a1708; filter:drop-shadow(0 14px 30px rgba(0,0,0,0.7));}
+#night-sleep-card .nsc-title{margin:-6px 0 0; font-family:var(--font-ornate); font-weight:700; font-size:50px; line-height:1.1; letter-spacing:1px; color:#2a1708; display:flex; align-items:center; justify-content:center; gap:22px;}
+#night-sleep-card .nsc-title::before, #night-sleep-card .nsc-title::after{content:''; flex:0 0 90px; height:2px; background:linear-gradient(90deg, transparent, #3a2412);}
+#night-sleep-card .nsc-title::after{background:linear-gradient(270deg, transparent, #3a2412);}
+#night-sleep-card .nsc-rule{width:420px; max-width:80%; height:1px; margin:6px auto; background:linear-gradient(90deg, transparent, #3a2412 20%, #3a2412 80%, transparent);}
+#night-sleep-card .nsc-art{display:block; width:640px; max-width:92%; margin:6px auto 0; mix-blend-mode:multiply; -webkit-mask-image:radial-gradient(ellipse 50% 50% at 50% 50%, #000 62%, transparent 100%); mask-image:radial-gradient(ellipse 50% 50% at 50% 50%, #000 62%, transparent 100%);}
+#night-sleep-card .nsc-main{margin:10px 0 2px; font-family:var(--font-body); font-weight:700; font-size:32px; color:#1c1008;}
+#night-sleep-card .nsc-sub{margin:0 0 8px; font-family:var(--font-body); font-size:19px; color:#3a2412;}
+#night-sleep-card .nsc-wait{margin:10px 0 12px; font-family:var(--font-ornate); font-weight:700; font-size:26px; font-variant:small-caps; letter-spacing:1px; color:#1c1008; display:flex; align-items:center; justify-content:center; gap:16px;}
+#night-sleep-card .nsc-wait::before, #night-sleep-card .nsc-wait::after{content:''; flex:0 0 120px; height:1px; background:linear-gradient(90deg, transparent, #3a2412);}
+#night-sleep-card .nsc-wait::after{background:linear-gradient(270deg, transparent, #3a2412);}
+#night-sleep-card .nsc-btns{display:grid; grid-template-columns:repeat(3, 1fr); gap:10px;}
+#night-sleep-card .nsc-btn{display:block; padding:0; border:none; background:none; cursor:pointer; border-radius:7px; transition:filter .15s ease, transform .12s ease, box-shadow .15s ease;}
+#night-sleep-card .nsc-btn img{display:block; width:100%; height:auto; border-radius:7px;}
+#night-sleep-card .nsc-btn:hover{filter:brightness(1.18) saturate(1.1); transform:translateY(-3px); box-shadow:0 8px 16px rgba(0,0,0,0.5);}
+#night-sleep-card .nsc-btn:active{transform:translateY(0) scale(0.98);}
 .app-frame::before{content:''; position:absolute; inset:6px; border:1px solid var(--gold-dim); border-radius:4px; opacity:0.7;}
 .corner{position:absolute; width:44px; height:44px;}
 .corner-tl{top:-2px; left:-2px;}
@@ -5257,6 +5276,24 @@ function renderNightProgress(){
   el.style.display='block';
 }
 
+function renderNightSleepCard(area, later){
+  area.innerHTML = '<div id="night-sleep-card">'+
+    '<h2 class="nsc-title">The Town Sleeps</h2><div class="nsc-rule"></div>'+
+    '<img class="nsc-art" src="assets/ui/night-town-art.webp" alt="">'+
+    '<p class="nsc-main">'+(later ? 'You no longer have a night action tonight.' : 'You have no night action tonight.')+'</p>'+
+    '<p class="nsc-sub">Morning begins when the night timer ends.</p><div class="nsc-rule"></div>'+
+    '<h3 class="nsc-wait">While you wait</h3>'+
+    '<div class="nsc-btns">'+
+      '<button type="button" class="nsc-btn" id="nsc-history" aria-label="Review vote history"><img src="assets/ui/night-btn-history.webp" alt=""></button>'+
+      '<button type="button" class="nsc-btn" id="nsc-notebook" aria-label="Open your notebook"><img src="assets/ui/night-btn-notebook.webp" alt=""></button>'+
+      '<button type="button" class="nsc-btn" id="nsc-casefile" aria-label="Open case file"><img src="assets/ui/night-btn-casefile.webp" alt=""></button>'+
+    '</div></div>';
+  function openLog(){ SoundFX.playCaseFileOpen(); caseLogActiveTab = 'rounds'; openCaseLogModal(); }
+  document.getElementById('nsc-history').addEventListener('click', openLog);
+  document.getElementById('nsc-casefile').addEventListener('click', openLog);
+  document.getElementById('nsc-notebook').addEventListener('click', function(){ SoundFX.playCaseFileOpen(); openNotebookModal(); });
+}
+
 function renderNightAction(){
   var h = you();
   var area = document.getElementById('night-action');
@@ -5290,8 +5327,16 @@ function renderNightAction(){
     document.getElementById('cult-chat-section').style.display='none';
   }
 
+  // No night action at all: show the sleeping-town card and quietly lock in
+  // the (empty) action so they never have to press Continue.
+  var actsAtNight = ['Detective','Doctor','Coward','Godfather','Mafia','DoubleAgent','BountyHunter','Consigliere','Mortician','Framer','CultLeader','Vigilante'].indexOf(h.role) >= 0 || (h.role==='CrazyGranny' && h.align==='mafia');
+  if(!actsAtNight){
+    renderNightSleepCard(area, false);
+    if(!mpNightSubmitted) submitNightAction();
+    return;
+  }
   if(mpNightSubmitted){
-    area.innerHTML = '<p style="font-size:13px; color:var(--parchment-dim);">Choice submitted. Waiting on the rest of the town...</p>';
+    renderNightSleepCard(area, true);
     return;
   }
 
