@@ -533,7 +533,11 @@ body.force-reduced-motion .daylayout-roster-tile.qv-target{animation:none; box-s
 .daylayout-note3-subtitle{margin-top:8px;}
 /* Heat thermometer: lives on the cream plaque under the three bulletin notes. */
 #daylayout-heat, #daylayout-heat-detail{display:none;}
-#design-canvas.bg-day #daylayout-heat{display:block; position:absolute; left:808px; top:408px; width:300px; height:52px; box-sizing:border-box; padding:4px 8px 3px; z-index:4; pointer-events:auto; cursor:help; color:#3b2d22; font-family:var(--font-type); outline:none;}
+#design-canvas.bg-day #daylayout-heat{display:block; position:absolute; left:804px; top:404px; width:308px; height:58px; box-sizing:border-box; z-index:4; pointer-events:auto; cursor:help; outline:none;}
+#heat-meter-img{display:block; width:100%; height:100%; pointer-events:none;}
+/* The brass hand rides the gauge: left is the position along the cool-to-hot track (19%-81% of the plate), set by renderHeat. */
+#heat-needle{position:absolute; top:4px; left:19%; height:38px; width:auto; transform:translateX(-51%); transition:left .6s cubic-bezier(.3,1.4,.5,1); filter:drop-shadow(0 2px 2px rgba(0,0,0,0.6)); pointer-events:none;}
+.heat-sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0);}
 .heat-top{display:flex; justify-content:space-between; align-items:baseline; font-size:10.5px; letter-spacing:1.4px; text-transform:uppercase; line-height:1.2;}
 #heat-label{color:#6b3a1f;}
 #heat-level{font-weight:700; font-size:12px; letter-spacing:1.2px; color:var(--heat-color,#4a8fd6); text-shadow:0 0 1px rgba(255,255,255,0.5);}
@@ -2123,11 +2127,9 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
   <p id="daylayout-note3-subtitle" class="daylayout-note-body daylayout-note3-subtitle"></p>
 </div>
 <div id="daylayout-heat" tabindex="0" role="status" aria-label="Heat">
-  <div class="heat-top"><span id="heat-label">Your heat</span><span id="heat-level">Cold</span></div>
-  <div class="heat-row">
-    <svg id="heat-flame" viewBox="0 0 24 32" aria-hidden="true"><path d="M12 1c1 5-4 7-4 13 0 2 1 3 2 4-3-1-5-4-5-8-3 3-4 6-4 9 0 6 5 12 11 12s11-5 11-11c0-5-3-8-5-11 0 3-1 5-3 6 1-4 0-10-3-14z"/></svg>
-    <div class="heat-bar"><span class="heat-seg" data-l="0"></span><span class="heat-seg" data-l="1"></span><span class="heat-seg" data-l="2"></span><span class="heat-seg" data-l="3"></span><span class="heat-seg" data-l="4"></span><i id="heat-marker"></i></div>
-  </div>
+  <img id="heat-meter-img" src="assets/ui/heat-meter.webp" alt="">
+  <img id="heat-needle" src="assets/ui/heat-needle.webp" alt="">
+  <div class="heat-sr"><span id="heat-label">Your heat</span> <span id="heat-level">Cold</span></div>
 </div>
 <div id="daylayout-heat-detail"></div>
 <div id="daylayout-stage-header">
@@ -8319,7 +8321,7 @@ function renderHeat(heat){
   });
   var span = HEAT_RANGES[level + 1] - HEAT_RANGES[level];
   var frac = Math.max(0, Math.min(1, (score - HEAT_RANGES[level]) / span));
-  document.getElementById('heat-marker').style.left = Math.min(98, (level + frac) * 20 + 0.5) + '%';
+  document.getElementById('heat-needle').style.left = (19.1 + Math.min(1, (level + frac) / 5) * 62.1).toFixed(2) + '%';
   // what's behind the number
   var lines = [];
   if(self){
@@ -8333,6 +8335,7 @@ function renderHeat(heat){
     lines.push(who ? '<b>' + escapeHtmlMp(who) + '</b> is drawing the most attention right now.' : 'Nobody is drawing attention yet.');
   }
   var advice = (self && level >= 3) ? '<div class="heat-advice">' + (level >= 4 ? 'You are very likely to be voted out. ' : 'The room is turning on you. ') + 'Make your case: take the stage or reply to whoever accused you.</div>' : '';
+  lines.unshift('<b>' + document.getElementById('heat-label').textContent + ' \u2014 ' + lvEl.textContent + '</b>');
   detail.innerHTML = lines.join('<br>') + advice + '<div class="heat-foot">Heat is attention, not proof of guilt. It fades each day.</div>';
   // went up a level: pulse + sound
   if(self && lastHeatLevel !== null && level > lastHeatLevel){
