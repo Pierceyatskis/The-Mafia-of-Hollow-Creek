@@ -22,8 +22,8 @@ const BLIND_GUESS_MULTIPLIER = 2;
 const BOUNTY_DAY_VOTE_BONUS = 25;
 const BOUNTY_NIGHT_KILL_BONUS = 8;
 const BOUNTY_NEAR_MISS_BONUS = 5;
-const MAFIA_KILL_DETECTIVE_BONUS = 15;
-const MAFIA_KILL_DOCTOR_BONUS = 15;
+const MAFIA_KILL_DETECTIVE_BONUS = 20;
+const MAFIA_KILL_DOCTOR_BONUS = 20;
 const GRANNY_POST_FLIP_BONUS = 10;
 const SAVED_MILLER_BONUS = 5;
 
@@ -41,9 +41,9 @@ function scaleMafiaBonus(baseValue, totalPlayers){
 
 // Accelerating on purpose - round 4 survival matters a lot more than round 1.
 function survivalCurvePoints(night){
-  // 3, 8, 17, 28, 43 (was 3n^2: 3, 12, 27, 48, 75), then only +4 a round: a long game no longer snowballs a surviving mafia player's total
+  // 4, 10, 19, 31, 46 (was 3, 8, 17, 28, 43; originally 3n^2: 3, 12, 27, 48, 75), then only +4 a round: a long game no longer snowballs a surviving mafia player's total
   const n = Math.min(night, 5);
-  return Math.round(1.5 * n * n + n) + Math.max(0, night - 5) * 4;
+  return Math.round(1.5 * n * n + 1.5 * n + 1) + Math.max(0, night - 5) * 4;
 }
 
 // Decays with round number - an early, effective misdirection is worth far

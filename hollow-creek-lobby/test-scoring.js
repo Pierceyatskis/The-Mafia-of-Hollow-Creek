@@ -196,7 +196,7 @@ const ALL_OFF = {Godfather:false, DoubleAgent:false, Detective:false, Doctor:fal
 })();
 
 // ============================================================
-// Rule: Mafia-aligned - accelerating survival curve, +15 night-kill target
+// Rule: Mafia-aligned - accelerating survival curve, +20 night-kill target
 // was the Detective/Doctor, misdirection bonus (scaled earlier = bigger),
 // small flipped-Granny post-flip bonus.
 // ============================================================
@@ -217,7 +217,7 @@ const ALL_OFF = {Godfather:false, DoubleAgent:false, Detective:false, Doctor:fal
   const det2 = s2.players.find(p => p.role === 'Detective');
   const scores2 = Scoring.scoreRound(s2, {night:1, nightResult:{nightDeathOccurred:true, revealVictim: det2}, dayResult:{}});
   const keyKillEntry = scores2[mafia2.id].breakdown.find(b => b.rule === 'mafia-key-kill');
-  assert(!!keyKillEntry && keyKillEntry.points === 15, 'Task19 mafia: +15 when the night kill lands on the Detective');
+  assert(!!keyKillEntry && keyKillEntry.points === 20, 'Task19 mafia: +20 when the night kill lands on the Detective');
 
   function misdirectionSetup(nightNum){
     const st = G.createGame(seats('m3n'+nightNum, 7), {playerCount:7, mafiaCount:1, roles: Object.assign({}, ALL_OFF)});
@@ -321,9 +321,9 @@ const ALL_OFF = {Godfather:false, DoubleAgent:false, Detective:false, Doctor:fal
     const scores = Scoring.scoreRound(st, {night:1, nightResult:{nightDeathOccurred:true, revealVictim: victim}, dayResult:{}});
     return scores[mafiaP.id].breakdown.find(b => b.rule === 'mafia-key-kill').points;
   }
-  assert(keyKillAt(8, 'Detective') === 15, 'Task22: at the 8-player reference size, the kill-Detective bonus through scoreRound is unchanged at 15');
-  assert(keyKillAt(6, 'Detective') === Scoring.scaleMafiaBonus(15, 6), 'Task22: at 6 players, the kill-Detective bonus through scoreRound scales down by exactly 6/8');
-  assert(keyKillAt(12, 'Doctor') === Scoring.scaleMafiaBonus(15, 12), 'Task22: at 12 players, the kill-Doctor bonus through scoreRound scales up by exactly 12/8');
+  assert(keyKillAt(8, 'Detective') === 20, 'Task22: at the 8-player reference size, the kill-Detective bonus through scoreRound is unchanged at 20');
+  assert(keyKillAt(6, 'Detective') === Scoring.scaleMafiaBonus(20, 6), 'Task22: at 6 players, the kill-Detective bonus through scoreRound scales down by exactly 6/8');
+  assert(keyKillAt(12, 'Doctor') === Scoring.scaleMafiaBonus(20, 12), 'Task22: at 12 players, the kill-Doctor bonus through scoreRound scales up by exactly 12/8');
 
   // Regression: Doctor/Coward/Farmer blind-guess and town-baseline formulas
   // must be completely untouched by player-count scaling.
@@ -481,7 +481,7 @@ const ALL_OFF = {Godfather:false, DoubleAgent:false, Detective:false, Doctor:fal
   const merged = Scoring.mergeScores({a: {total: 5, breakdown: [{rule: 'x', points: 5, detail: ''}]}}, {a: {total: 2, breakdown: [{rule: 'y', points: 2, detail: ''}]}, b: {total: 1, breakdown: []}});
   assert(merged.a.total === 7 && merged.a.breakdown.length === 2 && merged.b.total === 1, 'Extras: merging adds the totals and keeps every breakdown line');
   // the curve no longer snowballs
-  assert(Scoring.survivalCurvePoints(5) === 43 && Scoring.survivalCurvePoints(9) - Scoring.survivalCurvePoints(5) === 16, 'Extras: mafia survival is 3, 8, 17, 28, 43, then only +4 a round');
+  assert(Scoring.survivalCurvePoints(5) === 46 && Scoring.survivalCurvePoints(9) - Scoring.survivalCurvePoints(5) === 16, 'Extras: mafia survival is 4, 10, 19, 31, 46, then only +4 a round');
   // an ordinary quiet civilian now scores something every round
   const st7 = fresh('cs7');
   const civ = st7.players.find(p => p.align === 'town');
