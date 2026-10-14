@@ -21,11 +21,12 @@ const WebSocket = require('ws');
 
 const ARG = k => { const a = process.argv.find(x => x.startsWith('--' + k + '=')); return a ? a.split('=')[1] : null; };
 const FAKE = process.argv.includes('--fake');
-const N = Number(ARG('players')) || 6;
+const N = Number(ARG('players')) || (ARG('preset') === 'big' ? 8 : 6);
 const MODEL = ARG('model') || 'haiku';
+const PRESET = ARG('preset') || 'small';   // small: 6 players, lone Godfather. big: 8 players, 2 mafia, Mayor + Mortician + Vigilante in play
 const ROOT = path.join(__dirname, '..');
 const PORT = 19000 + Math.floor(Math.random() * 900);
-const OUT = path.join(ARG('out') || path.join(os.tmpdir(), 'hollow-pilot'), new Date().toISOString().replace(/[:.]/g, '-'));
+const OUT = path.join(ARG('out') || path.join(os.tmpdir(), 'hollow-pilot'), new Date().toISOString().replace(/[:.]/g, '-') + '-' + PRESET + '-' + Math.floor(Math.random() * 1000));
 fs.mkdirSync(OUT, { recursive: true });
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const NAMES = ['Ada', 'Bram', 'Cora', 'Dex', 'Edna', 'Finn', 'Gus', 'Hana'];
@@ -58,13 +59,13 @@ function roleCards() {
 const TUTORIAL = tutorialText();
 const CARDS = roleCards();
 const TEAM = r => (['Godfather', 'Mafia', 'DoubleAgent', 'Consigliere', 'Framer', 'Hitman'].includes(r) ? 'Mafia' : r === 'BountyHunter' ? 'Neutral (own win condition)' : 'Town');
-const NIGHT_KEYS = { Godfather: ['kill', 'silence'], Mafia: ['kill'], DoubleAgent: ['kill'], Framer: ['kill', 'frameTarget'], Consigliere: ['kill', 'consigliereInvestigate'], Detective: ['investigate'], Doctor: ['protect'], Coward: ['hideBehind'], BountyHunter: ['bounty'], Vigilante: ['vigilanteKill'] };
-const KEY_HELP = { kill: 'kill: pick who the family eliminates tonight', silence: 'silence (optional): stop one player speaking tomorrow', investigate: 'investigate: learn whether one player reads guilty / innocent / suspicious', protect: 'protect: shield one player from the mafia kill tonight (you may pick yourself)', hideBehind: 'hideBehind: hide behind someone', bounty: 'bounty: place a bounty on someone', frameTarget: 'frameTarget (optional): frame someone', consigliereInvestigate: 'consigliereInvestigate: learn one player\'s exact role', vigilanteKill: 'vigilanteKill (optional, once per game): kill someone' };
+const NIGHT_KEYS = { Mortician: ['morticianInvestigate'], Godfather: ['kill', 'silence'], Mafia: ['kill'], DoubleAgent: ['kill'], Framer: ['kill', 'frameTarget'], Consigliere: ['kill', 'consigliereInvestigate'], Detective: ['investigate'], Doctor: ['protect'], Coward: ['hideBehind'], BountyHunter: ['bounty'], Vigilante: ['vigilanteKill'] };
+const KEY_HELP = { morticianInvestigate: 'morticianInvestigate: examine one of last night\'s dead (use a name from the list below) and learn their exact role', kill: 'kill: pick who the family eliminates tonight', silence: 'silence (optional): stop one player speaking tomorrow', investigate: 'investigate: learn whether one player reads guilty / innocent / suspicious', protect: 'protect: shield one player from the mafia kill tonight (you may pick yourself)', hideBehind: 'hideBehind: hide behind someone', bounty: 'bounty: place a bounty on someone', frameTarget: 'frameTarget (optional): frame someone', consigliereInvestigate: 'consigliereInvestigate: learn one player\'s exact role', vigilanteKill: 'vigilanteKill (optional, once per game): kill someone' };
 
 const SYSTEM = () => `You are playing a multiplayer social-deduction game on a computer called "The Mafia of Hollow Creek". You have never played it before. The only things you know about the game are the tutorial below, your role card, and what appears on your screen. You are a real player trying to win for your side; talk to the other players like a person would (short chat messages, natural, no walls of text).
 
 IMPORTANT LIMITS
-- You have no memory between turns. You only see your current screen. What you wrote in your Notebook, the town chat, and your own recent actions are the only things that carry over. If you want to remember something (a suspicion, a claim someone made, who voted for whom), write it in your Notebook.
+- You only see your current screen each turn. Your Notebook marks and notes, your diary, the town chat and your own recent actions carry over and are shown to you every turn, so use them: write down opinions of people (who you trust, who you dislike and why, who accused or defended you), claims people made, and your plan.
 - Vote history and older chat are NOT on your screen. Look them up with the tools below if you need them.
 - You are not an assistant. Do not mention being an AI. Only use the tools listed.
 
@@ -81,11 +82,12 @@ YOUR TOOLS - reply with ONLY a JSON array of tool calls (no other text). Each ca
  Writing in your notebook:
   {"tool":"mark","name":"Ada","mark":"suspicious"} -> mark is trusted, unknown or suspicious
   {"tool":"note","name":"Ada","text":"..."}        -> add a private note to a player's page
+  {"tool":"remember","text":"..."}                 -> add a line to your own diary: how you feel about people, grudges, plans, promises (your diary and notebook are shown to you on every turn)
  Acting:
   {"tool":"say","text":"..."}                      -> speak in town chat (day only, living and not silenced)
   {"tool":"team_chat","text":"..."}                -> mafia only: speak in the private mafia chat
   {"tool":"night_action","choices":{"investigate":"Ada"}}  -> use your night power (the screen lists your options during the night)
-  {"tool":"vote","name":"Ada"}                     -> cast your day vote (voting phase; you can change it until time runs out)
+  {"tool":"vote","name":"Ada"}                     -> cast your day vote (voting phase; you can change it until time runs out). Mayor only: add "reveal_mayor":true to use your one-time double vote
   {"tool":"end_turn"}                              -> you are done for now
 Look-ups go first, then actions. Time is limited: the phase ends on the clock whether or not you have finished.`;
 
@@ -126,7 +128,7 @@ class Agent {
   constructor(name) {
     this.name = name; this.id = null; this.view = null; this.phaseEndsAt = 0;
     this.chat = []; this.mafiaChat = []; this.popups = []; this.myLog = []; this.errors = [];
-    this.marks = {}; this.notes = {}; this.metrics = {};
+    this.marks = {}; this.notes = {}; this.metrics = {}; this.diary = []; this.saved = []; this.deaths = []; this.lynches = []; this.nightCandidates = [];
     this.caseFile = []; this.prevAlive = null; this.prevNightReport = null; this.prevDetLen = 0; this.prevConsLen = 0; this.lastRevealKey = null;
     this.busy = false; this.turnsThisPhase = 0; this.lastTurnAt = 0; this.seenChatAtTurn = 0; this.phaseKey = '';
     this.transcript = fs.createWriteStream(path.join(OUT, name + '.jsonl'));
@@ -166,12 +168,16 @@ class Agent {
     const died = v.players.filter(p => !p.alive && prev && prev.players.find(q => q.id === p.id && q.alive));
     const lines = [`Dawn, day ${v.night}. ${v.cachedOvernightReport || ''}`.trim()];
     died.forEach(p => lines.push(`${p.name} died in the night - they were ${p.role || 'unknown'}.`));
+    if (v.cachedNearMissId) { const sp = v.players.find(p => p.id === v.cachedNearMissId); if (sp) { this.saved.push({ name: sp.name, day: v.night }); lines.push(`${sp.name} was attacked in the night but SURVIVED - someone saved them.`); } }
+    died.forEach(p => this.deaths.push({ name: p.name, role: p.role, day: v.night, how: 'died in the night' }));
+    if (v.morticianCandidates) this.nightCandidates = v.morticianCandidates.map(c => c.name);
     this.popups.push(lines.join(' '));
     this.caseFile.push(`Day ${v.night} dawn: ${v.cachedOvernightReport || 'nothing reported'}${died.length ? ' (died: ' + died.map(p => p.name + '=' + p.role).join(', ') + ')' : ''}`);
   }
   onVoteResult(prev, v) {
     const died = v.players.filter(p => !p.alive && prev && prev.players.find(q => q.id === p.id && q.alive));
     const rows = (v.voteLog || []).map(r => `${r.name} -> ${r.target || (r.silenced ? '(silenced, no vote)' : 'no one')}`).join('; ');
+    died.forEach(p => this.lynches.push({ name: p.name, role: p.role, day: v.night }));
     const out = died.length ? died.map(p => `${p.name} was voted out and was the ${p.role}.`).join(' ') : 'Nobody was voted out.';
     this.popups.push(`Vote results: ${rows}. ${out}`);
     this.caseFile.push(`Day ${v.night} vote: ${rows}. ${out}`);
@@ -192,6 +198,27 @@ class Agent {
     L.push('Alive: ' + v.players.filter(p => p.alive).map(p => p.name).join(', '));
     const dead = v.players.filter(p => !p.alive); if (dead.length) L.push('Eliminated: ' + dead.map(p => `${p.name} (was ${p.role})`).join(', '));
     if (v.heat && v.heat.self) L.push(`Your Town Heat: ${v.heat.level} (${v.heat.percent}%)`);
+    // everything the whole town has seen so far, kept on the board so nobody has to remember it
+    const facts = [];
+    this.lynches.forEach(x => facts.push(`Day ${x.day}: ${x.name} was voted out - they were the ${x.role}.`));
+    this.deaths.forEach(x => facts.push(`Day ${x.day}: ${x.name} ${x.how} - they were the ${x.role}.`));
+    this.saved.forEach(x => facts.push(`Day ${x.day}: ${x.name} was attacked in the night and SURVIVED (saved by someone) - the attacker chose them, so they are very likely good, and the one who saved them is on the town's side.`));
+    L.push('-- What the whole town knows (public) --'); L.push(facts.length ? facts.map(f => '  ' + f).join('\n') : '  (nothing yet)');
+    const aliveCount = v.players.filter(p => p.alive).length;
+    L.push(`  Rule reminder: the mafia win as soon as they EQUAL the number of everyone else; ${aliveCount} players are alive now.`);
+    const priv = [];
+    (v.detectiveLog || []).forEach(e => priv.push(`Your investigation: ${e.name} reads ${e.read}.`));
+    (v.consigliereLog || []).forEach(e => priv.push(`Your look-into: ${e.name} is the ${e.role}.`));
+    (v.morticianLog || []).forEach(e => priv.push(`Your examination: ${e.name || e.targetName || '?'} was ${e.role || '?'}.`));
+    if (priv.length) { L.push('-- What only you know --'); priv.forEach(x => L.push('  ' + x)); }
+    // what the player's own notebook says about everyone, so opinions persist from turn to turn
+    const opinions = v.players.filter(p => p.id !== this.id).map(p => { const note = this.notes[p.id] ? this.notes[p.id].split('\n').slice(-2).join(' / ').slice(0, 200) : ''; return (this.marks[p.id] || note) ? `  ${p.name}${p.alive ? '' : ' (out)'}: ${this.marks[p.id] || 'unknown'}${note ? ' - ' + note : ''}` : null; }).filter(Boolean);
+    L.push('-- Your read on people (from your notebook) --'); L.push(opinions.length ? opinions.join('\n') : '  (you have not marked or written anything yet)');
+    const accusedMe = (v.accusationLog || []).filter(a => a.targetId === this.id).map(a => `${this.nameOf(a.accuserId)} (day ${a.night})`);
+    const votedMe = (v.voteHistory || []).filter(x => x.targetId === this.id).map(x => `${x.name} (day ${x.night})`);
+    if (accusedMe.length || votedMe.length) L.push(`-- Who has gone after you --\n  Accused you: ${accusedMe.join(', ') || 'nobody'}\n  Voted for you: ${votedMe.join(', ') || 'nobody'}`);
+    if (this.diary.length) { L.push('-- Your diary --'); this.diary.slice(-10).forEach(d => L.push('  ' + d)); }
+    if (this.nightCandidates.length && v.myRole === 'Mortician' && v.phase === 'night') L.push('Last night\'s dead you could examine: ' + this.nightCandidates.join(', '));
     if (this.popups.length) { L.push('-- Pop-ups you saw since your last turn --'); this.popups.forEach(p => L.push('  ' + p)); }
     const shown = this.chat.filter(c => c.kind !== 'whisperAnnounce' && c.text).slice(-12);
     L.push(`-- Town chat (latest ${shown.length} of ${this.chat.length}) --`); shown.forEach(c => L.push(`  ${c.name}: ${c.text}`));
@@ -238,6 +265,7 @@ class Agent {
       case 'read_chat': { const back = Math.max(1, Math.min(60, Number(c.back) || 12)); const end = Math.max(0, this.chat.length - 12 + 0); const slice = this.chat.filter(x => x.text).slice(Math.max(0, this.chat.length - 12 - back), Math.max(0, this.chat.length - 12)); return { kind: 'look', text: slice.length ? 'OLDER CHAT\n' + slice.map(x => `  ${x.name}: ${x.text}`).join('\n') : 'Nothing older.' }; }
       case 'mark': { const p = this.byName(c.name); const mk = String(c.mark || '').toLowerCase(); if (!p || !['trusted', 'unknown', 'suspicious'].includes(mk)) return { kind: 'bad', text: 'Could not mark: pick a player and trusted / unknown / suspicious.' }; this.marks[p.id] = mk; this.myLog.push(`Marked ${p.name} ${mk}`); return { kind: 'act', text: `Marked ${p.name} ${mk}.` }; }
       case 'note': { const p = this.byName(c.name); if (!p || !c.text) return { kind: 'bad', text: 'Could not write note: need a player and text.' }; const body = String(c.text).replace(/^\s*day\s*\d+\s*[:.-]\s*/i, '').slice(0, 400); this.notes[p.id] = (this.notes[p.id] ? this.notes[p.id] + '\n' : '') + `Day ${v.night}: ` + body; this.myLog.push(`Wrote a note on ${p.name}: "${String(c.text).slice(0, 80)}"`); return { kind: 'act', text: 'Note saved.' }; }
+      case 'remember': { const t = String(c.text || '').slice(0, 300); if (!t) return { kind: 'bad', text: 'Nothing to remember.' }; this.diary.push(`Day ${v.night}: ${t.replace(/^\s*day\s*\d+\s*[:.-]\s*/i, '')}`); return { kind: 'act', text: 'Written in your diary.' }; }
       case 'say': {
         if (!me.alive) return { kind: 'bad', text: 'You are eliminated and cannot speak in town chat.' };
         if (me.silencedToday) return { kind: 'bad', text: 'You are silenced today.' };
@@ -249,7 +277,7 @@ class Agent {
       case 'night_action': {
         if (ph !== 'night') return { kind: 'bad', text: 'It is not night.' };
         const allowed = NIGHT_KEYS[v.myRole] || []; const action = {}; const bad = [];
-        Object.entries(c.choices || {}).forEach(([k, name]) => { const p = this.byName(name); if (!allowed.includes(k)) bad.push(`"${k}" is not an option for your role`); else if (!p || !p.alive) bad.push(`"${name}" is not a living player`); else if (p.id === this.id && k !== 'protect') bad.push('you cannot pick yourself for that'); else action[k] = p.id; });
+        Object.entries(c.choices || {}).forEach(([k, name]) => { const p = this.byName(name); if (!allowed.includes(k)) bad.push(`"${k}" is not an option for your role`); else if (k === 'morticianInvestigate' ? (!p || p.alive) : (!p || !p.alive)) bad.push(`"${name}" is not a valid choice for that`); else if (p.id === this.id && k !== 'protect') bad.push('you cannot pick yourself for that'); else action[k] = p.id; });
         if (bad.length) { this.count('invalid_actions'); return { kind: 'bad', text: 'Not submitted: ' + bad.join('; ') }; }
         if (!Object.keys(action).length) return { kind: 'bad', text: 'Nothing chosen.' };
         this.send({ type: 'nightAction', action }); this.myLog.push(`Night ${v.night}: ${Object.entries(c.choices).map(([k, n]) => k + ' ' + n).join(', ')}`); return { kind: 'act', text: 'Locked in.' };
@@ -257,7 +285,7 @@ class Agent {
       case 'vote': {
         if (ph !== 'day-vote') { this.count('invalid_actions'); return { kind: 'bad', text: 'Voting is not open (it opens after discussion).' }; }
         const p = this.byName(c.name); if (!p || !p.alive || p.id === this.id) { this.count('invalid_actions'); return { kind: 'bad', text: 'Pick another living player.' }; }
-        this.send({ type: 'dayVote', targetId: p.id }); this.myLog.push(`Day ${v.night}: voted ${p.name}`); this.votedLooked = this.metrics.tool_vote_lookup || 0; return { kind: 'act', text: `Vote for ${p.name} submitted.` };
+        this.send({ type: 'dayVote', targetId: p.id, revealMayor: !!c.reveal_mayor && v.myRole === 'Mayor' }); this.myLog.push(`Day ${v.night}: voted ${p.name}`); this.votedLooked = this.metrics.tool_vote_lookup || 0; return { kind: 'act', text: `Vote for ${p.name} submitted.` };
       }
       case 'end_turn': return { kind: 'end', text: '' };
       default: this.count('unknown_tool'); return { kind: 'bad', text: `Unknown tool "${c.tool}".` };
@@ -334,7 +362,9 @@ class Agent {
   fs.writeFileSync(path.join(OUT, 'quiz-before.json'), JSON.stringify(quiz, null, 2));
   console.log('quiz done; starting game in room', code);
 
-  const gameCfg = { type: 'start', playerCount: N, mafiaCount: 0, roles: { Godfather: true, DoubleAgent: false, Detective: true, Doctor: true, Miller: false, BountyHunter: false, CrazyGranny: false, Coward: false, Farmer: false, NavySeal: false, Vigilante: false, Consigliere: false, Mayor: false, Mortician: false, Framer: false, Hitman: false, CultLeader: false } };
+  const noRoles = {}; ['Godfather', 'DoubleAgent', 'Detective', 'Doctor', 'Miller', 'BountyHunter', 'CrazyGranny', 'Coward', 'Farmer', 'NavySeal', 'Vigilante', 'Consigliere', 'Mayor', 'Mortician', 'Framer', 'Hitman', 'CultLeader'].forEach(r => { noRoles[r] = false; });
+  const big = PRESET === 'big';
+  const gameCfg = { type: 'start', playerCount: N, mafiaCount: big ? 1 : 0, roles: Object.assign(noRoles, { Godfather: true, Detective: true, Doctor: true }, big ? { Mayor: true, Mortician: true, Vigilante: true } : {}) };
   agents[0].send(gameCfg);
 
   const tickTimer = setInterval(() => agents.forEach(a => a.tick()), 1500);

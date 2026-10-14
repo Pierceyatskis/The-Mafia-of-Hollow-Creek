@@ -646,6 +646,7 @@ body.force-reduced-motion #daylayout-heat.heat-pulse, body.force-reduced-motion 
 #design-canvas.bg-day #daylayout-heat:hover + #daylayout-heat-detail, #design-canvas.bg-day #daylayout-heat:focus + #daylayout-heat-detail, #design-canvas.bg-day #daylayout-heat-detail.open{display:block; position:absolute; left:808px; top:462px; width:300px; box-sizing:border-box; padding:9px 12px; z-index:7; background:rgba(26,19,12,0.96); border:1px solid var(--gold-dim); border-radius:6px; color:var(--parchment); font-family:var(--font-type); font-size:12px; line-height:1.45; box-shadow:0 6px 16px rgba(0,0,0,0.6);}
 #daylayout-heat-detail b{color:var(--gold-bright);}
 #daylayout-heat-detail .heat-advice{margin-top:6px; padding-top:6px; border-top:1px solid rgba(232,223,199,0.25); color:#ffb48a;}
+#daylayout-note1-body .night-note{margin:5px 0 0; font-style:italic; color:#5a1d14;}
 #daylayout-heat-detail .heat-foot{margin-top:5px; font-style:italic; color:var(--parchment-dim); font-size:11px;}
 /* TEMP day-layout-rebuild step 6 - "THE STAGE" title + dynamic subtitle,
    overlaid on the cabinet's own curtain art (no separate plaque asset for
@@ -2248,7 +2249,7 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
   <p id="daylayout-note3-count" class="daylayout-note-count"></p>
   <p id="daylayout-note3-subtitle" class="daylayout-note-body daylayout-note3-subtitle"></p>
 </div>
-<div id="daylayout-heat" tabindex="0" role="status" aria-label="Heat">
+<div id="daylayout-heat" tabindex="0" role="status" aria-label="Heat" title="Heat: how much suspicion is pointing at you compared with everyone else. Click for details.">
   <img id="heat-meter-img" src="assets/ui/heat-meter.webp" alt="">
   <img id="heat-needle" src="assets/ui/heat-needle.webp" alt="">
   <div class="heat-sr"><span id="heat-label">Your heat</span> <span id="heat-level">Cold</span></div>
@@ -8131,7 +8132,7 @@ function renderFarmerRevengePicker(){
 // night number (stable for the whole round, varies round to round) rather
 // than randomized on every re-render.
 var BULLETIN_PHASE_TEXT = {
-  'day-discuss': "Discuss freely. Share your suspicions, ask for alibis, and look for contradictions.",
+  'day-discuss': "Discuss freely: share suspicions, ask for alibis, spot contradictions. Voting opens when the discussion timer ends.",
   'day-vote': "The floor is closing. Cast your vote for who you believe is working against the town.",
   'day-reveal': "The town holds its breath as the verdict comes in.",
   'farmer-revenge': "One last stand. Choose who goes down with you."
@@ -8500,7 +8501,7 @@ function renderHeat(heat){
   }
   var advice = (self && level >= 3) ? '<div class="heat-advice">' + (level >= 4 ? 'You are very likely to be voted out. ' : 'The room is turning on you. ') + 'Make your case: take the stage or reply to whoever accused you.</div>' : '';
   lines.unshift('<b>' + document.getElementById('heat-label').textContent + ' \u2014 ' + lvEl.textContent + '</b>');
-  detail.innerHTML = lines.join('<br>') + advice + '<div class="heat-foot">Heat is attention, not proof of guilt. It fades each day.</div>';
+  detail.innerHTML = lines.join('<br>') + advice + '<div class="heat-foot">Heat is how much suspicion is pointing at you <b>compared with everyone else</b>. Accusations and votes against you raise it; defenders lower it; it fades each day. It is attention, not proof of guilt.</div>';
   // went up a level: pulse + sound
   if(self && lastHeatLevel !== null && level > lastHeatLevel){
     el.classList.remove('heat-pulse'); void el.offsetWidth; el.classList.add('heat-pulse');
@@ -8641,7 +8642,9 @@ function renderDayPanel(){
   // computed values (view.cachedOvernightReport is the server-authoritative
   // short summary of who died/was saved overnight, so it already handles
   // every case correctly - single death, doctor save, multiple deaths).
-  document.getElementById('daylayout-note1-body').innerHTML = view.cachedOvernightReport || '';
+  var nightNoteHTML = view.myNightNote ? '<p class="night-note">' + escapeHtmlMp(view.myNightNote) + '</p>' : '';
+  var privateReadHTML = overnightHTML.slice((view.cachedOvernightReport || '').length);
+  document.getElementById('daylayout-note1-body').innerHTML = (view.cachedOvernightReport || '') + nightNoteHTML + privateReadHTML;
   document.getElementById('daylayout-note2-body').textContent = phaseInstructions;
   fitNoteBodyText(document.getElementById('daylayout-note1-body'));
   fitNoteBodyText(document.getElementById('daylayout-note2-body'));
@@ -8657,7 +8660,8 @@ function renderDayPanel(){
     daylayoutPrevLivingCount = livingCount;
     daylayoutSubtitleNight = view.night;
   }
-  document.getElementById('daylayout-note3-subtitle').textContent = daylayoutSubtitleText;
+  document.getElementById('daylayout-note3-subtitle').textContent = daylayoutSubtitleText + ' The mafia win once they equal everyone else.';
+  fitNoteBodyText(document.getElementById('daylayout-note3-subtitle'));
   renderRosterGrid(view);
   renderHeat(view.heat);
   renderChatLog();

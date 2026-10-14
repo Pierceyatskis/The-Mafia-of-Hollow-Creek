@@ -434,6 +434,8 @@ function resolveNight(state){
   // whether the Bounty Hunter's target was the night-kill target (even when
   // saved), without ever exposing *why* they survived to anyone.
   const killTargetId = killTarget ? killTarget.id : null;
+  // What the Doctor and the family are told privately about last night - read by getPlayerView as `myNightNote`.
+  state.lastNightPrivate = { doctorId: doctor ? doctor.id : null, protectId: protectTargetId || null, attackedId: killTargetId, saved: !!doctorSaved };
   const navySealCounter = killTarget && killTarget.role==='NavySeal' && !killTarget.usedNavySealCounter && !doctorSaved;
 
   if(navySealCounter){
@@ -1315,6 +1317,24 @@ function buildGameSummary(state, scoreRounds){
   };
 }
 
+function nightNoteFor(state, me){
+  const n = state.lastNightPrivate;
+  if(!n || !me) return null;
+  const nm = id => { const p = id ? byId(state, id) : null; return p ? p.name : null; };
+  if(me.role === 'Doctor' && n.doctorId === me.id && n.protectId){
+    const who = n.protectId === me.id ? 'yourself' : nm(n.protectId);
+    if(n.saved) return 'You protected ' + who + ', and the family struck at ' + (n.protectId === me.id ? 'you' : who) + '. Your protection held.';
+    return 'You protected ' + who + '. The family did not strike at ' + (n.protectId === me.id ? 'you' : 'them') + ' last night.';
+  }
+  if(me.align === 'mafia' && me.role !== 'Hitman' && n.attackedId){
+    const t = byId(state, n.attackedId);
+    if(!t) return null;
+    if(n.saved) return 'The family struck at ' + t.name + ', but the Doctor got there first. ' + t.name + ' lives.';
+    return t.alive ? 'The family struck at ' + t.name + ', but ' + t.name + ' is still alive.' : 'The family struck at ' + t.name + '. ' + t.name + ' is dead.';
+  }
+  return null;
+}
+
 function getPlayerView(state, playerId){
   const me = byId(state, playerId);
   const seeAllRoles = !me || !me.alive || state.gameOver; // dead players get a full spectator view; everyone sees every role once the game is over
@@ -1401,7 +1421,10 @@ function getPlayerView(state, playerId){
     // happened. This flag is deliberately exposed to EVERY player equally,
     // never role-gated, so it never becomes a tell about who the Mayor is -
     // it only ever says a tie was broken this round, not by whom.
-    mayorTiebreakResolved: state.lastDayVoteMayorTiebreak
+    mayorTiebreakResolved: state.lastDayVoteMayorTiebreak,
+    // A short private recap of last night for the roles that otherwise learn nothing at dawn: did the Doctor's
+    // protection matter, and what became of the family's target. Null for everyone else.
+    myNightNote: nightNoteFor(state, me)
   };
 }
 

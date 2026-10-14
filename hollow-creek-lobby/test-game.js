@@ -986,4 +986,17 @@ assert(resCultF.cultConvertedPlayer === null, 'Phase2 Task5: resolveNight confir
   assert(endView.players.every(p => p.role), 'Game over: every player\'s role is visible to everyone, even to a survivor');
 }
 
+// Doctor / family night recap (what the Doctor and the mafia are told privately at dawn)
+{
+  const st = G.createGame([{id:'d',name:'Doc'},{id:'g',name:'God'},{id:'a',name:'A'},{id:'b',name:'B'},{id:'c',name:'C'},{id:'e',name:'E'}], {playerCount:6, mafiaCount:0, roles:{Godfather:true,Doctor:true}});
+  const doc = st.players.find(p => p.role==='Doctor'), god = st.players.find(p => p.role==='Godfather');
+  const target = st.players.find(p => p.align==='town' && p.role!=='Doctor');
+  st.pendingNightVotes[god.id] = { kill: target.id }; st.pendingNightVotes[doc.id] = { protect: target.id };
+  G.resolveNight(st);
+  const dv = G.getPlayerView(st, doc.id), gv = G.getPlayerView(st, god.id), tv = G.getPlayerView(st, target.id);
+  assert(/Your protection held/.test(dv.myNightNote || ''), 'Night recap: a Doctor whose protection saved the target is told so');
+  assert(/the Doctor got there first/.test(gv.myNightNote || ''), 'Night recap: the family is told their target was saved');
+  assert(tv.myNightNote == null, 'Night recap: an ordinary player gets no private night note');
+}
+
 console.log('\nAll game.js checks completed.');
