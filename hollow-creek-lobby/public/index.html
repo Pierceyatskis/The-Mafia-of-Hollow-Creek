@@ -1693,11 +1693,12 @@ h2.sec{font-family:var(--font-type); font-size:13px; letter-spacing:2px; text-tr
 .rule-val-ro.off{color:var(--parchment-dim); background:rgba(255,255,255,0.04); border-color:var(--line);}
 .rule-row-toggle{cursor:pointer;}
 .rule-switch-input{position:absolute; opacity:0; width:0; height:0;}
-.rule-switch{position:relative; width:50px; height:28px; border-radius:14px; background:#3a3028; border:1px solid var(--line); transition:background .15s;}
+.rule-switch{position:relative; flex:0 0 50px; width:50px; height:28px; border-radius:14px; background:#3a3028; border:1px solid var(--line); transition:background .15s;}
 .rule-switch::after{content:''; position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%; background:var(--parchment-dim); transition:transform .15s, background .15s;}
 .rule-switch-input:checked + .rule-switch{background:rgba(227,177,85,0.45); border-color:var(--gold-bright);}
 .rule-switch-input:checked + .rule-switch::after{transform:translateX(22px); background:var(--gold-bright);}
 .rule-switch-input:focus-visible + .rule-switch{outline:2px solid var(--gold-bright); outline-offset:2px;}
+.rule-switch-input:disabled + .rule-switch{opacity:0.4;}
 .rule-changed{animation:ruleFlash 1.6s ease;}
 @keyframes ruleFlash{0%,35%{background:rgba(227,177,85,0.34); border-color:var(--gold-bright);} 100%{background:rgba(0,0,0,0.18);}}
 .rules-roles-head{display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin:16px 0 2px;}
@@ -1990,6 +1991,27 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
 .poll-compose-actions{display:flex; gap:8px; align-items:center;}
 .poll-compose-msg{font-size:12px; color:var(--danger); margin-left:6px;}
 /* earlier days' chat folds into one tappable line in Town Talk */
+/* settings window: grouped rows with switches */
+.settings-content{width:min(560px, 94vw); max-width:560px; max-height:86vh; display:flex; flex-direction:column;}
+#settings-body{overflow-y:auto; min-height:0; padding-right:6px; scrollbar-width:thin;}
+.set-h{margin:16px 0 6px; padding-bottom:5px; border-bottom:1px solid var(--line); font-family:var(--font-type); font-size:12.5px; letter-spacing:1.6px; text-transform:uppercase; color:var(--gold);}
+.set-h:first-child{margin-top:2px;}
+.set-row{display:flex; align-items:center; justify-content:space-between; gap:14px; padding:9px 4px; cursor:pointer; border-radius:6px;}
+.set-row:hover{background:rgba(227,177,85,0.06);}
+.set-row-slider{cursor:default;} .set-row-slider:hover{background:none;}
+.set-row-master{background:rgba(227,177,85,0.08); border:1px solid var(--gold-dim); padding:11px 12px; margin-bottom:6px;}
+.set-text{min-width:0; display:flex; flex-direction:column; gap:2px;}
+.set-text b{font-family:var(--font-ornate); font-size:16px; font-weight:600; color:var(--parchment);}
+.set-text small{font-family:var(--font-type); font-size:11.5px; line-height:1.4; color:var(--parchment-dim);}
+.set-slider{display:flex; align-items:center; gap:8px; flex-shrink:0;}
+.set-slider .volume-slider{width:130px;}
+.set-val{min-width:38px; text-align:right; font-family:var(--font-type); font-size:13px; color:var(--parchment-dim);}
+.set-row.is-off .set-text b{color:var(--parchment-dim);}
+.set-buttons{display:flex; flex-wrap:wrap; gap:8px;}
+body.big-chat #discussion .chatline .line{font-size:18px !important; line-height:1.4;}
+body.big-chat #discussion .chatline .who{font-size:17px !important;}
+body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .chatline .who{font-size:16px !important;}
+@media (max-width:560px){ .set-row{align-items:flex-start;} .set-slider .volume-slider{width:100px;} }
 .chat-history:not(.has-open){position:sticky; top:0; z-index:3; padding:2px 0 4px; background:rgba(24,17,11,0.97);}
 .chat-day-group{margin:4px 0 8px; border:1px solid rgba(227,177,85,0.28); border-radius:8px; background:rgba(0,0,0,0.18);}
 .chat-day-head{display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%; padding:7px 12px; background:none; border:none; cursor:pointer; text-align:left; color:var(--parchment); font-family:var(--font-type);}
@@ -2704,31 +2726,46 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
   </div>
 </div>
 <div id="settings-modal" class="role-card-overlay" style="display:none;">
-  <div class="role-card-modal-content case-log-modal-content">
+  <div class="role-card-modal-content case-log-modal-content settings-content">
     <button class="role-card-close" id="settings-close-btn" aria-label="Close">&times;</button>
-    <h2 class="intro-modal-title" style="font-size:20px; margin-bottom:16px;">Settings</h2>
+    <h2 class="intro-modal-title" style="font-size:20px; margin-bottom:12px;">Settings</h2>
     <div id="settings-body" style="text-align:left;">
-      <label class="checkbox-row" style="display:flex; align-items:flex-start; gap:8px; font-size:13px; color:var(--parchment-dim); margin-bottom:14px;">
-        <input type="checkbox" id="settings-colorblind-check" style="width:auto; margin-top:2px; flex-shrink:0;">
-        <span>Colorblind-friendly mode — add a text label to every alignment color (portrait outlines, reveal names), not just color alone.</span>
+
+      <h3 class="set-h">Sound</h3>
+      <label class="set-row set-row-master" for="settings-sound-check">
+        <span class="set-text"><b>All sounds</b><small>The master switch. Off silences everything: effects, ambience, alerts and other players' voices on the stage.</small></span>
+        <input type="checkbox" id="settings-sound-check" class="rule-switch-input"><span class="rule-switch" aria-hidden="true"></span>
       </label>
-      <label class="checkbox-row" style="display:flex; align-items:flex-start; gap:8px; font-size:13px; color:var(--parchment-dim); margin-bottom:14px;">
-        <input type="checkbox" id="settings-haptics-check" style="width:auto; margin-top:2px; flex-shrink:0;">
-        <span>Vibration — independent of sound. Muting sound won't turn this off, and turning this off won't mute sound.</span>
-      </label>
-      <label class="checkbox-row" style="display:flex; align-items:flex-start; gap:8px; font-size:13px; color:var(--parchment-dim); margin-bottom:14px;">
-        <input type="checkbox" id="settings-reduced-motion-check" style="width:auto; margin-top:2px; flex-shrink:0;">
-        <span>Reduce motion — same effect as your device's reduce-motion setting, forced on here even if that's off (useful on a shared or borrowed device).</span>
-      </label>
-      <div style="margin-top:6px; padding-top:14px; border-top:1px solid var(--line);">
-        <p style="font-size:13px; color:var(--parchment-dim); margin-bottom:8px;">Ambience volume — rain, crickets, the night clock tick. Independent of the sound effects slider up top.</p>
-        <div style="display:flex; align-items:center; gap:10px;">
-          <input type="range" id="settings-ambience-slider" class="volume-slider" min="0" max="100" value="80" aria-label="Ambience volume" style="width:140px;">
-          <span id="settings-ambience-value" style="font-family:var(--font-type); font-size:13px; color:var(--parchment-dim); min-width:32px;">80%</span>
-        </div>
+      <div class="set-row set-row-slider">
+        <span class="set-text"><b>Sound effects volume</b><small>Clicks, cards, votes, the gavel.</small></span>
+        <span class="set-slider"><input type="range" id="settings-sfx-slider" class="volume-slider" min="0" max="100" value="80" aria-label="Sound effects volume"><span id="settings-sfx-value" class="set-val">80%</span></span>
       </div>
-      <div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
-        <p style="font-size:13px; color:var(--parchment-dim); margin-bottom:8px;">Your profile, streak, and score history are stored only in this browser.</p>
+      <div class="set-row set-row-slider">
+        <span class="set-text"><b>Ambience volume</b><small>Rain, crickets and the night clock tick.</small></span>
+        <span class="set-slider"><input type="range" id="settings-ambience-slider" class="volume-slider" min="0" max="100" value="80" aria-label="Ambience volume"><span id="settings-ambience-value" class="set-val">80%</span></span>
+      </div>
+      <label class="set-row" for="settings-ambient-check"><span class="set-text"><b>Ambient sounds</b><small>Rain and crickets at night.</small></span><input type="checkbox" id="settings-ambient-check" class="rule-switch-input"><span class="rule-switch" aria-hidden="true"></span></label>
+      <label class="set-row" for="settings-tick-check"><span class="set-text"><b>Night clock tick</b><small>The ticking that speeds up as the night runs out.</small></span><input type="checkbox" id="settings-tick-check" class="rule-switch-input"><span class="rule-switch" aria-hidden="true"></span></label>
+      <label class="set-row" for="settings-alerts-check"><span class="set-text"><b>Alert sounds</b><small>New chat blips, the time-running-out beeps, and the chime when it is your turn on the stage.</small></span><input type="checkbox" id="settings-alerts-check" class="rule-switch-input"><span class="rule-switch" aria-hidden="true"></span></label>
+      <label class="set-row" for="settings-voice-check"><span class="set-text"><b>Hear other players on the stage</b><small>Turn off to stay silent on voice but keep every other sound.</small></span><input type="checkbox" id="settings-voice-check" class="rule-switch-input"><span class="rule-switch" aria-hidden="true"></span></label>
+      <label class="set-row" for="settings-haptics-check"><span class="set-text"><b>Vibration</b><small>Independent of sound: muting doesn't turn this off, and turning it off doesn't mute.</small></span><input type="checkbox" id="settings-haptics-check" class="rule-switch-input"><span class="rule-switch" aria-hidden="true"></span></label>
+
+      <h3 class="set-h">Display</h3>
+      <label class="set-row" for="settings-bigchat-check"><span class="set-text"><b>Larger chat text</b><small>Makes Town Talk easier to read.</small></span><input type="checkbox" id="settings-bigchat-check" class="rule-switch-input"><span class="rule-switch" aria-hidden="true"></span></label>
+      <label class="set-row" for="settings-shake-check"><span class="set-text"><b>Screen shake</b><small>The jolt when something dramatic happens, such as a night kill.</small></span><input type="checkbox" id="settings-shake-check" class="rule-switch-input"><span class="rule-switch" aria-hidden="true"></span></label>
+      <label class="set-row" for="settings-reduced-motion-check"><span class="set-text"><b>Reduce motion</b><small>Same as your device's reduce-motion setting, forced on here even if that's off.</small></span><input type="checkbox" id="settings-reduced-motion-check" class="rule-switch-input"><span class="rule-switch" aria-hidden="true"></span></label>
+      <label class="set-row" for="settings-colorblind-check"><span class="set-text"><b>Colorblind-friendly mode</b><small>Adds a text label to every alignment color (portrait outlines, reveal names), not just color.</small></span><input type="checkbox" id="settings-colorblind-check" class="rule-switch-input"><span class="rule-switch" aria-hidden="true"></span></label>
+
+      <h3 class="set-h">Help</h3>
+      <div class="set-buttons">
+        <button class="btn ghost" id="settings-tutorial-btn" type="button">Replay the tutorial</button>
+        <button class="btn ghost" id="settings-howto-btn" type="button">How to play</button>
+        <button class="btn ghost" id="settings-defaults-btn" type="button">Restore default settings</button>
+      </div>
+
+      <h3 class="set-h">Your data</h3>
+      <div>
+        <p style="font-size:13px; color:var(--parchment-dim); margin:0 0 8px;">Your profile, streak, and score history are stored only in this browser.</p>
         <button class="btn ghost" id="settings-reset-btn" style="border-color:var(--danger); color:var(--danger);">Reset My Data</button>
         <div id="settings-reset-confirm" style="display:none; margin-top:10px;">
           <p class="msg err" style="margin-bottom:8px;">This clears your profile, streak, and score history for good. It cannot be undone.</p>
@@ -3735,7 +3772,7 @@ async function clearActiveSession(){
 // above (deliberately NOT the sound keys' plain-localStorage shortcut,
 // to stay consistent with the app's cross-environment storage abstraction).
 var SETTINGS_KEY = 'hc-settings-v1';
-var DEFAULT_SETTINGS = {colorblind:false, reducedMotion:false, haptics:true};
+var DEFAULT_SETTINGS = {colorblind:false, reducedMotion:false, haptics:true, ambientSounds:true, clockTick:true, alertSounds:true, voicePlayback:true, bigChat:false, screenShake:true};
 async function saveSettings(settings){
   try{
     var data = JSON.stringify(settings);
@@ -4507,6 +4544,7 @@ var SoundFX = (function(){
   var tickEl = null;
   var RAIN_BASE_VOL = 0.12, TICK_BASE_VOL = 0.28, CRICKET_BASE_VOL = 0.16;
   var tickUrgency = 0;
+  var ambientOn = true, tickOn = true, alertsOn = true, lastAmbiencePhase = null;   // per-category switches from Settings (muted still silences everything)
   function fadeTo(el, target, ms, onDone){
     if(el._fadeTimer) clearInterval(el._fadeTimer);
     var start = el.volume, steps = 16, i = 0;
@@ -4606,6 +4644,7 @@ var SoundFX = (function(){
       });
     },
     chatBlip: function(){
+      if(!alertsOn) return;
       safe(function(c){ tone(c, 880, c.currentTime, 0.035, 'sine', 0.045); });
     },
     confirm: function(){
@@ -4643,6 +4682,7 @@ var SoundFX = (function(){
     },
     // One short beep per second while the voting clock is in its last 15 seconds (higher and doubled for the last 5).
     playTimeWarning: function(secondsLeft){
+      if(!alertsOn) return;
       safe(function(c){
         var t = c.currentTime, urgent = secondsLeft <= 5;
         tone(c, urgent ? 1320 : 880, t, 0.09, 'square', urgent ? 0.17 : 0.12);
@@ -4651,6 +4691,7 @@ var SoundFX = (function(){
     },
     // You've just been called up from the queue: a clear rising two-chime (twice) so it's noticed even mid-chat.
     playYourTurn: function(){
+      if(!alertsOn) return;
       safe(function(c){
         var t = c.currentTime;
         [0, 0.55].forEach(function(off){
@@ -4661,6 +4702,8 @@ var SoundFX = (function(){
       });
     },
     setAmbience: function(phase){
+      lastAmbiencePhase = phase;
+      if(!ambientOn) phase = null;
       var key = null;
       if(key !== ambienceKey){
         if(ambienceEl){
@@ -4721,7 +4764,7 @@ var SoundFX = (function(){
     },
     startClockTick: function(){
       tickUrgency = 0;
-      if(muted) return;
+      if(muted || !tickOn) return;
       try{
         if(tickEl){ tickEl.pause(); }
         tickEl = new Audio(FILES.clockTick);
@@ -4753,6 +4796,9 @@ var SoundFX = (function(){
       localStorage.setItem(SOUND_VOLUME_KEY, String(sfxVolume));
     },
     // Accessibility & Settings Task 6 - ambience volume, independent of SFX.
+    setAmbientEnabled: function(on){ ambientOn = !!on; this.setAmbience(lastAmbiencePhase); },
+    setClockTickEnabled: function(on){ tickOn = !!on; if(!tickOn && tickEl){ tickEl.pause(); tickEl = null; } },
+    setAlertsEnabled: function(on){ alertsOn = !!on; },
     getAmbienceVolume: function(){ return ambienceVolume; },
     setAmbienceVolume: function(v){
       ambienceVolume = Math.max(0, Math.min(1, v));
@@ -4772,6 +4818,7 @@ function vibrate(pattern){
   try{ if(navigator.vibrate) navigator.vibrate(pattern); }catch(e){}
 }
 function screenShake(target){
+  if(CURRENT_SETTINGS.screenShake === false) return;
   var el = target || document.body;
   el.classList.remove('screen-shake');
   void el.offsetWidth;
@@ -4825,6 +4872,8 @@ function refreshSoundToggleBtn(){
   btn.classList.toggle('is-muted', muted);
   var slider = document.getElementById('volume-slider');
   if(slider) slider.disabled = muted;
+  if(typeof applyVoicePlayback === 'function') applyVoicePlayback();
+  if(typeof syncSoundSettingsUI === 'function') syncSoundSettingsUI();
 }
 document.getElementById('sound-toggle-btn').addEventListener('click', function(){
   SoundFX.setMuted(!SoundFX.isMuted());
@@ -4835,6 +4884,7 @@ var volumeSliderEl = document.getElementById('volume-slider');
 volumeSliderEl.value = Math.round(SoundFX.getVolume() * 100);
 volumeSliderEl.addEventListener('input', function(){
   SoundFX.setVolume(volumeSliderEl.value / 100);
+  if(typeof syncSoundSettingsUI === 'function') syncSoundSettingsUI();
 });
 volumeSliderEl.addEventListener('change', function(){
   SoundFX.click();
@@ -7375,14 +7425,41 @@ function openSettingsModal(){
   document.getElementById('settings-colorblind-check').checked = !!CURRENT_SETTINGS.colorblind;
   document.getElementById('settings-haptics-check').checked = !!CURRENT_SETTINGS.haptics;
   document.getElementById('settings-reduced-motion-check').checked = !!CURRENT_SETTINGS.reducedMotion;
-  var ambiencePct = Math.round(SoundFX.getAmbienceVolume() * 100);
-  document.getElementById('settings-ambience-slider').value = ambiencePct;
-  document.getElementById('settings-ambience-value').textContent = ambiencePct + '%';
+  syncSoundSettingsUI();
   document.getElementById('settings-modal').style.display = 'flex';
 }
 // Accessibility & Settings Task 3 - applies (or removes) the forced
 // reduce-motion class; called on toggle AND once at boot so a persisted
 // "on" setting actually takes effect on load, not just when re-toggled.
+// Pushes every sound setting into the sound engine and refreshes the Settings window (and the top-bar toggle) to match.
+function syncSoundSettingsUI(){
+  var $ = function(id){ return document.getElementById(id); };
+  if(!$('settings-sound-check')) return;
+  var muted = SoundFX.isMuted();
+  $('settings-sound-check').checked = !muted;
+  var sfx = Math.round(SoundFX.getVolume() * 100), amb = Math.round(SoundFX.getAmbienceVolume() * 100);
+  $('settings-sfx-slider').value = sfx; $('settings-sfx-value').textContent = sfx + '%';
+  $('settings-ambience-slider').value = amb; $('settings-ambience-value').textContent = amb + '%';
+  $('settings-ambient-check').checked = CURRENT_SETTINGS.ambientSounds !== false;
+  $('settings-tick-check').checked = CURRENT_SETTINGS.clockTick !== false;
+  $('settings-alerts-check').checked = CURRENT_SETTINGS.alertSounds !== false;
+  $('settings-voice-check').checked = CURRENT_SETTINGS.voicePlayback !== false;
+  $('settings-bigchat-check').checked = !!CURRENT_SETTINGS.bigChat;
+  $('settings-shake-check').checked = CURRENT_SETTINGS.screenShake !== false;
+  // with the master switch off, the other sound rows read as inactive
+  ['settings-sfx-slider','settings-ambience-slider','settings-ambient-check','settings-tick-check','settings-alerts-check','settings-voice-check'].forEach(function(id){
+    var el = $(id); el.disabled = muted; var row = el.closest('.set-row'); if(row) row.classList.toggle('is-off', muted);
+  });
+  var top = $('sound-toggle-btn'); if(top){ top.textContent = 'Sound: ' + (muted ? 'Off' : 'On'); top.classList.toggle('is-muted', muted); }
+  var topSlider = $('volume-slider'); if(topSlider){ topSlider.value = sfx; topSlider.disabled = muted; }
+}
+function applyExtraSettings(){
+  SoundFX.setAmbientEnabled(CURRENT_SETTINGS.ambientSounds !== false);
+  SoundFX.setClockTickEnabled(CURRENT_SETTINGS.clockTick !== false);
+  SoundFX.setAlertsEnabled(CURRENT_SETTINGS.alertSounds !== false);
+  document.body.classList.toggle('big-chat', !!CURRENT_SETTINGS.bigChat);
+  applyVoicePlayback();
+}
 function applyReducedMotion(){
   document.body.classList.toggle('force-reduced-motion', !!CURRENT_SETTINGS.reducedMotion);
 }
@@ -7408,11 +7485,50 @@ document.getElementById('settings-reduced-motion-check').addEventListener('chang
   CURRENT_SETTINGS.reducedMotion = e.target.checked;
   saveSettings(CURRENT_SETTINGS);
   applyReducedMotion();
+  if(typeof applyExtraSettings === 'function') applyExtraSettings();
 });
 document.getElementById('settings-ambience-slider').addEventListener('input', function(e){
   var pct = parseInt(e.target.value, 10);
   document.getElementById('settings-ambience-value').textContent = pct + '%';
   SoundFX.setAmbienceVolume(pct / 100);
+});
+document.getElementById('settings-sound-check').addEventListener('change', function(e){
+  SoundFX.setMuted(!e.target.checked);
+  refreshSoundToggleBtn();            // also refreshes this window and the stage audio
+  if(e.target.checked) SoundFX.click();
+});
+document.getElementById('settings-sfx-slider').addEventListener('input', function(e){
+  var pct = parseInt(e.target.value, 10);
+  document.getElementById('settings-sfx-value').textContent = pct + '%';
+  SoundFX.setVolume(pct / 100);
+  var top = document.getElementById('volume-slider'); if(top) top.value = pct;
+});
+document.getElementById('settings-sfx-slider').addEventListener('change', function(){ SoundFX.click(); });
+[['settings-ambient-check','ambientSounds'],['settings-tick-check','clockTick'],['settings-alerts-check','alertSounds'],['settings-voice-check','voicePlayback'],['settings-bigchat-check','bigChat'],['settings-shake-check','screenShake']].forEach(function(pair){
+  document.getElementById(pair[0]).addEventListener('change', function(e){
+    CURRENT_SETTINGS[pair[1]] = e.target.checked;
+    saveSettings(CURRENT_SETTINGS);
+    applyExtraSettings();
+    if(pair[1] === 'alertSounds' && e.target.checked) SoundFX.chatBlip();
+    if(pair[1] === 'screenShake' && e.target.checked) screenShake(document.getElementById('settings-modal'));
+  });
+});
+document.getElementById('settings-tutorial-btn').addEventListener('click', function(){
+  closeSettingsModal();
+  if(window.Tutorial) window.Tutorial.start();
+});
+document.getElementById('settings-howto-btn').addEventListener('click', function(){
+  closeSettingsModal();
+  if(typeof openHowToTour === 'function') openHowToTour(function(){});
+});
+document.getElementById('settings-defaults-btn').addEventListener('click', function(){
+  CURRENT_SETTINGS = Object.assign({}, DEFAULT_SETTINGS);
+  saveSettings(CURRENT_SETTINGS);
+  SoundFX.setMuted(false); SoundFX.setVolume(0.8); SoundFX.setAmbienceVolume(0.8);
+  applyReducedMotion(); applyExtraSettings(); refreshSoundToggleBtn();
+  document.getElementById('settings-colorblind-check').checked = false;
+  document.getElementById('settings-haptics-check').checked = true;
+  document.getElementById('settings-reduced-motion-check').checked = false;
 });
 
 // Accessibility & Settings Task 5 - clears exactly the local-only player
@@ -9957,9 +10073,15 @@ function closeVoicePeerConnection(remoteId){
 }
 
 var voiceCurrentRemoteStream = null; // whichever remote stream is attached to #voice-remote-audio right now, read by the voice-activity monitor below
+// the stage audio is silent if sound is off, if the player turned voice playback off, or if they muted the current speaker
+function applyVoicePlayback(){
+  var audioEl = document.getElementById('voice-remote-audio');
+  if(audioEl) audioEl.muted = !!(SoundFX.isMuted() || CURRENT_SETTINGS.voicePlayback === false || daylayoutLocalSpeakerMuted);
+}
 function playRemoteAudio(stream){
   var audioEl = document.getElementById('voice-remote-audio');
   audioEl.srcObject = stream;
+  applyVoicePlayback();
   voiceCurrentRemoteStream = stream;
   var p = audioEl.play();
   if(p && p.catch) p.catch(function(err){ console.error('voice: remote audio playback was blocked', err); });
@@ -10487,6 +10609,7 @@ async function initGame(){
     CURRENT_SETTINGS = await loadSettings();
   }catch(e){ /* use defaults */ }
   applyReducedMotion();
+  if(typeof applyExtraSettings === 'function') applyExtraSettings();
 
   var bootEl = document.getElementById('boot-loading');
   function hideBoot(){
@@ -11984,7 +12107,7 @@ document.getElementById('daylayout-stage-mute-btn').addEventListener('click', fu
   } else {
     daylayoutLocalSpeakerMuted = !daylayoutLocalSpeakerMuted;
     var daylayoutAudioEl = document.getElementById('voice-remote-audio');
-    if(daylayoutAudioEl) daylayoutAudioEl.muted = daylayoutLocalSpeakerMuted;
+    applyVoicePlayback();
     if(typeof renderStagePanel === 'function') renderStagePanel();
   }
 });
