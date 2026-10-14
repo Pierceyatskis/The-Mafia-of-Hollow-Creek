@@ -766,10 +766,30 @@ function sanitizeNightAction(raw) {
   return out;
 }
 
+// A phone that loses signal or gets its tab frozen never sends a close frame, so
+// without this its seat looks connected forever and blocks early resolution.
+// Ping everyone on a timer; a socket that never answered the last ping is dropped
+// (which runs the normal close path and marks the seat disconnected).
+const HEARTBEAT_MS = Number(process.env.HEARTBEAT_MS) || 20000;
+const heartbeat = setInterval(() => {
+  wss.clients.forEach((client) => {
+    if (client.isAlive === false) { try { client.terminate(); } catch (e) {} return; }
+    client.isAlive = false;
+    try { client.ping(); } catch (e) {}
+  });
+}, HEARTBEAT_MS);
+if (heartbeat.unref) heartbeat.unref();
+wss.on('close', () => clearInterval(heartbeat));
+
 wss.on('connection', (socket) => {
+  socket.isAlive = true;
+  socket.on('pong', () => { socket.isAlive = true; });
   socket.on('message', (raw) => {
+    socket.isAlive = true;
     let msg;
     try { msg = JSON.parse(raw); } catch (e) { return; }
+    // Client-side liveness probe after a tab comes back from the background.
+    if (msg.type === 'ping') { try { socket.send(JSON.stringify({ type: 'pong' })); } catch (e) {} return; }
 
     // A socket asking to create/join/quick-match while still seated in a
     // previous room (the client should always send 'leave' first, but never

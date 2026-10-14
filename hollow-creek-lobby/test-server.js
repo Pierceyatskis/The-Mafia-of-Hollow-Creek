@@ -902,6 +902,14 @@ async function testLobbyChatIsPerRoom() {
   assert(res === 200, 'Static files: a cache-busting ?query string still serves the file');
 }
 
+async function testPingPong() {
+  const ws = await connect();
+  const pPong = once(ws, m => m.type === 'pong', 2000);
+  send(ws, { type: 'ping' });
+  assert((await pPong).type === 'pong', 'Liveness: a client ping is answered with a pong (used to detect dead phone sockets)');
+  ws.close();
+}
+
 async function main() {
   await testUndercapacityStartRejected();
   await testCustomRolesEnabled();
@@ -927,6 +935,7 @@ async function main() {
   await testSoloDisconnectSurvivesRoom();
   await testDayChatInferredAccusationAndAgreement();
   await testLobbyChatIsPerRoom();
+  await testPingPong();
 
   console.log('\n' + (failures === 0 ? 'All server.js integration checks passed.' : failures + ' CHECK(S) FAILED.'));
   process.exit(failures === 0 ? 0 : 1);
