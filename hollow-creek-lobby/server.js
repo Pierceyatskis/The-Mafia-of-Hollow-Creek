@@ -1314,6 +1314,7 @@ wss.on('connection', (socket) => {
       // derived event (a role claim, a defense) alongside those without
       // having to reverse-engineer a round from a raw timestamp.
       const entry = { playerId: player.id, name: sp.name, text, ts: Date.now(), targetId: accusedId, replyTo, category, night: room.state.night };
+      if (category === 'role_claim') { const cr = G.extractClaimedRole(text, { replyToText: replyTo ? replyTo.text : null, recentTexts }); if (cr) entry.claimedRole = cr; }
       if (inferred) entry.inferred = true;
       if (agreedWithId) entry.agreedWithId = agreedWithId;
       if (defendedId) entry.defendedId = defendedId;

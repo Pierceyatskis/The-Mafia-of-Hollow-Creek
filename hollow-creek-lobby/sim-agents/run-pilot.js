@@ -77,6 +77,8 @@ YOUR TOOLS - reply with ONLY a JSON array of tool calls (no other text). Each ca
   {"tool":"vote_lookup","day":1}                   -> who voted for whom on a given day
   {"tool":"read_chat","back":12}                   -> older town chat (skips back this many messages from the end)
   {"tool":"case_file"}                             -> public timeline of the game so far
+  {"tool":"claims"}                                -> Case File "Claims" tab: who has claimed which role, and whether it is proven, disproven, conflicting or unverified
+  {"tool":"roles_in_play"}                         -> Case File "Roles in play" tab: every role in this game, its team and power, and how many are revealed
  Writing in your notebook:
   {"tool":"mark","name":"Ada","mark":"suspicious"} -> mark is trusted, unknown or suspicious
   {"tool":"note","name":"Ada","text":"..."}        -> add a private note to a player's page
@@ -259,6 +261,16 @@ class Agent {
       case 'open_notebook': return { kind: 'look', text: this.openNotebook() };
       case 'open_player': return { kind: 'look', text: this.openPlayer(c.name) };
       case 'vote_lookup': return { kind: 'look', text: this.voteLookup(c.day) };
+      case 'claims': {
+        const inPlay = Object.fromEntries((v.rolesInPlay || []).map(r => [r.role, r.count]));
+        const by = {}; this.chat.filter(c => c.category === 'role_claim' && c.claimedRole).forEach(c => { (by[c.playerId] = by[c.playerId] || []).push(c); });
+        const rows = Object.entries(by).map(([id, cs]) => { const p = v.players.find(x => x.id === id); const roles = [...new Set(cs.map(c => c.claimedRole))]; const last = roles[roles.length - 1];
+          let status = 'unverified'; if (p && p.role && (!p.alive || id === this.id)) status = (roles.length === 1 && p.role === roles[0]) ? 'PROVEN TRUE' : `PROVEN FALSE (was ${p.role})`;
+          if (!inPlay[last]) status += '; NOT IN PLAY'; else { const n = Object.entries(by).filter(([, x]) => x[x.length - 1].claimedRole === last).length; if (n > inPlay[last]) status += `; CONFLICT (${n} claim it, ${inPlay[last]} exist)`; }
+          return `  ${p ? p.name : '?'} claims ${roles.join(' then ')} [${status}] day ${cs[cs.length - 1].night}`; });
+        return { kind: 'look', text: 'CLAIMS\n' + (rows.length ? rows.join('\n') : '(nobody has claimed a role yet)') };
+      }
+      case 'roles_in_play': { const gone = {}; v.players.forEach(p => { if (!p.alive && p.role) gone[p.role] = (gone[p.role] || 0) + 1; }); return { kind: 'look', text: 'ROLES IN PLAY\n' + (v.rolesInPlay || []).map(r => `  ${r.role} x${r.count} [${TEAM(r.role)}] - ${((CARDS.points[r.role] || [])[0]) || ''} (${gone[r.role] || 0} revealed)`).join('\n') }; }
       case 'case_file': return { kind: 'look', text: 'CASE FILE\n' + (this.caseFile.length ? this.caseFile.join('\n') : '(nothing yet)') };
       case 'read_chat': { const back = Math.max(1, Math.min(60, Number(c.back) || 12)); const end = Math.max(0, this.chat.length - 12 + 0); const slice = this.chat.filter(x => x.text).slice(Math.max(0, this.chat.length - 12 - back), Math.max(0, this.chat.length - 12)); return { kind: 'look', text: slice.length ? 'OLDER CHAT\n' + slice.map(x => `  ${x.name}: ${x.text}`).join('\n') : 'Nothing older.' }; }
       case 'mark': { const p = this.byName(c.name); const mk = String(c.mark || '').toLowerCase(); if (!p || !['trusted', 'unknown', 'suspicious'].includes(mk)) return { kind: 'bad', text: 'Could not mark: pick a player and trusted / unknown / suspicious.' }; this.marks[p.id] = mk; this.myLog.push(`Marked ${p.name} ${mk}`); return { kind: 'act', text: `Marked ${p.name} ${mk}.` }; }

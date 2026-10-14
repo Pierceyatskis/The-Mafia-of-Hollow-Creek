@@ -867,6 +867,34 @@ function recordAccusation(state, accuserId, targetId, extra){
 //     inference a human reader makes without "I am" ever containing the
 //     word "doctor" itself. Anywhere else, the two single-message
 //     patterns above still do the same job context ever did before.
+// Which role a role-claim line is claiming ("I'm the detective" -> 'Detective'), or null. A bare "I am" answering a
+// "who is the doctor?" question takes the role from that question (reply-to line first, then the recent lines).
+const CLAIMABLE_ROLES = SPECIAL_ROLES.concat(['Civilian']);
+const CLAIM_WORD_ALIASES = { villager: 'Civilian', townsperson: 'Civilian', civilian: 'Civilian', 'war veteran': 'NavySeal', veteran: 'NavySeal', 'double agent': 'DoubleAgent', 'bounty hunter': 'BountyHunter', 'crazy granny': 'CrazyGranny', granny: 'CrazyGranny', 'cult leader': 'CultLeader', 'mafia enforcer': 'Mafia', enforcer: 'Mafia' };
+function roleInText(text){
+  const t = ' ' + String(text || '').toLowerCase() + ' ';
+  let best = null;
+  const consider = (word, role) => { const re = new RegExp('\\b' + word.replace(/ /g, '\\s+') + '\\b', 'g'); let mm; while((mm = re.exec(t))){ if(/\b(?:not|never|isn't|ain't)\s+(?:(?:a|an|the|just)\s+)?$/.test(t.slice(0, mm.index))) continue; if(!best || mm.index < best.i) best = { i: mm.index, role }; break; } };
+  CLAIMABLE_ROLES.forEach(r => chatRoleWordVariants(r).forEach(w => consider(w, r)));
+  Object.keys(CLAIM_WORD_ALIASES).forEach(w => consider(w, CLAIM_WORD_ALIASES[w]));
+  return best ? best.role : null;
+}
+function extractClaimedRole(text, ctx){
+  const t = String(text || '').toLowerCase();
+  const m = /\b(?:i(?:'m| am)|my role is)\b([^.!?]*)/.exec(t);
+  const direct = m ? roleInText(m[1]) : null;
+  if(direct) return direct;
+  ctx = ctx || {};
+  const lines = [ctx.replyToText].concat((ctx.recentTexts || []).slice().reverse());
+  for(const line of lines){ if(line && /\bwho\b/i.test(line)){ const r = roleInText(line); if(r) return r; } }
+  return roleInText(t);
+}
+function rolesInPlay(state){
+  const counts = {};
+  state.players.forEach(p => { counts[p.role] = (counts[p.role] || 0) + 1; });
+  const order = SPECIAL_ROLES.concat(['Civilian']);
+  return order.filter(r => counts[r]).map(r => ({ role: r, count: counts[r] }));
+}
 function chatRoleWordVariants(role){
   // SPECIAL_ROLES is camelCase code names (DoubleAgent, NavySeal,
   // CultLeader...) - nobody types those in chat. Add the space-separated
@@ -1187,8 +1215,10 @@ function computeRawHeat(state, playerId){
     const w = e.agreedWithId ? 0.5 : 1;   // ("inferred" also covers ordinary typed accusations - only an agreement is the weaker kind)
     if(!best.has(key) || best.get(key).w < w) best.set(key, { w, night: e.night, accuserId: e.accuserId });
   });
+  const contributions = [];
   best.forEach(v => {
     score += v.w * decay(v.night);
+    { const a0 = byId(state, v.accuserId); contributions.push({ kind: 'accused', who: a0 ? a0.name : 'someone', night: v.night, weight: v.w * decay(v.night) }); }
     if(v.night === state.night){ const a = byId(state, v.accuserId); if(a) accusedToday.push(a.name); }
     else accusedEarlier++;
   });
@@ -1196,6 +1226,7 @@ function computeRawHeat(state, playerId){
   (state.voteHistory || []).forEach(v => {
     if(v.targetId !== playerId) return;
     score += 2 * decay(v.night);
+    contributions.push({ kind: 'vote', who: v.name || 'someone', night: v.night, weight: 2 * decay(v.night) });
     if(v.night === state.night - 1) votesLast++; else votesEarlier++;
   });
   // the close call in the last vote
@@ -1207,20 +1238,20 @@ function computeRawHeat(state, playerId){
     const mine = tally[playerId] || 0;
     const secondBest = counts.length > 1 ? counts[1] : counts[0];
     const me = byId(state, playerId);
-    if(me && me.alive && mine >= 2 && mine >= secondBest){ nearMiss = true; score += 1 * decay(lastNight); }
+    if(me && me.alive && mine >= 2 && mine >= secondBest){ nearMiss = true; score += 1 * decay(lastNight); contributions.push({ kind: 'closeCall', who: null, night: lastNight, weight: 1 * decay(lastNight) }); }
   }
   // people standing up for you today
   let defenders = 0, supporters = 0;
   const defSeen = new Set(), supSeen = new Set();
   (state.chatLog || []).forEach(e => {
     if(!e || e.night !== state.night || e.playerId === playerId) return;
-    if(e.defendedId === playerId && !defSeen.has(e.playerId)){ defSeen.add(e.playerId); defenders++; score -= 0.5; }
-    else if(e.supportedId === playerId && !supSeen.has(e.playerId)){ supSeen.add(e.playerId); supporters++; score -= 0.25; }
+    if(e.defendedId === playerId && !defSeen.has(e.playerId)){ defSeen.add(e.playerId); defenders++; score -= 0.5; contributions.push({ kind: 'defender', who: e.name, night: e.night, weight: -0.5 }); }
+    else if(e.supportedId === playerId && !supSeen.has(e.playerId)){ supSeen.add(e.playerId); supporters++; score -= 0.25; contributions.push({ kind: 'supporter', who: e.name, night: e.night, weight: -0.25 }); }
   });
   // ...as a share of everyone who could be against you (the other living players)
   const others = Math.max(1, state.players.filter(p => p.alive && p.id !== playerId).length);
   score = Math.max(0, Math.round((score / others) * 1000) / 1000);
-  return { score, percent: Math.round(score * 100), others, level: heatLevelFor(score), accusedToday, accusedEarlier, votesLast, votesEarlier, nearMiss, defenders, supporters };
+  return { score, percent: Math.round(score * 100), others, level: heatLevelFor(score), accusedToday, accusedEarlier, votesLast, votesEarlier, nearMiss, defenders, supporters, contributions: contributions.map(c => Object.assign({}, c, { raw: c.weight / others })) };
 }
 // Heat is relative as well as absolute: by the end of a normal round nearly everyone has picked up
 // some accusations and votes, so the pile only means danger if you are near the top of it. Once
@@ -1236,7 +1267,9 @@ function computeHeat(state, playerId){
   const ratio = maxRaw > 0 ? raw.score / maxRaw : 1;
   const factor = maxRaw < HEAT_RELATIVE_FLOOR ? 1 : HEAT_RELATIVE_MIN_FACTOR + (1 - HEAT_RELATIVE_MIN_FACTOR) * Math.pow(ratio, 1.5);
   const score = Math.round(raw.score * factor * 1000) / 1000;
-  return Object.assign({}, raw, { score, percent: Math.round(score * 100), level: heatLevelFor(score), rawScore: raw.score, relative: Math.round(ratio * 100) / 100, hottest: ratio >= 0.999 && maxRaw > 0 });
+  // each item's share of the number you see (its weight over the table, scaled the same way as the total), in percentage points
+  const contributions = raw.contributions.map(c => ({ kind: c.kind, who: c.who, night: c.night, pct: Math.round(c.raw * factor * 100) })).filter(c => c.pct !== 0);
+  return Object.assign({}, raw, { score, percent: Math.round(score * 100), level: heatLevelFor(score), rawScore: raw.score, relative: Math.round(ratio * 100) / 100, hottest: ratio >= 0.999 && maxRaw > 0, contributions });
 }
 // What one viewer is shown: their own heat while alive; once dead, the hottest living player's.
 function heatForView(state, viewerSeat){
@@ -1424,7 +1457,9 @@ function getPlayerView(state, playerId){
     mayorTiebreakResolved: state.lastDayVoteMayorTiebreak,
     // A short private recap of last night for the roles that otherwise learn nothing at dawn: did the Doctor's
     // protection matter, and what became of the family's target. Null for everyone else.
-    myNightNote: nightNoteFor(state, me)
+    myNightNote: nightNoteFor(state, me),
+    // The lobby's role list is public, so the table can weigh claims against what could exist.
+    rolesInPlay: rolesInPlay(state)
   };
 }
 
@@ -1435,5 +1470,5 @@ module.exports = {
   detectiveRead, investigateAndRead, resolveNight, resolveDayVote, resolveFarmerRevenge, startNextNight,
   getPlayerView, log, specialRoleCount, validateSeatCapacity,
   recordDayVoteSubmission, recordMayorReveal, recordLivingCountSnapshot, recordAccusation, firstAccuserOf,
-  recordSpotlight, spotlightCounts, classifyChatMessage, analyzeChatMessage, isAgreement, detectAgreementTarget, detectAgreement
+  recordSpotlight, spotlightCounts, extractClaimedRole, rolesInPlay, classifyChatMessage, analyzeChatMessage, isAgreement, detectAgreementTarget, detectAgreement
 };

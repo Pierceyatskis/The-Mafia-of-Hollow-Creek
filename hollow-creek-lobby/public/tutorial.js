@@ -342,7 +342,7 @@
       },
       text:'Heat shows <b>how much suspicion is pointing at you</b>: accusations and votes against you raise it, defenders lower it, and it fades each day.<br><br>It is <b>relative</b>: if somebody else is running hotter than you, you are safer than the raw number suggests. Click the meter any time for the full breakdown.' });
     add({ title:'Your toolbox', target:'#bottom-nav', pad:6, place:'t', noForward:true,
-      text:'<b>Case Files</b> recap everything that has happened. <b>Notebook</b> is your private dossier. <b>Match History</b> is a round-by-round log, and <b>Settings</b> has sound, accessibility and display options.' });
+      text:'<b>Case Files</b> recap everything that has happened, list who has <b>claimed</b> which role, and show every role in play. <b>Notebook</b> is your private dossier. <b>Match History</b> is a round-by-round log, and <b>Settings</b> has sound, accessibility and display options.' });
     // ---- vote
     add({ title:'Voting opens', target:'#daylayout-timer-bar', place:'b', noBack:true, noForward:true,
       enter:function(){ enterVote(); },

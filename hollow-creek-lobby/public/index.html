@@ -647,6 +647,11 @@ body.force-reduced-motion #daylayout-heat.heat-pulse, body.force-reduced-motion 
 #daylayout-heat-detail b{color:var(--gold-bright);}
 #daylayout-heat-detail .heat-advice{margin-top:6px; padding-top:6px; border-top:1px solid rgba(232,223,199,0.25); color:#ffb48a;}
 #daylayout-note1-body .night-note{margin:5px 0 0; font-style:italic; color:#5a1d14;}
+#daylayout-heat-detail .heat-breakdown{margin-top:6px; padding-top:5px; border-top:1px solid rgba(227,177,85,0.3);}
+#daylayout-heat-detail .heat-row{display:flex; justify-content:space-between; gap:10px; font-size:12px; line-height:1.5;}
+#daylayout-heat-detail .heat-when{opacity:.7;}
+#daylayout-heat-detail .heat-up{color:#e07a6e; font-weight:700;}
+#daylayout-heat-detail .heat-down{color:#86d98f; font-weight:700;}
 #daylayout-heat-detail .heat-foot{margin-top:5px; font-style:italic; color:var(--parchment-dim); font-size:11px;}
 /* TEMP day-layout-rebuild step 6 - "THE STAGE" title + dynamic subtitle,
    overlaid on the cabinet's own curtain art (no separate plaque asset for
@@ -2526,8 +2531,10 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
     <button class="role-card-close" id="case-log-close-btn" aria-label="Close">&times;</button>
     <h2 class="intro-modal-title" style="font-size:20px; margin-bottom:4px;">The Case File So Far</h2>
     <p class="intro-modal-text" style="margin-bottom:12px;">The night-by-night recap of what's happened so far.</p>
-    <div class="case-log-tabs" id="case-log-tabs" style="display:none;">
+    <div class="case-log-tabs" id="case-log-tabs">
       <button class="case-log-tab active" data-tab="rounds">Round recap</button>
+      <button class="case-log-tab" data-tab="claims">Claims</button>
+      <button class="case-log-tab" data-tab="roles">Roles in play</button>
     </div>
     <div id="case-log-list" class="case-log-list"></div>
   </div>
@@ -5182,11 +5189,64 @@ function renderCaseLogRounds(){
     return '<div class="case-log-round"><p class="case-log-round-label">Round '+roundNum+'</p>'+items+'</div>';
   }).join('');
 }
+// ---- Claims board and roles in play (both are public: built only from the chat everyone saw and the role list) ----
+var MAFIA_SIDE_ROLES = ['Godfather','Mafia','DoubleAgent','Consigliere','Framer','Hitman'];
+function roleTeamLabel(r){ return MAFIA_SIDE_ROLES.indexOf(r) >= 0 ? 'Mafia' : r === 'BountyHunter' ? 'Neutral' : r === 'CultLeader' ? 'Cult' : 'Town'; }
+function roleShortName(r){ return (typeof ROLE_SHORT !== 'undefined' && ROLE_SHORT[r]) || (r === 'Civilian' ? 'Civilian' : r); }
+function renderCaseLogClaims(){
+  var list = document.getElementById('case-log-list');
+  if(!latestView){ list.innerHTML = '<p class="case-log-empty">Nothing on record yet.</p>'; return; }
+  var inPlay = {}; (latestView.rolesInPlay || []).forEach(function(r){ inPlay[r.role] = r.count; });
+  var claims = (latestView.chatLog || []).filter(function(m){ return m.category === 'role_claim' && m.claimedRole && m.playerId; });
+  if(!claims.length){ list.innerHTML = '<p class="case-log-empty">Nobody has claimed a role yet. When someone says "I\'m the detective" it is logged here, and checked against the reveals.</p>'; return; }
+  var byPlayer = {}, order = [];
+  claims.forEach(function(m){ if(!byPlayer[m.playerId]){ byPlayer[m.playerId] = []; order.push(m.playerId); } byPlayer[m.playerId].push(m); });
+  // living claimants per role, to spot two people claiming a role only one player can have
+  var claimantsOf = {};
+  order.forEach(function(id){ var p = byId(id); var last = byPlayer[id][byPlayer[id].length - 1].claimedRole; if(!claimantsOf[last]) claimantsOf[last] = []; claimantsOf[last].push(id); });
+  list.innerHTML = order.map(function(id){
+    var p = byId(id); if(!p) return '';
+    var mine = byPlayer[id], last = mine[mine.length - 1];
+    var roles = []; mine.forEach(function(m){ if(roles.indexOf(m.claimedRole) < 0) roles.push(m.claimedRole); });
+    var tags = [];
+    if(p.role && (!p.alive || id === myPlayerId)){
+      if(id === myPlayerId) tags.push('<span class="case-log-tag case-log-tag-note">YOU</span>');
+      else if(roles.length === 1 && p.role === roles[0]) tags.push('<span class="case-log-tag case-log-tag-saved">TRUE</span> <span class="case-log-entry-text">Proven by their reveal.</span>');
+      else tags.push('<span class="case-log-tag case-log-tag-eliminated">FALSE</span> <span class="case-log-entry-text">They were the ' + escapeHtmlMp(roleShortName(p.role)) + '.</span>');
+    } else {
+      tags.push('<span class="case-log-tag case-log-tag-note">UNVERIFIED</span> <span class="case-log-entry-text">No proof either way yet.</span>');
+    }
+    if(roles.length > 1) tags.push('<span class="case-log-tag case-log-tag-twist">CHANGED CLAIM</span> <span class="case-log-entry-text">' + roles.map(function(r){ return escapeHtmlMp(roleShortName(r)); }).join(' then ') + '</span>');
+    if(!inPlay[last.claimedRole]) tags.push('<span class="case-log-tag case-log-tag-twist">NOT IN PLAY</span> <span class="case-log-entry-text">There is no ' + escapeHtmlMp(roleShortName(last.claimedRole)) + ' in this game.</span>');
+    else if(claimantsOf[last.claimedRole].length > inPlay[last.claimedRole]) tags.push('<span class="case-log-tag case-log-tag-twist">CONFLICT</span> <span class="case-log-entry-text">' + claimantsOf[last.claimedRole].length + ' players claim ' + escapeHtmlMp(roleShortName(last.claimedRole)) + ', but only ' + inPlay[last.claimedRole] + ' exist' + (inPlay[last.claimedRole] > 1 ? '' : 's') + '.</span>');
+    var quotes = mine.slice(-3).map(function(m){ return '<p class="case-log-event-line"><span class="case-log-event-night">Day ' + m.night + ':</span> "' + escapeHtmlMp(m.text) + '"</p>'; }).join('');
+    return '<div class="case-log-round"><p class="case-log-round-label">' + escapeHtmlMp(p.name) + (id === myPlayerId ? ' (you)' : '') + ' claims ' + escapeHtmlMp(roleShortName(last.claimedRole)) + (p.alive ? '' : ' (eliminated)') + '</p>' +
+      tags.map(function(t){ return '<div class="case-log-entry">' + t + '</div>'; }).join('') + quotes + '</div>';
+  }).join('');
+}
+function renderCaseLogRoles(){
+  var list = document.getElementById('case-log-list');
+  if(!latestView || !(latestView.rolesInPlay || []).length){ list.innerHTML = '<p class="case-log-empty">No role list yet.</p>'; return; }
+  var revealed = {};
+  latestView.players.forEach(function(p){ if(!p.alive && p.role){ revealed[p.role] = (revealed[p.role] || 0) + 1; } });
+  var teamCls = {Mafia:'eliminated', Town:'saved', Neutral:'twist', Cult:'twist'};
+  list.innerHTML = '<p class="intro-modal-text" style="margin:0 0 8px;">Every role that is in this game. Anyone could be any of them.</p>' + latestView.rolesInPlay.map(function(r){
+    var team = roleTeamLabel(r.role);
+    var pts = (typeof ROLE_POINTS !== 'undefined' && ROLE_POINTS[r.role]) ? ROLE_POINTS[r.role].slice(0, 2).join('. ') : '';
+    var gone = revealed[r.role] || 0, left = r.count - gone;
+    var status = gone ? (left > 0 ? gone + ' revealed, ' + left + ' still unaccounted for' : 'all revealed (' + gone + ')') : 'none revealed yet';
+    return '<div class="case-log-round"><p class="case-log-round-label">' + escapeHtmlMp(roleShortName(r.role)) + (r.count > 1 ? ' \u00d7' + r.count : '') + '</p>' +
+      '<div class="case-log-entry"><span class="case-log-tag case-log-tag-' + teamCls[team] + '">' + team.toUpperCase() + '</span><span class="case-log-entry-text">' + escapeHtmlMp(pts) + '</span></div>' +
+      '<p class="case-log-event-line"><span class="case-log-event-night">' + status + '</span></p></div>';
+  }).join('');
+}
 function renderCaseLogModal(){
   document.querySelectorAll('#case-log-tabs .case-log-tab').forEach(function(btn){
     btn.classList.toggle('active', btn.getAttribute('data-tab') === caseLogActiveTab);
   });
   if(caseLogActiveTab === 'rounds') renderCaseLogRounds();
+  else if(caseLogActiveTab === 'claims') renderCaseLogClaims();
+  else if(caseLogActiveTab === 'roles') renderCaseLogRoles();
   else renderCaseLogPlayers();
 }
 function openCaseLogModal(){
@@ -8496,6 +8556,14 @@ function renderHeat(heat){
     if(heat.votesLast || heat.votesEarlier) lines.push('<b>Votes against you:</b> ' + heatPlural(heat.votesLast, 'vote') + ' yesterday' + (heat.votesEarlier ? ', ' + heat.votesEarlier + ' before that' : ''));
     if(heat.nearMiss) lines.push('You were close to being voted out last time.');
     if(heat.defenders || heat.supporters) lines.push('<b>Standing up for you:</b> ' + heatPlural(heat.defenders + heat.supporters, 'player'));
+    if(heat.contributions && heat.contributions.length){
+      var KIND = {accused:'accused you', vote:'voted for you', closeCall:'the close call in the last vote', defender:'defended you', supporter:'backed you up'};
+      var rows = heat.contributions.slice().sort(function(a,b){ return Math.abs(b.pct) - Math.abs(a.pct); }).slice(0, 7).map(function(c){
+        var when = c.night ? ' <span class="heat-when">(day ' + c.night + ')</span>' : '';
+        return '<div class="heat-row"><span>' + (c.who ? '<b>' + escapeHtmlMp(c.who) + '</b> ' : '') + KIND[c.kind] + when + '</span><span class="' + (c.pct > 0 ? 'heat-up' : 'heat-down') + '">' + (c.pct > 0 ? '+' : '\u2212') + Math.abs(c.pct) + '%</span></div>';
+      }).join('');
+      lines.push('<div class="heat-breakdown"><b>Where your heat comes from</b>' + rows + '</div>');
+    }
   } else {
     lines.push(who ? '<b>' + escapeHtmlMp(who) + '</b> is drawing the most attention right now.' : 'Nobody is drawing attention yet.');
   }

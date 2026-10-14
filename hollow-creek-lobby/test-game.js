@@ -999,4 +999,21 @@ assert(resCultF.cultConvertedPlayer === null, 'Phase2 Task5: resolveNight confir
   assert(tv.myNightNote == null, 'Night recap: an ordinary player gets no private night note');
 }
 
+
+// Claims board / roles in play / heat breakdown
+{
+  assert(G.extractClaimedRole("I'm the detective") === 'Detective', 'Claimed role: "I\'m the detective" -> Detective');
+  assert(G.extractClaimedRole("i'm not the mafia, i'm the doctor") === 'Doctor', 'Claimed role: a denial of one role does not hide the role actually claimed');
+  assert(G.extractClaimedRole('I am', { recentTexts: ['who is the doctor?'] }) === 'Doctor', 'Claimed role: a bare "I am" takes the role from the question it answers');
+  assert(G.extractClaimedRole('i am just a villager') === 'Civilian', 'Claimed role: villager counts as Civilian');
+  const st = G.createGame([{id:'a',name:'A'},{id:'b',name:'B'},{id:'c',name:'C'},{id:'d',name:'D'},{id:'e',name:'E'},{id:'f',name:'F'}], {playerCount:6, mafiaCount:0, roles:{Godfather:true,Detective:true}});
+  const v = G.getPlayerView(st, 'a');
+  assert(v.rolesInPlay.some(r => r.role === 'Godfather' && r.count === 1) && v.rolesInPlay.some(r => r.role === 'Civilian' && r.count === 4), 'Roles in play: the view lists each role in the game with its count');
+  st.night = 2;
+  st.accusationLog.push({ night: 2, accuserId: 'b', targetId: 'a', ts: 1 });
+  st.voteHistory.push({ night: 1, voterId: 'c', name: 'C', targetId: 'a', target: 'A' });
+  const h = G.getPlayerView(st, 'a').heat;
+  assert(h.contributions.some(c => c.kind === 'accused' && c.who === 'B' && c.pct > 0) && h.contributions.some(c => c.kind === 'vote' && c.who === 'C' && c.pct > 0), 'Heat breakdown: lists who accused and who voted against you, with each one\'s share');
+}
+
 console.log('\nAll game.js checks completed.');
