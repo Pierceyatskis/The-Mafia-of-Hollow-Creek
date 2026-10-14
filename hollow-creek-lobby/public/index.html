@@ -2501,6 +2501,20 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
   background:none; border-style:solid; border-width:0; border-image:url('assets/ui/hc-button-secondary-wide-charcoal.webp') 38% 7% fill / 9px 8px stretch;
   color:#d8ccb0; text-shadow:0 1px 2px rgba(0,0,0,0.8); border-radius:0;
 }
+
+/* settings buttons + the Edit button on the find-a-game page */
+#settings-reset-btn, #settings-reset-confirm-btn{
+  background:none; border-style:solid; border-width:0; border-image:url('assets/ui/hc-button-primary-wide-red.webp') 38% 7% fill / 14px 11px stretch;
+  color:#f6e2b0; text-shadow:0 1px 2px rgba(0,0,0,0.8); border-radius:0; filter:drop-shadow(0 3px 6px rgba(0,0,0,0.4));
+}
+#settings-tutorial-btn, #settings-fulltut-btn, #settings-howto-btn, #settings-defaults-btn, #settings-reset-cancel-btn{
+  background:none; border-style:solid; border-width:0; border-image:url('assets/ui/hc-button-secondary-wide-charcoal.webp') 38% 7% fill / 14px 11px stretch;
+  color:#d8ccb0; text-shadow:0 1px 2px rgba(0,0,0,0.8); border-radius:0;
+}
+#mpentry-edit-profile-btn{
+  background:none; border-style:solid; border-width:0; border-image:url('assets/ui/hc-button-secondary-wide-charcoal.webp') 38% 7% fill / 11px 9px stretch;
+  color:#d8ccb0; text-shadow:0 1px 2px rgba(0,0,0,0.8); border-radius:0;
+}
 </style>
 <link rel="stylesheet" href="tutorial.css?v=1">
 <link rel="stylesheet" href="phone.css?v=2">
@@ -2966,7 +2980,7 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
       <h3 class="set-h">Your data</h3>
       <div>
         <p style="font-size:13px; color:var(--parchment-dim); margin:0 0 8px;">Your profile, streak, and score history are stored only in this browser.</p>
-        <button class="btn ghost" id="settings-reset-btn" style="border-color:var(--danger); color:var(--danger);">Reset My Data</button>
+        <button class="btn ghost" id="settings-reset-btn">Reset My Data</button>
         <div id="settings-reset-confirm" style="display:none; margin-top:10px;">
           <p class="msg err" style="margin-bottom:8px;">This clears your profile, streak, and score history for good. It cannot be undone.</p>
           <button class="btn danger" id="settings-reset-confirm-btn">Yes, reset everything</button>
