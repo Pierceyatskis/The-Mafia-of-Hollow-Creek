@@ -40,15 +40,13 @@ function stripHtml(s) {
 }
 function tutorialText() {
   const src = fs.readFileSync(path.join(ROOT, 'public/tutorial.js'), 'utf8');
-  const out = [];
-  const re = /add\(\{([\s\S]*?)\}\);?\s*(?=\n\s*(?:add\(|\/\/|\w|\}))/g;
-  let m;
   const str = "'((?:[^'\\\\]|\\\\.)*)'";
-  while ((m = re.exec(src))) {
-    const body = m[1];
-    const t = new RegExp('title:' + str).exec(body), x = new RegExp('(?:^|[ ,{])text:' + str).exec(body);
+  const out = [];
+  // every step is an add({...}) call; a step's text is the first quoted `text:` in it (some steps compute it, those are skipped)
+  src.split(/\badd\(\{/).slice(1).forEach(chunk => {
+    const t = new RegExp('title:\\s*' + str).exec(chunk), x = new RegExp('\\btext:\\s*' + str).exec(chunk);
     if (t && x) out.push('* ' + stripHtml(t[1]) + ': ' + stripHtml(x[1]));
-  }
+  });
   return out.join('\n');
 }
 function roleCards() {
