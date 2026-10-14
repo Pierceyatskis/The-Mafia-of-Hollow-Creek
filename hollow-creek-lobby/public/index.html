@@ -1989,6 +1989,18 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
 .poll-compose input{width:100%; box-sizing:border-box; margin-bottom:6px; background:var(--panel-2); border:1px solid var(--line); border-radius:5px; padding:7px 10px; font-family:var(--font-body); font-size:13px; color:var(--parchment);}
 .poll-compose-actions{display:flex; gap:8px; align-items:center;}
 .poll-compose-msg{font-size:12px; color:var(--danger); margin-left:6px;}
+/* earlier days' chat folds into one tappable line in Town Talk */
+.chat-history:not(.has-open){position:sticky; top:0; z-index:3; padding:2px 0 4px; background:rgba(24,17,11,0.97);}
+.chat-day-group{margin:4px 0 8px; border:1px solid rgba(227,177,85,0.28); border-radius:8px; background:rgba(0,0,0,0.18);}
+.chat-day-head{display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%; padding:7px 12px; background:none; border:none; cursor:pointer; text-align:left; color:var(--parchment); font-family:var(--font-type);}
+.chat-day-head:hover{background:rgba(227,177,85,0.08);}
+.chat-day-title{font-size:13px; letter-spacing:.6px; text-transform:uppercase; color:var(--gold-bright);}
+.chat-day-count{margin-left:8px; font-size:12px; letter-spacing:0; text-transform:none; color:var(--parchment-dim);}
+.chat-day-toggle{font-size:12.5px; color:var(--gold-bright); text-decoration:underline; white-space:nowrap;}
+.chat-day-body{padding:2px 4px 6px; border-top:1px solid rgba(227,177,85,0.18);}
+.chat-day-group.collapsed .chat-day-body{display:none;}
+.chat-day-group.collapsed .chat-day-head{border-radius:8px;}
+.chat-day-foot{display:block; margin:4px 12px 2px auto; background:none; border:none; cursor:pointer; font-family:var(--font-type); font-size:12.5px; color:var(--gold-bright); text-decoration:underline;}
 .lobby-chat-log{max-height:230px; overflow-y:auto; border:1px solid var(--line); border-radius:6px; padding:6px 8px; background:rgba(0,0,0,0.15);}
 .lobby-chat-log .chatline{cursor:default; padding:6px 4px;}
 .lobby-chat-log .chatline .who{min-width:0;}
@@ -8264,6 +8276,41 @@ function sendGhostInline(){
 document.getElementById('ghost-inline-send').addEventListener('click', sendGhostInline);
 document.getElementById('chat-dead-open-ghost').addEventListener('click', function(){ document.getElementById('chat-tab-ghost').click(); });
 document.getElementById('ghost-inline-input').addEventListener('keydown', function(e){ if(e.key==='Enter') sendGhostInline(); });
+// Earlier days' chat folds into one line ("Day 1 - 14 messages  Show more") so Town Talk stays about today; the
+// current day is always open. Pressing the line opens that day, and "Show less" folds it again.
+var chatDayOpen = {};
+function foldEarlierDays(log, lines, currentNight){
+  var byNight = {}, order = [];
+  lines.forEach(function(l){
+    if(typeof l.night !== 'number' || l.night >= currentNight) return;
+    if(!byNight[l.night]){ byNight[l.night] = []; order.push(l.night); }
+    byNight[l.night].push(l.el);
+  });
+  if(!order.length) return;
+  // all the folded days live in one bar that stays pinned to the top of the chat while nothing is open, so "Show more" is always in reach
+  var wrap = document.createElement('div'); wrap.className = 'chat-history';
+  log.insertBefore(wrap, byNight[order[0]][0]);
+  function syncOpen(){ wrap.classList.toggle('has-open', !!wrap.querySelector('.chat-day-group:not(.collapsed)')); }
+  order.forEach(function(night){
+    var els = byNight[night];
+    var group = document.createElement('div');
+    var open = !!chatDayOpen[night];
+    group.className = 'chat-day-group' + (open ? '' : ' collapsed');
+    var head = document.createElement('button');
+    head.type = 'button'; head.className = 'chat-day-head';
+    var body = document.createElement('div'); body.className = 'chat-day-body';
+    function label(){ var o = !group.classList.contains('collapsed'); head.innerHTML = '<span class="chat-day-title">Day ' + night + ' <span class="chat-day-count">' + els.length + (els.length === 1 ? ' message' : ' messages') + '</span></span><span class="chat-day-toggle">' + (o ? 'Show less' : 'Show more') + '</span>'; head.setAttribute('aria-expanded', o ? 'true' : 'false'); }
+    wrap.appendChild(group);
+    group.appendChild(head); group.appendChild(body);
+    els.forEach(function(el){ body.appendChild(el); });
+    var foot = document.createElement('button'); foot.type = 'button'; foot.className = 'chat-day-foot'; foot.textContent = 'Show less';
+    body.appendChild(foot);
+    function toggle(){ group.classList.toggle('collapsed'); chatDayOpen[night] = !group.classList.contains('collapsed'); label(); syncOpen(); if(group.classList.contains('collapsed')) head.scrollIntoView({block:'nearest'}); }
+    head.addEventListener('click', toggle); foot.addEventListener('click', toggle);
+    label();
+  });
+  syncOpen();
+}
 function renderChatLog(){
   var log = document.getElementById('discussion');
   var sysLog = document.getElementById('chat-system-list');
@@ -8286,12 +8333,16 @@ function renderChatLog(){
   var scrollable = log.scrollHeight - log.clientHeight;
   if(!wasFollowing && scrollable > 0) prevRatio = log.scrollTop / scrollable;
   log.innerHTML = '';
+  var dayOfLine = [];   // [{night, el}] so earlier days can be folded away after the lines are built
   (latestView.chatLog||[]).forEach(function(m){
     if(chatFilterMode === 'accusations' && !m.targetId && m.category!=='accusation') return;
+    var before = log.children.length;
     if(m.kind==='whisperAnnounce') appendChatLine({kind:'whisperAnnounce', fromId:m.fromId, fromName:m.fromName, toId:m.toId, toName:m.toName, text:m.text});
     else if(m.kind==='poll') appendPollCard(m, log);
     else appendChatLine(m);
+    for(var ci = before; ci < log.children.length; ci++) dayOfLine.push({night: m.night, el: log.children[ci]});
   });
+  foldEarlierDays(log, dayOfLine, latestView.night);
   if(!log.children.length){
     var emptyMsg = chatFilterMode==='accusations' ? 'No accusations yet.' : 'No one has spoken yet.';
     log.innerHTML = '<p class="chat-empty">'+emptyMsg+'</p>';
