@@ -670,6 +670,9 @@ body.force-reduced-motion #daylayout-heat.heat-pulse, body.force-reduced-motion 
 #daylayout-stage-header{display:none;}
 #design-canvas.bg-day #daylayout-stage-header{display:block; position:absolute; left:630.84px; top:495px; width:658.33px; text-align:center; z-index:2; font-family:var(--font-type);}
 #daylayout-stage-title{margin:0 0 4px; font-size:18px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--gold);}
+#daylayout-stage-subtitle.flash{animation:stageFlash 1.2s ease;}
+@keyframes stageFlash{0%,40%{color:#ffe29a; text-shadow:0 0 8px rgba(255,214,120,0.9);} 100%{color:var(--gold-dim);}}
+#design-canvas.bg-day #daylayout-stage-request-btn.stage-off{filter:grayscale(1) brightness(0.62); cursor:not-allowed;}
 #daylayout-stage-subtitle{margin:0; font-size:13px; font-style:italic; color:var(--gold-dim);}
 /* TEMP day-layout-rebuild step 7 - stage control buttons. stageRequestBtn
    already has "REQUEST TO SPEAK" baked in, used as a plain background
@@ -1229,6 +1232,22 @@ body.force-reduced-motion .notebook-view.notebook-page-turn{animation:none;}
 #notebook-vote-day{flex:0 0 46%; height:100%; display:flex; align-items:center; justify-content:center; font-family:var(--font-ornate); font-weight:700; font-size:clamp(14px,1.6vw,24px); letter-spacing:2px; text-transform:uppercase; color:#2a1708; background:url('assets/ui/mk-day.webp') center/100% 100% no-repeat;}
 #notebook-vote-day[hidden]{display:none;}
 .nvb-mode{height:100%; flex:1; padding:0 8px; cursor:pointer; font-family:var(--font-ornate); font-weight:700; font-size:clamp(10px,1.08vw,16px); letter-spacing:1px; text-transform:uppercase; white-space:nowrap; color:#3a2412; border:none; background:url('assets/ui/mk-mode-off.webp') center/100% 100% no-repeat; transition:filter .15s ease, transform .1s ease;}
+.nvb-day{display:flex; gap:6px; flex-wrap:nowrap; align-items:center; justify-content:center;}
+.nvb-daychip{height:100%; min-width:clamp(46px,4.2vw,64px); padding:0 10px; cursor:pointer; font-family:var(--font-ornate); font-weight:700; font-size:clamp(10px,1vw,15px); letter-spacing:.6px; text-transform:uppercase; white-space:nowrap; color:#3a2412; border:none; background:url('assets/ui/mk-mode-off.webp') center/100% 100% no-repeat;}
+.nvb-daychip.on{color:#f0c96a; background-image:url('assets/ui/mk-mode-on.webp');}
+.nvb-daychip:hover{filter:brightness(1.08);}
+.nvb-mode{font-size:clamp(9px,.86vw,13px) !important; letter-spacing:.5px !important;}
+.nbs{position:absolute; left:8.4%; right:7.4%; top:21%; bottom:9%; overflow-y:auto; scrollbar-width:none; z-index:3; color:#2a1708; font-family:var(--font-body);}
+.nbs::-webkit-scrollbar{display:none;}
+.nbs-title{margin:0 0 10px; text-align:center; font-family:var(--font-ornate); font-weight:700; font-size:clamp(12px,1.25vw,19px); letter-spacing:1.5px; text-transform:uppercase;}
+.nbs-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(clamp(150px,15vw,230px),1fr)); gap:10px;}
+.nbs-card{padding:8px 10px; border:1px solid rgba(90,60,30,0.55); border-radius:6px; background:rgba(255,248,226,0.5);}
+.nbs-head{display:flex; align-items:center; gap:8px; margin-bottom:4px; font-size:clamp(11px,1.05vw,16px);}
+.nbs-head img{width:clamp(26px,2.4vw,38px); height:clamp(26px,2.4vw,38px); object-fit:cover; border:1px solid #5a3b1a; border-radius:3px;}
+.nbs-head b{flex:1; min-width:0; font-family:var(--font-ornate); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.nbs-head span{font-family:var(--font-type); font-size:.85em; color:#6b1d12; font-weight:700;}
+.nbs-card ul{margin:0; padding:0 0 0 16px; font-size:clamp(11px,1vw,15px); line-height:1.4;}
+.nbs-empty{margin:40px 20px; text-align:center; font-style:italic; font-size:clamp(12px,1.2vw,17px);}
 .nvb-mode:hover{filter:brightness(1.08); transform:translateY(-1px);}
 .nvb-mode.active{color:#f0c96a; background-image:url('assets/ui/mk-mode-on.webp');}
 .notebook-vote-count{position:absolute; left:52.6%; right:7.4%; top:19.2%; display:flex; align-items:center; justify-content:center; gap:12px; text-align:center; font-family:var(--font-ornate); font-weight:700; font-size:clamp(11px,1.2vw,18px); letter-spacing:2px; text-transform:uppercase; color:#2a1708; pointer-events:none; z-index:3;}
@@ -1521,7 +1540,7 @@ body.force-reduced-motion .notebook-view.notebook-page-turn{animation:none;}
 .howto-tour-step-counter{font-family:var(--font-type); font-size:11px; letter-spacing:1.5px; text-transform:uppercase; color:var(--parchment-dim);}
 .howto-tour-skip{background:none; border:none; font-family:var(--font-type); font-size:12px; letter-spacing:0.5px; color:var(--parchment-dim); text-decoration:underline; cursor:pointer; padding:0;}
 .howto-tour-skip:hover{color:var(--gold-bright);}
-.howto-tour-body{min-height:260px;}
+.howto-tour-body{min-height:0; max-height:70vh; overflow-y:auto;}
 .howto-tour-title{font-family:var(--font-display); font-weight:700; font-size:21px; color:var(--gold-bright); margin:0 0 10px;}
 .howto-tour-text{font-family:var(--font-type); font-size:13px; line-height:1.7; color:var(--parchment-dim); margin:0 0 16px;}
 .howto-tour-mockup{background:var(--panel-2); border:1px solid var(--line); border-radius:8px; padding:14px; margin-bottom:6px;}
@@ -1672,6 +1691,8 @@ h2.sec{font-family:var(--font-type); font-size:13px; letter-spacing:2px; text-tr
 .lobby-code-label{font-family:var(--font-type); font-size:11px; letter-spacing:1.4px; text-transform:uppercase; color:var(--parchment-dim);}
 .lobby-code b{font-family:var(--font-type); font-size:26px; letter-spacing:7px; color:var(--gold-bright); padding-left:4px;}
 .lobby-code .btn{padding:5px 12px; font-size:12px;}
+.lobby-notice{margin:0 0 12px; padding:10px 14px; border:1px solid var(--gold-dim); border-left:4px solid var(--gold-bright); border-radius:7px; background:rgba(227,177,85,0.1); font-size:14px; line-height:1.5; color:var(--parchment);}
+.lobby-notice b{color:var(--gold-bright);}
 .lobby-seats{margin:0 0 12px; font-size:14px; color:var(--parchment-dim);}
 .lobby-seats b{color:var(--parchment);}
 .rules-head{display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;}
@@ -2238,6 +2259,8 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
 .poster-actions .btn{font-size:clamp(16px, 2vw, 24px); padding:clamp(12px,1.5vw,18px) clamp(26px,3.6vw,46px);}
 .poster-actions-row{position:relative; display:flex; flex-wrap:wrap; justify-content:center; gap:clamp(6px,0.9vw,12px);}
 .poster-actions-row .btn{font-size:clamp(11px, 1.15vw, 15px); padding:clamp(8px,1vw,12px) clamp(14px,2vw,20px);}
+.btn.is-soon{filter:grayscale(0.7) brightness(0.72); position:relative; cursor:default;}
+.btn.is-soon::after{content:'SOON'; position:absolute; right:-6px; top:-9px; padding:1px 7px; font-family:var(--font-type); font-size:9.5px; letter-spacing:1px; color:#2a1208; background:linear-gradient(#f7d77a,#d9a441); border-radius:8px; filter:none;}
 .coming-soon-toast{position:absolute; left:50%; bottom:100%; transform:translate(-50%, 6px); margin-bottom:12px; font-family:var(--font-type); font-size:13px; letter-spacing:2px; text-transform:uppercase; color:var(--gold-bright); background:rgba(10,7,6,0.82); border:1px solid var(--gold-dim); border-radius:20px; padding:6px 18px; pointer-events:none; opacity:0; transition:opacity .25s ease, transform .25s ease; white-space:nowrap; z-index:5;}
 .coming-soon-toast.show{opacity:1; transform:translate(-50%, 0);}
 .sr-only{position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;}
@@ -2293,6 +2316,27 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
 .menu-tile:hover{border-color:var(--gold-bright); color:var(--gold-bright); box-shadow:0 3px 10px rgba(0,0,0,0.3), 0 0 12px rgba(227,177,85,0.3);}
 .soon-tag{position:absolute; top:-7px; right:-4px; background:linear-gradient(180deg, var(--rust) 0%, var(--rust-dark) 100%); color:var(--parchment); font-size:9.5px; letter-spacing:0.5px; padding:2px 5px; border-radius:8px; text-transform:uppercase;}
 .howtogrid{display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px;}
+/* How to Play guide: rules at a glance, then a scannable role grid (one line each, full text on demand) */
+.howto-rules{display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:10px; margin:0 0 14px;}
+.howto-rule{padding:12px 14px; border:1px solid var(--line); border-radius:8px; background:var(--panel-2);}
+.howto-rule h3{margin:0 0 4px; font-family:var(--font-type); font-size:12.5px; letter-spacing:1.4px; text-transform:uppercase; color:var(--gold);}
+.howto-rule p{margin:0; font-size:14px; line-height:1.55; color:var(--parchment);}
+.howto-rule p b{color:var(--gold-bright);}
+.howto-rule.tie{border-color:var(--gold-dim); background:rgba(227,177,85,0.08);}
+.howto-actions{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:6px;}
+.howto-roles-hint{margin:0 0 10px; font-size:13px; color:var(--parchment-dim);}
+.howtogrid{grid-template-columns:repeat(auto-fill,minmax(310px,1fr)) !important;}
+.howtocard{align-self:start;}
+.howtocard .team{display:inline-block; margin-left:6px; padding:1px 8px; border-radius:9px; font-size:10px; letter-spacing:1px; text-transform:uppercase; color:#fff;}
+.howtocard .team.Town{background:#2f5f9a;} .howtocard .team.Mafia{background:#8a1c14;} .howtocard .team.Neutral,.howtocard .team.Cult{background:#6a4a8a;}
+.howtocard .name{font-size:15px !important;}
+.howtocard .one{font-size:14px !important; color:var(--parchment) !important; line-height:1.45;}
+.howto-more{margin-top:6px; padding:0; background:none; border:none; cursor:pointer; font-family:var(--font-type); font-size:12px; color:var(--gold-bright); text-decoration:underline;}
+.howto-full{display:none; margin-top:8px; padding-top:8px; border-top:1px solid var(--line);}
+.howtocard.open .howto-full{display:block;}
+.howto-full p{font-size:13px !important; line-height:1.55 !important;}
+.howto-full ul{margin:6px 0 0 16px; padding:0; font-size:12.5px; color:var(--parchment-dim); line-height:1.45;}
+.howtocard > div:last-child{min-width:0;}
 .profile-swatches{display:flex; flex-wrap:wrap; gap:10px;}
 .profile-swatch{width:36px; height:36px; border-radius:50%; cursor:pointer; border:2px solid transparent; transition:border-color .15s, transform .15s;}
 .profile-swatch:hover{transform:scale(1.08);}
@@ -2690,7 +2734,7 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
       </div>
       <div class="notebook-vote-banner" id="notebook-vote-banner" hidden>
         <div class="nvb-half nvb-left"><button type="button" class="notebook-vote-nav" id="notebook-vote-prev" aria-label="Previous day votes">&#9664;</button><div id="notebook-vote-day" class="nvb-day" role="status" aria-live="polite"></div><button type="button" class="notebook-vote-nav" id="notebook-vote-next" aria-label="Next day votes">&#9654;</button></div>
-        <div class="nvb-half nvb-right"><button type="button" class="nvb-mode active" data-mode="for">Who voted for?</button><button type="button" class="nvb-mode" data-mode="by">Who did they vote for?</button></div>
+        <div class="nvb-half nvb-right"><button type="button" class="nvb-mode active" data-mode="for">Who voted for?</button><button type="button" class="nvb-mode" data-mode="by">Who they voted for</button><button type="button" class="nvb-mode" data-mode="all">All ballots</button></div>
       </div>
       <div class="notebook-vote-count" id="notebook-vote-banner-text" hidden></div>
       <div class="notebook-dcover notebook-dcover-l" aria-hidden="true"></div>
@@ -2785,8 +2829,9 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
 
       <h3 class="set-h">Help</h3>
       <div class="set-buttons">
-        <button class="btn ghost" id="settings-tutorial-btn" type="button">Replay the tutorial</button>
-        <button class="btn ghost" id="settings-howto-btn" type="button">How to play</button>
+        <button class="btn ghost" id="settings-tutorial-btn" type="button">Replay the quick start</button>
+        <button class="btn ghost" id="settings-fulltut-btn" type="button">Full practice tutorial</button>
+        <button class="btn ghost" id="settings-howto-btn" type="button">Rules at a glance</button>
         <button class="btn ghost" id="settings-defaults-btn" type="button">Restore default settings</button>
       </div>
 
@@ -2856,9 +2901,9 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
 <div id="intro-modal" class="role-card-overlay" style="display:none;">
   <div class="role-card-modal-content intro-modal-content">
     <h2 class="intro-modal-title">First Time in Hollow Creek?</h2>
-    <p class="intro-modal-text">Every round has a night phase, where secret roles act, and a day phase, where the town talks it over and votes someone out. Here's a quick rundown before you dive in.</p>
+    <p class="intro-modal-text">Every round has a night phase, where secret roles act, and a day phase, where the town talks it over and votes someone out. The quick start walks you through one night, one day and one vote in about two minutes.</p>
     <div class="intro-modal-actions">
-      <button class="btn" id="intro-modal-howto-btn">Take the Interactive Tutorial</button>
+      <button class="btn" id="intro-modal-howto-btn">Play the quick start</button>
       <button class="btn ghost" id="intro-modal-skip-btn">Skip, I've Got It</button>
     </div>
   </div>
@@ -2867,12 +2912,12 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
   <div class="role-card-modal-content howto-tour-content">
     <div class="howto-tour-header">
       <span class="howto-tour-step-counter" id="howto-tour-counter"></span>
-      <button class="howto-tour-skip" id="howto-tour-skip-btn">Skip tutorial</button>
+      <button class="howto-tour-skip" id="howto-tour-skip-btn">Close</button>
     </div>
     <div class="howto-tour-body" id="howto-tour-body"></div>
     <div class="howto-tour-nav">
-      <button class="btn ghost" id="howto-tour-back-btn">Back</button>
-      <button class="btn" id="howto-tour-next-btn">Next</button>
+      <span></span>
+      <button class="btn" id="howto-tour-next-btn">Got it</button>
     </div>
   </div>
 </div>
@@ -3102,10 +3147,10 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
         <button class="btn" id="create-game-btn">Play</button>
         <div class="poster-actions-row">
           <div class="coming-soon-toast" id="coming-soon-toast"></div>
-          <button class="btn" id="tutorial-btn">Tutorial</button>
+          <button class="btn" id="tutorial-btn">Quick Start</button>
           <button class="btn" id="howto-btn">How to Play</button>
-          <button class="btn" id="achievements-btn">Achievements</button>
-          <button class="btn" id="leaderboard-btn">Leaderboard</button>
+          <button class="btn is-soon" id="achievements-btn" aria-disabled="true" title="Not available yet">Achievements</button>
+          <button class="btn is-soon" id="leaderboard-btn" aria-disabled="true" title="Not available yet">Leaderboard</button>
           <button class="btn" id="settings-btn">Settings</button>
           <button class="btn" id="profile-btn">Profile</button>
         </div>
@@ -3119,13 +3164,15 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
 <div class="folder" id="howto-folder" style="display:none;">
   <div id="panel-howto">
     <h2 class="sec">How Hollow Creek works</h2>
-    <p style="font-size:13px; color:var(--parchment-dim); line-height:1.7; margin:0 0 16px;">
-      Each round has two phases. At <b>night</b>, whoever has a role with a power acts in secret — protecting, investigating, eliminating, silencing, or placing a bounty. At <b>day</b>, the town sees who died, talks it over, and votes someone out. The town wins if every mafia member is gone; the mafia wins once they equal the town's remaining numbers.
-    </p>
-    <h2 class="sec">The cast of roles</h2>
+    <div class="howto-rules" id="howto-rules"></div>
+    <div class="howto-actions">
+      <button class="btn" id="howto-quickstart-btn">Play the quick start</button>
+      <button class="btn ghost" id="howto-fulltut-btn">Full practice tutorial</button>
+    </div>
+    <h2 class="sec" style="margin-top:22px;">The cast of roles</h2>
+    <p class="howto-roles-hint">One line each. Open a role for its full description.</p>
     <div class="howtogrid" id="howtogrid"></div>
     <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:18px;">
-      <button class="btn" id="howto-take-tour-btn">Take the Guided Tour</button>
       <button class="btn ghost" id="howto-back-btn">Back to town</button>
     </div>
   </div>
@@ -3150,8 +3197,8 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
     <p style="font-family:var(--font-type); font-size:12px; letter-spacing:1px; text-transform:uppercase; color:var(--gold); margin:20px 0 8px;">Profile picture</p>
     <div class="avatar-picker" id="avatar-picker"></div>
 
-    <p style="font-family:var(--font-type); font-size:12px; letter-spacing:1px; text-transform:uppercase; color:var(--gold); margin:20px 0 8px;">Game icon <span style="text-transform:none; letter-spacing:0; color:var(--parchment-dim); font-weight:400;">(preview only, for now)</span></p>
-    <p style="font-family:var(--font-type); font-size:12px; color:var(--parchment-dim); margin:0 0 8px; max-width:420px;">A personal touch, previewed right here - it doesn't appear anywhere in the game itself yet.</p>
+    <p style="font-family:var(--font-type); font-size:12px; letter-spacing:1px; text-transform:uppercase; color:var(--gold); margin:20px 0 8px;">Game portrait <span style="text-transform:none; letter-spacing:0; color:var(--parchment-dim); font-weight:400;">(shown in every game)</span></p>
+    <p style="font-family:var(--font-type); font-size:12px; color:var(--parchment-dim); margin:0 0 8px; max-width:420px;">This shadowed portrait is how other players see you on the town board and in their notebooks, so your face stays hidden while you stay recognizable. Leave it on the question mark and you are dealt an unused portrait at the start of each game. Everyone in a game always gets a different one.</p>
     <div style="display:flex; align-items:center; gap:14px;">
       <div class="avatar-picker" id="game-icon-picker" style="flex:1;"></div>
       <div style="flex-shrink:0; text-align:center;">
@@ -3192,7 +3239,7 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
     <div class="mp-grid">
       <div class="mp-card">
         <h3>Quick Match</h3>
-        <p>Drop into an open public game that is still gathering players.</p>
+        <p>Join an open public game that is still gathering players. If none is waiting, you will host a new public room instead, and the lobby will say so.</p>
         <label class="checkbox-row"><input type="checkbox" id="mpentry-mic-pref-check"> I have a mic &mdash; match me into voice-enabled games</label>
         <button class="btn" id="mpentry-quick-match-btn">Quick Match</button>
       </div>
@@ -3223,6 +3270,7 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
           </div>
           <span id="mp-room-code" style="display:none;"></span>
         </div>
+        <div class="lobby-notice" id="lobby-notice" style="display:none;"></div>
         <p class="lobby-seats" id="lobby-seats-line"></p>
         <div id="mp-roster"></div>
     <div id="lobby-chat" style="margin-top:18px;">
@@ -3248,7 +3296,7 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
         <div id="mp-host-config" style="display:none;">
           <div class="mode-toggle" id="mode-toggle">
             <button class="mode-toggle-btn active" data-mode="full" id="mode-full-btn">Full Case<span class="mode-toggle-sub">All roles, standard timers</span></button>
-            <button class="mode-toggle-btn" data-mode="quick" id="mode-quick-btn">Quick Case<span class="mode-toggle-sub">8 players, faster timers, ~15 min</span></button>
+            <button class="mode-toggle-btn" data-mode="quick" id="mode-quick-btn">Quick Case<span class="mode-toggle-sub">8 players, 1:00 discussion and voting, ~15 min</span></button>
           </div>
 
           <div class="rule-rows">
@@ -3668,6 +3716,7 @@ var LAST_PLAYER_COUNT = null;
 var MIN_PLAYERS = 6;
 var MAX_PLAYERS = 16;
 var MAX_MAFIA_COUNT = 4;
+var QUICK_DISCUSS_SECONDS = 60, QUICK_VOTE_SECONDS = 60, QUICK_SPEAKER_SECONDS = 10;   // what the Quick Case preset sets
 var MIN_DISCUSS_SECONDS = 30, MAX_DISCUSS_SECONDS = 300, DISCUSS_STEP_SECONDS = 15;
 var MIN_VOTE_SECONDS = 30, MAX_VOTE_SECONDS = 300, VOTE_STEP_SECONDS = 15;
 var MIN_SPEAKER_SECONDS = 10, MAX_SPEAKER_SECONDS = 120, SPEAKER_STEP_SECONDS = 5;
@@ -4031,7 +4080,8 @@ function handleServerMessage(msg){
   }
   if(msg.type==='created' || msg.type==='joined'){
     myPlayerId = msg.playerId; myRoomCode = msg.roomCode;
-    lobbyEntries = []; renderLobbyChat();   // lobby chat belongs to one room: drop whatever the last room left behind
+    lobbyEntries = []; renderLobbyChat();
+    var lnClear = document.getElementById('lobby-notice'); if(lnClear && msg.type==='created') lnClear.style.display = 'none';   // lobby chat belongs to one room: drop whatever the last room left behind
     notebookMarks = {}; notebookNotes = {}; notebookPinned = []; notebookEvents = []; notebookHasUnseen = false;
     setRoleEnvelopeClass(null);
     latestRoundScore = null;
@@ -4101,6 +4151,7 @@ function handleServerMessage(msg){
     phaseEndsAt = msg.phaseEndsAt;
     ownerPowers = !!msg.ownerPowers;
     renderFromServerView(msg.view);
+    if(typeof refreshNotebookLive === 'function') refreshNotebookLive();   // an open notebook shows the new day's ballots at once
   } else if(msg.type==='roundScore'){
     latestRoundScore = msg;
     renderRoundScore();
@@ -4136,6 +4187,13 @@ function handleServerMessage(msg){
     }
   } else if(msg.type==='pollUpdate'){
     if(pollIndex[msg.pollId]){ pollIndex[msg.pollId].options = msg.options; refreshPollCards(msg.pollId); }
+  } else if(msg.type==='quickMatchResult'){
+    var ln = document.getElementById('lobby-notice');
+    if(ln){
+      ln.innerHTML = msg.matched ? '<b>Matched.</b> You joined a public game that was waiting for players.'
+        : '<b>No public game was waiting, so you are now hosting a new one.</b> It is listed as public: share the room code with friends, or stay and anyone else using Quick Match can join you. You are the host and set the rules on the right.';
+      ln.style.display = 'block';
+    }
   } else if(msg.type==='familyPicks'){
     latestFamilyPicks = msg.picks || [];
     renderFamilyPicks();
@@ -4299,7 +4357,7 @@ function renderWaitingRolesView(){
   var changed = {};
   if(lastRulesSnapshot) vals.forEach(function(v){ if(lastRulesSnapshot[v[0]] !== undefined && lastRulesSnapshot[v[0]] !== v[3]) changed[v[0]] = true; });
   var next = {}; vals.forEach(function(v){ next[v[0]] = v[3]; }); lastRulesSnapshot = next;
-  document.getElementById('mp-waiting-preset').innerHTML = GAME_CONFIG.quickMode ? 'Quick Case <small>8 players, faster timers, about 15 min</small>' : 'Full Case <small>all roles, standard timers</small>';
+  document.getElementById('mp-waiting-preset').innerHTML = GAME_CONFIG.quickMode ? 'Quick Case <small>8 players, 1:00 discussion and voting, about 15 min</small>' : 'Full Case <small>all roles, standard timers</small>';
   document.getElementById('mp-waiting-rules').innerHTML = vals.map(function(v){
     var off = v[0] === 'voice' && !GAME_CONFIG.voiceEnabled;
     var small = v[0] === 'seats' ? 'real players + ' + Math.max(0, GAME_CONFIG.playerCount - Math.max(1, Object.keys(lobbyNames).length)) + ' placeholder townspeople' : v[2];
@@ -7144,8 +7202,9 @@ document.getElementById('lobby-code-copy').addEventListener('click', function(){
 });
 document.getElementById('mode-quick-btn').addEventListener('click', function(){
   if(GAME_CONFIG.quickMode) return;
-  FULL_CASE_CONFIG_SNAPSHOT = {playerCount: GAME_CONFIG.playerCount, mafiaCount: GAME_CONFIG.mafiaCount, roles: Object.assign({}, GAME_CONFIG.roles)};
+  FULL_CASE_CONFIG_SNAPSHOT = {playerCount: GAME_CONFIG.playerCount, mafiaCount: GAME_CONFIG.mafiaCount, roles: Object.assign({}, GAME_CONFIG.roles), discussSeconds: GAME_CONFIG.discussSeconds, voteSeconds: GAME_CONFIG.voteSeconds, speakerSeconds: GAME_CONFIG.speakerSeconds};
   GAME_CONFIG.quickMode = true;
+  GAME_CONFIG.discussSeconds = QUICK_DISCUSS_SECONDS; GAME_CONFIG.voteSeconds = QUICK_VOTE_SECONDS; GAME_CONFIG.speakerSeconds = QUICK_SPEAKER_SECONDS;   // Quick Case = faster timers, visibly
   GAME_CONFIG.playerCount = 8;
   GAME_CONFIG.mafiaCount = 0;
   GAME_CONFIG.roles = {Godfather:true, DoubleAgent:false, Detective:true, Doctor:true, Miller:false, BountyHunter:false, CrazyGranny:false, Coward:false, Farmer:false, NavySeal:false};
@@ -7158,7 +7217,10 @@ document.getElementById('mode-full-btn').addEventListener('click', function(){
     GAME_CONFIG.playerCount = FULL_CASE_CONFIG_SNAPSHOT.playerCount;
     GAME_CONFIG.mafiaCount = FULL_CASE_CONFIG_SNAPSHOT.mafiaCount;
     GAME_CONFIG.roles = Object.assign({}, FULL_CASE_CONFIG_SNAPSHOT.roles);
-  }
+    if(FULL_CASE_CONFIG_SNAPSHOT.discussSeconds) GAME_CONFIG.discussSeconds = FULL_CASE_CONFIG_SNAPSHOT.discussSeconds;
+    if(FULL_CASE_CONFIG_SNAPSHOT.voteSeconds) GAME_CONFIG.voteSeconds = FULL_CASE_CONFIG_SNAPSHOT.voteSeconds;
+    if(FULL_CASE_CONFIG_SNAPSHOT.speakerSeconds) GAME_CONFIG.speakerSeconds = FULL_CASE_CONFIG_SNAPSHOT.speakerSeconds;
+  } else { GAME_CONFIG.discussSeconds = 90; GAME_CONFIG.voteSeconds = 105; GAME_CONFIG.speakerSeconds = 15; }
   renderSetupScreen();
 });
 document.getElementById('setup-role-grid').addEventListener('click', function(e){
@@ -7297,11 +7359,11 @@ document.getElementById('create-game-btn').addEventListener('click', function(){
 });
 document.getElementById('intro-modal-howto-btn').addEventListener('click', function(){
   document.getElementById('intro-modal').style.display = 'none';
-  if(window.Tutorial) window.Tutorial.start(function(){ proceedToCreateGame(); });
-  else openHowToTour(proceedToCreateGame);
+  if(window.Tutorial) window.Tutorial.start(function(){ proceedToCreateGame(); }, {quick:true});
+  else proceedToCreateGame();
 });
 document.getElementById('tutorial-btn').addEventListener('click', function(){
-  if(window.Tutorial) window.Tutorial.start();
+  if(window.Tutorial) window.Tutorial.start(null, {quick:true});
 });
 (function(){ var b = document.getElementById('tutorial-btn'); try{ if(b && !localStorage.getItem('hc-tutorial-done')) b.classList.add('is-new'); }catch(e){} })();
 document.getElementById('intro-modal-skip-btn').addEventListener('click', function(){
@@ -7469,7 +7531,7 @@ document.getElementById('home-nav-btn').addEventListener('click', function(){
 function showComingSoonToast(label){
   var el = document.getElementById('coming-soon-toast');
   if(!el) return;
-  el.textContent = label+' — coming soon';
+  el.textContent = label+' is not available yet';
   el.classList.remove('show');
   void el.offsetWidth;
   el.classList.add('show');
@@ -7579,6 +7641,10 @@ document.getElementById('settings-sfx-slider').addEventListener('change', functi
 });
 document.getElementById('settings-tutorial-btn').addEventListener('click', function(){
   closeSettingsModal();
+  if(window.Tutorial) window.Tutorial.start(null, {quick:true});
+});
+document.getElementById('settings-fulltut-btn').addEventListener('click', function(){
+  closeSettingsModal();
   if(window.Tutorial) window.Tutorial.start();
 });
 document.getElementById('settings-howto-btn').addEventListener('click', function(){
@@ -7626,20 +7692,63 @@ document.getElementById('settings-reset-confirm-btn').addEventListener('click', 
   document.getElementById('settings-reset-done').style.display = 'block';
 });
 
+var ROLE_ONELINE = {
+  Detective:'Investigate one player each night: guilty, innocent or suspicious.',
+  Godfather:'Leads the mafia: votes on the nightly kill and silences one player.',
+  Mafia:'Votes with the family on who is killed each night.',
+  DoubleAgent:'Mafia. Reads innocent to the Detective the first time only.',
+  Doctor:'Protect one player from the mafia\'s kill each night.',
+  Miller:'No power. Town, but always reads guilty to the Detective.',
+  BountyHunter:'Bounty one player nightly; three of their deaths wins it for you.',
+  CrazyGranny:'Quiet town player who turns mafia if the family is wiped out.',
+  Coward:'Hide behind someone: if the mafia comes for you, they get them.',
+  Farmer:'If the town votes you out, you take one player with you.',
+  NavySeal:'The first kill attempt on you fails and kills a mafia instead.',
+  Vigilante:'One night shot per game. Shoot a town player and you die too.',
+  Consigliere:'Mafia. Learn one player\'s exact role each night.',
+  Mayor:'Double your vote once; your pick breaks vote ties.',
+  Mortician:'Learn the exact role of whoever died last night.',
+  Framer:'Mafia. Frame a player as guilty, or shield one as innocent.',
+  Hitman:'Mafia, cut off from the family. If voted out, take someone down.',
+  CultLeader:'Convert a player each night; the cult wins at parity.',
+  Civilian:'No power. Just your vote and your read on the room.'
+};
+// The core rules in one place: shown on the How to Play page and in the pop-up opened from the lobby and Settings.
+function rulesGlanceHTML(){
+  var items = [
+    ['Two sides', 'The <b>Town</b> wins by voting out every mafia member. The <b>Mafia</b> win the moment they equal everyone else still alive.'],
+    ['Night', 'Roles with a power use it in secret: investigate, protect, silence, kill. Nobody sees anyone else\'s choice until morning.'],
+    ['Day', 'The town learns who died overnight, talks it over in chat, then votes. Your <b>Notebook</b> keeps your private notes and every vote.'],
+    ['The vote', 'The player with the most votes is voted out and their role is revealed. Once you are out you stay out, but you can keep watching.'],
+    ['Ties', 'If two or more players tie for the most votes, <b>one of them is chosen by drawing lots</b>. If a living <b>Mayor</b> voted for one of the tied players, that pick wins the tie instead. The reveal screen says which happened.'],
+    ['Example', 'Everyone votes. Otis Redwood gets the most votes, so Otis Redwood is voted out and the town sees his role. If Otis and Mabel Finch had tied, the town would have drawn lots between them.']
+  ];
+  return items.map(function(it){ return '<div class="howto-rule'+(it[0]==='Ties'?' tie':'')+'"><h3>'+it[0]+'</h3><p>'+it[1]+'</p></div>'; }).join('');
+}
 function renderHowTo(){
+  var rulesEl = document.getElementById('howto-rules'); if(rulesEl) rulesEl.innerHTML = rulesGlanceHTML();
   var order = ['Detective','Godfather','Mafia','DoubleAgent','Doctor','Miller','BountyHunter','CrazyGranny','Coward','Farmer','NavySeal','Vigilante','Consigliere','Mayor','Mortician','Framer','Hitman','CultLeader','Civilian'];
   document.getElementById('howtogrid').innerHTML = order.map(function(r){
     var img = ROLE_IMG[r];
     var pic = img ? '<div class="portrait-frame"><img class="photo-img" src="'+img+'" alt="'+r+'"><img class="frame-overlay" src="'+FRAME_IMG+'" alt=""></div>' : '<div class="noimg">no photo<br>on file</div>';
-    return '<div class="howtocard">'+pic+'<div><p class="name">'+ROLE_LABEL[r]+'</p><p>'+ROLE_BIO[r]+'</p></div></div>';
+    var team = roleTeamLabel(r);
+    var pts = (ROLE_POINTS[r]||[]).map(function(x){ return '<li>'+escapeHtmlMp(x)+'</li>'; }).join('');
+    return '<div class="howtocard">'+pic+'<div><p class="name">'+ROLE_LABEL[r]+'<span class="team '+team+'">'+team+'</span></p><p class="one">'+escapeHtmlMp(ROLE_ONELINE[r]||'')+'</p>'+
+      '<button type="button" class="howto-more" aria-expanded="false">Read more</button>'+
+      '<div class="howto-full"><p>'+escapeHtmlMp(ROLE_BIO[r])+'</p>'+(pts?'<ul>'+pts+'</ul>':'')+'</div></div></div>';
   }).join('');
 }
+document.getElementById('howtogrid').addEventListener('click', function(e){
+  var b = e.target.closest('.howto-more'); if(!b) return;
+  var card = b.closest('.howtocard'); var open = card.classList.toggle('open');
+  b.textContent = open ? 'Show less' : 'Read more'; b.setAttribute('aria-expanded', open ? 'true' : 'false');
+});
+document.getElementById('howto-quickstart-btn').addEventListener('click', function(){ if(window.Tutorial) window.Tutorial.start(null, {quick:true}); });
+document.getElementById('howto-fulltut-btn').addEventListener('click', function(){ if(window.Tutorial) window.Tutorial.start(); });
 document.getElementById('howto-back-btn').addEventListener('click', function(){
   switchPanel('home');
 });
-document.getElementById('howto-take-tour-btn').addEventListener('click', function(){
-  openHowToTour();
-});
+
 
 // Task 17: a guided tour replaces the static role wall as the default
 // teaching experience. Every mockup below calls the SAME rendering
@@ -7648,142 +7757,23 @@ document.getElementById('howto-take-tour-btn').addEventListener('click', functio
 // sync with the actual UI - the old static list isn't deleted, it's one
 // click away as "Browse All Roles" for players who want the exhaustive
 // version after the overview.
-function tourStep0(){
-  return '<h2 class="howto-tour-title">Two sides, one town.</h2>'+
-    '<p class="howto-tour-text">Hollow Creek is a game of hidden identity. Every player gets a secret role belonging to one of two sides, and everything that happens - every vote, every whispered suspicion - is really just one side trying to beat the other.</p>'+
-    '<div class="howto-tour-conflict">'+
-      '<div class="howto-tour-faction"><div class="portrait-frame"><img class="photo-img" src="'+IMG.civilian+'" alt=""><img class="frame-overlay" src="'+FRAME_IMG+'" alt=""></div>'+
-        '<p class="howto-tour-faction-name">The Town</p>'+
-        '<p class="howto-tour-faction-goal">Wins by finding and eliminating every mafia-aligned player.</p></div>'+
-      '<span class="howto-tour-vs">vs</span>'+
-      '<div class="howto-tour-faction"><div class="portrait-frame"><img class="photo-img" src="'+IMG.godfather+'" alt=""><img class="frame-overlay" src="'+FRAME_IMG+'" alt=""></div>'+
-        '<p class="howto-tour-faction-name">The Mafia</p>'+
-        '<p class="howto-tour-faction-goal">Wins the moment their numbers equal the town\'s remaining numbers.</p></div>'+
-    '</div>'+
-    // Accessibility & Settings Task 2 - explicit "this isn't just two
-    // sides" framing before a first-time player can be surprised by it
-    // mid-play. Deliberately brief and secondary to the core two-faction
-    // explanation above, since Cult is an optional role many games won't
-    // have enabled at all.
-    '<p class="howto-tour-text" style="margin-top:14px; font-size:13px; color:var(--parchment-dim);">Some games add a genuine third side - a cult, with its own win condition entirely separate from town and mafia. If the host has enabled it, your own role reveal will tell you plainly which side you\'ve actually landed on.</p>';
-}
-function tourStep1(){
-  var sample = CHARACTERS.slice(0,4).map(function(c){return {id:c.id, name:c.name};});
-  return '<h2 class="howto-tour-title">Each round begins at night.</h2>'+
-    '<p class="howto-tour-text">Every role with a power acts here - investigating, protecting, silencing, eliminating - all at the same time, all in secret. Nobody sees what anyone else chose until morning.</p>'+
-    '<div class="howto-tour-mockup"><p style="font-size:13px; color:var(--parchment-dim); margin:0 0 10px;">Choose someone to investigate tonight.</p>'+
-      '<div class="chipgrid" id="tour-night-grid">'+chipGridHTML(sample,'tour-pick')+'</div>'+
-      '<button class="btn" style="margin-top:12px;" disabled>Confirm</button></div>';
-}
-function tourStep2(){
-  var lines = [
-    {name:'Otis Redwood', text:'Where were you standing when it happened?'},
-    {name:'Mabel Finch', text:"I don't like how quiet Corky's been all morning."}
-  ];
-  return '<h2 class="howto-tour-title">Morning comes, and the town talks.</h2>'+
-    '<p class="howto-tour-text">Whoever the night claimed is announced, then the whole town discusses openly in one shared chat - who seems suspicious, who\'s been quiet, who\'s covering for someone.</p>'+
-    '<div class="howto-tour-mockup" id="tour-chat-mockup">'+lines.map(function(m){
-      return '<div class="chatline"><span class="who">'+m.name+'</span><span class="line">"'+m.text+'"</span></div>';
-    }).join('')+'</div>';
-}
-function tourStep3(){
-  var sample = CHARACTERS.slice(0,4).map(function(c){return {id:c.id, name:c.name};});
-  return '<h2 class="howto-tour-title">When discussion ends, the town votes.</h2>'+
-    '<p class="howto-tour-text">Everyone picks who they think is mafia. Once the votes are locked in, whoever has the most is voted out - permanently, for the rest of the game.</p>'+
-    '<div class="howto-tour-mockup"><div class="chipgrid">'+chipGridHTML(sample,'tour-pick')+'</div>'+
-      '<button class="btn" id="tour-vote-confirm-btn" style="margin-top:12px;" disabled>Confirm Vote</button></div>';
-}
-function tourStep4(){
-  var sampleRole = 'Doctor';
-  return '<h2 class="howto-tour-title">The reveal.</h2>'+
-    '<p class="howto-tour-text">Whoever the town votes out has their role publicly revealed - the whole town finds out who they really were. And that\'s it for them: once you\'re out, you\'re out for the rest of this game.</p>'+
-    '<div class="howto-tour-mockup"><div class="report"><b>Otis Redwood is</b> voted out. The file photo comes out from under the folder: <b>'+ROLE_LABEL[sampleRole]+'</b>.</div>'+
-      '<div class="deceased-card" id="tour-reveal-card"><div class="portrait-frame"><img class="photo-img" src="'+ROLE_IMG[sampleRole]+'" alt=""><img class="frame-overlay" src="'+FRAME_IMG+'" alt=""></div><span class="deceased-stamp">deceased</span></div></div>';
-}
-function tourStep5(){
-  return '<h2 class="howto-tour-title">Some roles carry a power.</h2>'+
-    '<p class="howto-tour-text">A few examples - the full list is one tap away whenever you want it.</p>'+
-    '<div class="howto-tour-mockup">'+buildDossierCardHTML({role:'Detective', flipped:false}, false)+'</div>'+
-    '<p class="howto-tour-roles-extra">A couple more: the <b>Doctor</b> protects one player from the mafia\'s kill each night. The <b>Godfather</b> leads the mafia and can silence one player each day.</p>';
-}
-function tourStep6(){
-  return '<h2 class="howto-tour-title">That\'s the whole game.</h2>'+
-    '<p class="howto-tour-text">Night, then day - act, discuss, vote, reveal - round after round, until one side runs out of numbers. Town wins by clearing out the mafia. Mafia wins by evening the odds.</p>'+
-    '<div class="intro-modal-actions" style="justify-content:flex-start; margin-top:6px;"><button class="btn ghost" id="tour-browse-roles-btn">Browse All Roles</button></div>';
-}
-var TOUR_STEPS = [
-  {html: tourStep0},
-  {html: tourStep1, spotlight: '#tour-night-grid'},
-  {html: tourStep2},
-  {html: tourStep3, spotlight: '#tour-vote-confirm-btn', after: function(body){
-    var chips = body.querySelectorAll('.tour-pick');
-    if(chips[2]) chips[2].classList.add('selected');
-  }},
-  {html: tourStep4, spotlight: '#tour-reveal-card'},
-  {html: tourStep5},
-  {html: tourStep6}
-];
-var tourStepIndex = 0;
-var tourSpotlightTimer = null;
+// The rules pop-up (opened from the lobby and Settings): the same "rules at a glance" as the How to Play page, without leaving the room.
 var tourOnClose = null;
-// onClose lets the tour finish into whatever its entry point actually
-// wanted: reached from the home screen's own "How to Play" button, closing
-// should just return there (nobody was mid-attempt to start a game); reached
-// from the first-time intro modal, the player WAS trying to play, so "Let's
-// Play"/"Skip tutorial" should carry them into game setup, same as the
-// intro modal's own "Skip, I've Got It" already does.
 function openHowToTour(onClose){
-  tourStepIndex = 0;
-  tourOnClose = onClose || function(){ switchPanel('home'); };
+  tourOnClose = onClose || null;
+  var body = document.getElementById('howto-tour-body');
+  document.getElementById('howto-tour-counter').textContent = 'Rules at a glance';
+  body.innerHTML = '<div class="howto-rules" style="grid-template-columns:1fr;">' + rulesGlanceHTML() + '</div>';
   document.getElementById('howto-tour-modal').style.display = 'flex';
-  renderTourStep();
 }
 function closeHowToTour(){
-  clearTimeout(tourSpotlightTimer);
   document.getElementById('howto-tour-modal').style.display = 'none';
   var cb = tourOnClose; tourOnClose = null;
   if(cb) cb();
 }
-function renderTourStep(){
-  clearTimeout(tourSpotlightTimer);
-  var step = TOUR_STEPS[tourStepIndex];
-  document.getElementById('howto-tour-counter').textContent = 'Step '+(tourStepIndex+1)+' of '+TOUR_STEPS.length;
-  var body = document.getElementById('howto-tour-body');
-  // Reuse the same reveal-in fade the rest of the game already uses for a
-  // fresh screen, rather than a new, disconnected transition style.
-  body.classList.remove('reveal-in');
-  void body.offsetWidth;
-  body.innerHTML = step.html();
-  body.classList.add('reveal-in');
-  if(step.after) step.after(body);
-  document.getElementById('howto-tour-back-btn').style.visibility = (tourStepIndex===0) ? 'hidden' : 'visible';
-  document.getElementById('howto-tour-next-btn').textContent = (tourStepIndex===TOUR_STEPS.length-1) ? "Let's Play" : 'Next';
-  if(step.spotlight){
-    tourSpotlightTimer = setTimeout(function(){
-      var el = body.querySelector(step.spotlight);
-      if(el) el.classList.add('tour-spotlight');
-    }, 700);
-  }
-  var browseBtn = document.getElementById('tour-browse-roles-btn');
-  if(browseBtn){
-    browseBtn.addEventListener('click', function(){
-      document.getElementById('howto-tour-modal').style.display = 'none';
-      renderHowTo();
-      switchPanel('howto');
-    });
-  }
-}
-document.getElementById('howto-tour-next-btn').addEventListener('click', function(){
-  if(tourStepIndex < TOUR_STEPS.length-1){ tourStepIndex++; renderTourStep(); }
-  else { closeHowToTour(); }
-});
-document.getElementById('howto-tour-back-btn').addEventListener('click', function(){
-  if(tourStepIndex>0){ tourStepIndex--; renderTourStep(); }
-});
 document.getElementById('howto-tour-skip-btn').addEventListener('click', closeHowToTour);
-document.getElementById('howto-btn').addEventListener('click', function(){
-  openHowToTour();
-});
+document.getElementById('howto-tour-next-btn').addEventListener('click', closeHowToTour);
+document.getElementById('howto-btn').addEventListener('click', function(){ renderHowTo(); switchPanel('howto'); });
 
 async function initGame(){
   try{
@@ -8035,7 +8025,11 @@ function renderVoteRevealModal(view){
 
   var voteCount = (view.voteLog||[]).filter(function(v){ return v.targetId && v.targetId===lead.id; }).length;
   document.getElementById('vote-reveal-outcome').textContent = noLynch ? 'Nobody Voted Out' : 'Voted Out \u2014 '+voteCount+(voteCount===1?' Vote':' Votes');
-  document.getElementById('vote-reveal-flavor').textContent = noLynch ? 'No one cast a vote, so the town sends no one to the noose today.' : (VOTE_REVEAL_FLAVOR[lead.align] || VOTE_REVEAL_FLAVOR.town);
+  var tie = view.lastVoteTie;
+  var tieNames = tie ? tie.ids.map(function(id){ var q = view.players.find(function(p){ return p.id === id; }); return q ? q.name : '?'; }) : [];
+  var tieText = tie ? ('Tie: ' + tieNames.join(' and ') + ' each had ' + tie.votes + ' votes. ' + (tie.mayorResolved ? 'The Mayor\u2019s own vote settled it.' : 'No Mayor was in play to break it, so the town drew lots, and the draw fell on ' + lead.name + '.')) : '';
+  document.getElementById('vote-reveal-outcome').textContent = noLynch ? 'Nobody Voted Out' : 'Voted Out \u2014 '+voteCount+(voteCount===1?' Vote':' Votes')+(tie ? ' (tie)' : '');
+  document.getElementById('vote-reveal-flavor').textContent = noLynch ? 'No one cast a vote, so the town sends no one to the noose today.' : (tie ? tieText : (VOTE_REVEAL_FLAVOR[lead.align] || VOTE_REVEAL_FLAVOR.town));
 
   // Group every recorded ballot by who it names (or "abstained") - sorted
   // by size, not by who actually got eliminated (a Mayor tiebreak can
@@ -9156,7 +9150,7 @@ function renderDayPanel(){
     else { chatInputRow.style.display='flex'; }
     stagePanel.classList.remove('stage-panel-fade-out');
     stagePanel.style.display = GAME_CONFIG.voiceEnabled ? 'block' : 'none';
-    if(GAME_CONFIG.voiceEnabled) renderStagePanel();
+    renderStagePanel();
   } else if(view.phase==='day-vote'){
     if(!me || !me.alive){ deadNotice.style.display='block'; stopVoteTimer(); }
     else {
@@ -9180,7 +9174,7 @@ function renderDayPanel(){
     }
     stagePanel.classList.remove('stage-panel-fade-out');
     stagePanel.style.display = GAME_CONFIG.voiceEnabled ? 'block' : 'none';
-    if(GAME_CONFIG.voiceEnabled) renderStagePanel();
+    renderStagePanel();
   } else if(view.phase==='farmer-revenge'){
     // Everyone sees who is choosing (and the chooser gets the picker) in a proper modal -
     // the old tiny hidden section was easy to miss, and nobody else was told anything.
@@ -10390,8 +10384,29 @@ function startStageTimer(deadline){
 }
 
 var lastKnownSpeakerId = undefined;
+// Voice is a per-room setting the host chooses in the lobby. When it is off, the stage says so plainly and its controls are
+// dimmed, instead of looking like a working stage whose button does nothing.
+function setStageVoiceOff(off){
+  var req = document.getElementById('daylayout-stage-request-btn'), mute = document.getElementById('daylayout-stage-mute-btn');
+  var give = document.getElementById('daylayout-stage-give-time-btn'), kick = document.getElementById('daylayout-stage-kick-btn');
+  var sub = document.getElementById('daylayout-stage-subtitle');
+  if(!req) return;
+  req.classList.toggle('stage-off', off); req.setAttribute('aria-disabled', off ? 'true' : 'false');
+  req.title = off ? 'Voice is off in this room. The host can turn the stage on in the lobby.' : '';
+  if(mute) mute.style.display = off ? 'none' : '';
+  if(off){
+    req.textContent = 'Voice is off';
+    if(give) give.style.display = 'none';
+    if(kick) kick.style.display = 'none';
+    if(sub) sub.textContent = 'Voice is off in this room. Use Town Talk.';
+    for(var qi=1; qi<=5; qi++){ var qe = document.getElementById('daylayout-stage-queue-text-'+qi); if(qe){ qe.textContent = qi===1 ? 'Voice is off.' : '\u2014'; qe.classList.add('is-empty'); } }
+  }
+}
 function renderStagePanel(){
-  if(!latestView || !latestStageState) return;
+  if(!latestView) return;
+  if(!GAME_CONFIG.voiceEnabled){ setStageVoiceOff(true); return; }
+  setStageVoiceOff(false);
+  if(!latestStageState) return;
   var s = latestStageState;
   var askBtn = document.getElementById('chat-ask-btn');
   if(askBtn){
@@ -10517,7 +10532,7 @@ function renderStagePanel(){
     var daylayoutQId = s.queue[daylayoutQi];
     if(daylayoutQId){
       var daylayoutQP = byId(daylayoutQId);
-      daylayoutQEl.textContent = daylayoutQP ? (daylayoutQP.id===myPlayerId ? 'You' : daylayoutQP.name) : '?';
+      daylayoutQEl.textContent = (daylayoutQP ? (daylayoutQP.id===myPlayerId ? 'You' : daylayoutQP.name) : '?') + (daylayoutQi===0 ? ' (next)' : '');
       daylayoutQEl.classList.remove('is-empty');
     } else {
       daylayoutQEl.textContent = (daylayoutQi===0) ? "Nobody's waiting." : '—';
@@ -11332,10 +11347,12 @@ function renderNotebookVoteBanner(){
     return;
   }
   sel.hidden = false;
-  sel.textContent = 'Day '+night;
+  // one button per day that has ballots, so any day is a single tap away
+  sel.innerHTML = rounds.map(function(r){ return '<button type="button" class="nvb-daychip'+(r===night?' on':'')+'" data-round="'+r+'" aria-pressed="'+(r===night)+'">Day '+r+'</button>'; }).join('');
   var idx = rounds.indexOf(night);
   prev.hidden = next.hidden = rounds.length<2;
   prev.disabled = idx<=0; next.disabled = idx>=rounds.length-1;
+  if(notebookVoteMode==='all'){ textEl.hidden = true; return; }
   var x = notebookVoteInspectId && byId(notebookVoteInspectId);
   var first = x ? x.name.split(' ')[0] : '';
   if(x){
@@ -11351,6 +11368,34 @@ function renderNotebookVoteBanner(){
     textEl.hidden = true;   // nothing picked yet: no text over the cards
   }
 }
+// An open notebook is rebuilt whenever a fresh game state arrives, so a dossier or the vote lookup never keeps showing
+// "no ballots yet" after a vote has been revealed.
+function refreshNotebookLive(){
+  if(!notebookOpen || !latestView) return;
+  if(notebookOpenPlayerId && byId(notebookOpenPlayerId)) renderNotebookDossier(notebookOpenPlayerId);
+  else renderNotebookDirectory();
+}
+// "All ballots" view of one day: every vote grouped under who it was cast for, so the whole result reads at a glance.
+function notebookBallotSheetHTML(night){
+  if(night === null) return '<div class="nbs"><p class="nbs-empty">No votes have been revealed yet. Each day\u2019s ballots appear here once its vote ends.</p></div>';
+  var groups = {}, order = [], silent = [];
+  (latestView.players||[]).forEach(function(p){
+    var v = notebookVoteIn(p.id, night);
+    if(!v){ silent.push(p); return; }
+    var key = v.targetId || 'abstain';
+    if(!groups[key]){ groups[key] = []; order.push(key); }
+    groups[key].push(p);
+  });
+  order.sort(function(a,b){ if(a==='abstain') return 1; if(b==='abstain') return -1; return groups[b].length - groups[a].length; });
+  var cast = 0; order.forEach(function(k){ if(k!=='abstain') cast += groups[k].length; });
+  var cards = order.map(function(k){
+    var t = k==='abstain' ? null : byId(k);
+    var head = t ? '<img src="'+notebookPortraitFor(t)+'" alt=""><b>'+escapeHtmlMp(t.name)+'</b><span>'+groups[k].length+(groups[k].length===1?' vote':' votes')+'</span>' : '<b>Abstained</b><span>'+groups[k].length+'</span>';
+    var voters = groups[k].map(function(p){ return '<li>'+escapeHtmlMp(p.name)+'</li>'; }).join('');
+    return '<div class="nbs-card'+(t && t.alive===false && groups[k].length === Math.max.apply(null, order.map(function(o){ return groups[o].length; })) ? ' top' : '')+'"><div class="nbs-head">'+head+'</div><ul>'+voters+'</ul></div>';
+  }).join('');
+  return '<div class="nbs"><div class="nbs-title">Day '+night+': '+cast+' ballots cast'+(silent.length ? ', '+silent.length+' with no ballot' : '')+'</div><div class="nbs-grid">'+cards+'</div></div>';
+}
 function renderNotebookDirectory(){
   var grid = document.getElementById('notebook-directory-grid');
   if(!latestView){ grid.innerHTML = ''; return; }
@@ -11358,7 +11403,8 @@ function renderNotebookDirectory(){
   var before = {};
   Array.prototype.forEach.call(grid.querySelectorAll('.notebook-card'), function(c){ var r=c.getBoundingClientRect(); before[c.getAttribute('data-player-id')] = {x:r.left, y:r.top}; });
   var players = notebookSortedPlayers().slice(0, 16);
-  grid.innerHTML = notebookSlotsHTML(players.length) + players.map(function(p, i){ return notebookCardHTML(p, i); }).join('');
+  if(notebookFilter==='votes' && notebookVoteMode==='all'){ grid.innerHTML = notebookBallotSheetHTML(notebookActiveRound()); }
+  else grid.innerHTML = notebookSlotsHTML(players.length) + players.map(function(p, i){ return notebookCardHTML(p, i); }).join('');
   var titleEl = document.getElementById('notebook-dir-title');
   titleEl.hidden = notebookFilter==='votes';
   var alive = (latestView.players||[]).filter(function(p){ return p.alive; }).length;
@@ -11604,6 +11650,10 @@ document.getElementById('notebook-filter-bar').addEventListener('click', functio
     b.setAttribute('aria-selected', active ? 'true' : 'false');
   });
   renderNotebookDirectory();
+});
+document.getElementById('notebook-vote-day').addEventListener('click', function(e){
+  var chip = e.target.closest && e.target.closest('.nvb-daychip'); if(!chip) return;
+  SoundFX.click(); notebookVoteRound = Number(chip.getAttribute('data-round')); renderNotebookDirectory();
 });
 document.getElementById('notebook-vote-prev').addEventListener('click', function(){
   var rounds = notebookVoteRounds(), i = rounds.indexOf(notebookActiveRound());
@@ -12161,7 +12211,10 @@ var DAYTIME_IMG = {
   document.getElementById('notebook-dossier-vote-btn').style.backgroundImage = 'url('+DAYTIME_IMG.notebookVoteBtn+')';
 })();
 var stageIAmQueued = false;
-document.getElementById('daylayout-stage-request-btn').addEventListener('click', function(){ sendWS({type: stageIAmQueued ? 'leaveQueue' : 'joinQueue'}); });
+document.getElementById('daylayout-stage-request-btn').addEventListener('click', function(){
+  if(!GAME_CONFIG.voiceEnabled){ var sub = document.getElementById('daylayout-stage-subtitle'); if(sub){ sub.classList.remove('flash'); void sub.offsetWidth; sub.classList.add('flash'); } return; }
+  sendWS({type: stageIAmQueued ? 'leaveQueue' : 'joinQueue'});
+});
 document.getElementById('daylayout-stage-mute-btn').addEventListener('click', function(){
   // Dual-purpose per explicit direction: "mutes whoever is speaking,
   // including yourself" - if you're the speaker this is a real broadcast

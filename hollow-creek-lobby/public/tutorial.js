@@ -262,39 +262,39 @@
     var S = [];
     function add(o){ S.push(o); return o; }
     // ---- intro
-    add({ kind:'intro', title:'Welcome to Hollow Creek', noBack:true,
+    add({ q:1, kind:'intro', title:'Welcome to Hollow Creek', noBack:true,
       text:'A quiet town. A few of its people are secretly <b class="tut-red">the Mafia</b>. Everyone else is <b class="tut-green">the Town</b>, and nobody knows who is who.<br><br><b>Town wins</b> by voting out every mafia member.<br><b>Mafia wins</b> by killing until they equal the Town.<br><br>This 4-minute practice round walks you through a real game, one step at a time.' });
-    add({ kind:'intro', title:'Every round has two halves',
+    add({ q:1, kind:'intro', title:'Every round has two halves',
       text:'<div class="tut-halves"><div><span class="tut-moon">&#9790;</span><b>Night</b><br>Everyone acts in secret. The mafia choose someone to kill. Special roles use their powers.</div><div><span class="tut-sun">&#9728;</span><b>Day</b><br>The town learns who died, talks it over, accuses, defends, and finally <b>votes someone out</b>.</div></div>Then night falls again, until one side wins.' });
     add({ kind:'intro', title:'You have a secret role',
       text:'At the start, every player is dealt a role that only they can see. Some are plain townsfolk. Others have powers: the <b>Detective</b> investigates, the <b>Doctor</b> protects, the <b>Godfather</b> silences.<br><br>In this practice round <b>you are the Detective</b>. Tap <i>Next</i> and night will fall.' , nextLabel:'Begin practice round' });
     // ---- night
-    add({ title:'Night falls', block:false, noBack:true, noForward:true, place:'t',
+    add({ q:1, title:'Night falls', block:false, noBack:true, noForward:true, place:'t',
       enter:function(){ enterNight(); },
       text:'Every game opens with this beat. Next, the town deals you your secret role.',
       until:function(){ return shown('role-reveal-screen'); }, auto:300 });
-    add({ title:'Your secret role', target:'#role-reveal-card|#role-reveal-continue-btn', pad:14, place:'r', noBack:true, noForward:true,
+    add({ q:1, title:'Your secret role', target:'#role-reveal-card|#role-reveal-continue-btn', pad:14, place:'r', noBack:true, noForward:true,
       text:'You are <b>the Detective</b>. Each night you investigate one player and learn whether they look <b class="tut-red">guilty</b> or <b class="tut-green">innocent</b>.<br><br>Keep your role close: the mafia would love to kill a Detective.',
       hint:'Press <b>Begin the night</b>.', until:function(){ return shown('panel-night'); }, auto:400 });
     add({ title:'Your night action', target:'#night-action', place:'r', noBack:true, noForward:true,
       text:'This card is your power for the night. Only you can see it. Everyone with a night role is making a choice like this right now, and night ends once everybody has locked in (or the timer runs out).' });
-    add({ title:'Choose a player', target:'#night-action .na-select', place:'r', noForward:true,
+    add({ q:1, title:'Choose a player', target:'#night-action .na-select', place:'r', noForward:true,
       text:'Every night action works the same way: pick a player, then confirm.',
       hint:'Click <b>Choose a player</b>.', until:function(){ return typeof nightUI !== 'undefined' && !!nightUI.picking; },
       force:function(){ var b = document.querySelector('#night-action .na-select'); if(b) b.click(); } });
-    add({ title:'Who do you suspect?', target:'#night-action', place:'r', noForward:true,
+    add({ q:1, title:'Who do you suspect?', target:'#night-action', place:'r', noForward:true,
       enter:function(){ pulsePick(true); }, exit:function(){ pulsePick(false); },
       text:'Everyone in town is shown the same way. For this demo, <b>Dex Marlowe</b> has been acting strange. Pick him (or anyone you like).',
       hint:'Click a player\'s portrait.', until:function(){ return typeof nightUI !== 'undefined' && !nightUI.picking && nightUI.sel && !!nightUI.sel.inv; },
       force:function(){ var b = document.querySelector('#night-action .na-person[data-id="tut-dex"]') || document.querySelector('#night-action .na-person'); if(b) b.click(); } });
-    add({ title:'Lock it in', target:'#night-action .na-confirm', place:'r', noForward:true,
+    add({ q:1, title:'Lock it in', target:'#night-action .na-confirm', place:'r', noForward:true,
       text:'The Confirm button turns red once you have chosen someone. You can still change your mind (click it again) until every action is confirmed.',
       hint:'Press the red <b>Confirm</b> button.', until:function(){ return !!T.flags.nightSent; },
       force:function(){ var b = document.querySelector('#night-action .na-confirm'); if(b) b.click(); } , auto:600 });
     add({ title:'Waiting for dawn', target:'#night-sleep-card', place:'r', noBack:true, noForward:true,
       text:'You are locked in. Your actions stay private. Once the whole town has acted, the night ends after a short pause so the change to morning is smooth.<br><br>While you wait you can open your <b>Notebook</b> or the <b>Case File</b> with the buttons below.' , nextLabel:'Skip to morning' });
     // ---- morning
-    add({ title:'Dawn breaks', block:false, noBack:true, noForward:true, place:'t',
+    add({ q:1, title:'Dawn breaks', block:false, noBack:true, noForward:true, place:'t',
       enter:function(){ enterMorning(); },
       text:'First you see your private result, then the whole town finds out who died overnight. Click <b>Continue</b> on each screen.',
       until:function(){ return shown('panel-day'); }, auto:500 });
@@ -329,7 +329,7 @@
       skipIf:function(){ return !T.flags.joined; },
       enter:function(){ later(function(){ stageMsg(null); }, 9000); },
       text:'Your turn is timed when others are waiting. While <i>someone else</i> speaks you can give them <b>+5 seconds</b>, or fill the red <b>kick</b> button together with the room to remove a speaker who is hogging the floor. You can also leave the stage yourself.' });
-    add({ title:'Town Talk', target:'#daylayout-chat-frame', pad:0, place:'r', noForward:true,
+    add({ q:1, title:'Town Talk', target:'#daylayout-chat-frame', pad:0, place:'r', noForward:true,
       text:'The main chat. Everyone sees it. Use it to <b>accuse</b> ("I accuse Dex"), <b>defend</b>, ask questions and trade information. The quick buttons under the chat give you starters.<br><br>Careful: accusations and your words are tracked and feed the Town Heat.',
       hint:'Type <i>I accuse Dex</i> and press <b>Send</b>.', until:function(){ return !!T.flags.chatted; },
       force:function(){ onSend({ type:'dayChat', text:'I accuse Dex' }); }, auto:2200 });
@@ -344,27 +344,27 @@
     add({ title:'Your toolbox', target:'#bottom-nav', pad:6, place:'t', noForward:true,
       text:'<b>Case Files</b> recap everything that has happened, list who has <b>claimed</b> which role, and show every role in play. <b>Notebook</b> is your private dossier. <b>Match History</b> is a round-by-round log, and <b>Settings</b> has sound, accessibility and display options.' });
     // ---- vote
-    add({ title:'Voting opens', target:'#daylayout-timer-bar', place:'b', noBack:true, noForward:true,
+    add({ q:1, title:'Voting opens', target:'#daylayout-timer-bar', place:'b', noBack:true, noForward:true,
       enter:function(){ enterVote(); },
-      text:'Discussion is over. Now everyone votes for who they think is mafia. The player with the most votes is <b>eliminated</b> and their role is revealed.' });
-    add({ title:'Cast your vote', target:'#day-quick-vote-btn|#daylayout-roster-grid|#daylayout-roster-nav', pad:6, place:'r', noBack:true, noForward:true,
+      text:'Discussion is over. Now everyone votes for who they think is mafia. The player with the most votes is <b>eliminated</b> and their role is revealed. If two players tie, lots are drawn between them.' });
+    add({ q:1, title:'Cast your vote', target:'#day-quick-vote-btn|#daylayout-roster-grid|#daylayout-roster-nav', pad:6, place:'r', noBack:true, noForward:true,
       text:'Press <b>Vote for&hellip;</b> and then click a player, or open a player\'s notebook page and press <b>Vote for</b> there. You can change your vote until the timer ends. For this demo, vote for <b>Dex</b>.',
       hint:'Pick a player to vote for.', until:function(){ return !!T.flags.voted; },
       force:function(){ if(typeof selectVoteTarget === 'function') selectVoteTarget('tut-dex'); else onSend({ type:'dayVote', targetId:'tut-dex' }); }, auto:1700 });
     add({ title:'Your ballot is in', target:'.voting-box-col|.vote-confirmed-card|.voting-your-vote', pad:10, place:'t', noBack:true, noForward:true,
       text:'Your ballot slips into the box. Votes stay secret until the reveal, and you can still change yours before time is up by picking someone else.' });
-    add({ title:'The votes are counted', noBack:true, noForward:true, nextLabel:'See the result',
+    add({ q:1, title:'The votes are counted', noBack:true, noForward:true, nextLabel:'See the result',
       text:function(){
         var dex = T.flags.voteTarget === 'tut-dex';
         return dex ? 'Everyone else voted too. <b>Dex Marlowe</b> has the most votes, so he is eliminated... and his role is revealed: <b class="tut-red">Mafia</b>!<br><br>The Detective was right.'
-                   : 'Everyone else voted too. The town split its votes and nobody had a clear majority. In a real game a tie means nobody is eliminated.<br><br>(In this practice round, Dex really was the mafia.)'; } });
-    add({ title:'The Town wins!', noBack:true, noForward:true, nextLabel:'Finish tutorial',
+                   : 'Everyone else voted too. Two players tied for the most votes. In a real game a tie is settled by <b>drawing lots</b> between the tied players (a living Mayor\'s own pick breaks it instead).<br><br>(In this practice round, Dex really was the mafia.)'; } });
+    add({ q:1, title:'The Town wins!', noBack:true, noForward:true, nextLabel:'Finish tutorial',
       text:'<div class="tut-finish"><b>What to remember</b><ul>'
         + '<li><b>Night</b>: use your power, then wait for dawn.</li>'
         + '<li><b>Day</b>: read the news, talk, accuse, defend. Use the <b>Notebook</b> to keep track.</li>'
         + '<li><b>Heat</b> is danger. Defend yourself before it gets high.</li>'
         + '<li><b>Vote</b> carefully: a wrong vote helps the mafia.</li></ul>'
-        + 'Town wins by eliminating all mafia. Mafia wins when they equal the town. You also earn points for good plays, and dead players still get to watch the end.<br><br>You are ready. Good luck, detective.</div>' });
+        + 'Town wins by eliminating all mafia. Mafia wins when they equal the town. You also earn points for good plays, and dead players still get to watch the end.<br><br>Want more? <b>How to Play</b> on the home screen has the rules and every role, and the full practice tutorial (Notebook, Heat, the Stage) is in Settings.<br><br>You are ready. Good luck, detective.</div>' });
     return S;
   }
   function pulsePick(on){
@@ -374,10 +374,10 @@
   }
 
   // ---------------------------------------------------------------- lifecycle
-  function start(onFinish){
+  function start(onFinish, opts){
     if(T.active) return;
     if(typeof myRoomCode !== 'undefined' && myRoomCode){ if(typeof showComingSoonToast === 'function'){ /* reuse toast style */ } alert('Leave your current room before starting the tutorial.'); return; }
-    T.active = true; T.idx = 0; T.flags = {}; T.onTimers = []; T.onFinish = onFinish || null; T.steps = buildSteps();
+    T.active = true; T.idx = 0; T.flags = {}; T.onTimers = []; T.onFinish = onFinish || null; T.quick = !!(opts && opts.quick); T.steps = buildSteps().filter(function(st){ return !T.quick || st.q; });
     T.origSendWS = window.sendWS;
     window.sendWS = onSend;
     T.origBecome = window.onBecomeSpeaker; window.onBecomeSpeaker = function(){};   // never ask for the microphone during the practice round

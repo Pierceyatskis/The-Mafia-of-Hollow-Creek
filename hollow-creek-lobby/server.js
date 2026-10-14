@@ -862,9 +862,11 @@ wss.on('connection', (socket) => {
       });
       if (openCode) {
         joinRoom(socket, openCode, name, avatarKey, color, gameIconKey);
+        socket.send(JSON.stringify({ type: 'quickMatchResult', matched: true, roomCode: openCode }));
         console.log(`${name} quick-matched into room ${openCode}`);
       } else {
         const code = createRoom(socket, name, true, avatarKey, color, wantsVoice, gameIconKey);
+        socket.send(JSON.stringify({ type: 'quickMatchResult', matched: false, roomCode: code }));   // nobody was waiting: the client explains it is hosting a new public room
         console.log(`Room ${code} created via quick-match by ${name}`);
       }
     }

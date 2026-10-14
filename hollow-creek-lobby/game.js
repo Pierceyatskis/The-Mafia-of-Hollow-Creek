@@ -76,6 +76,21 @@ function buildRolePool(config){
 // seats: array of {id, name, isHuman} for REAL connected players, in the order
 // they should be seated first. Remaining slots up to config.playerCount are
 // filled with placeholder characters from CHARACTERS (not yet used this game).
+// Every seat gets its own shadowed portrait so the town board and notebook are not a wall of identical silhouettes.
+// A player's own chosen icon is kept unless someone else already has it; everyone else is dealt one that is still free.
+const GAME_ICON_KEYS = Array.from({length: 20}, (_, i) => 'avatar' + (16 + i));
+function assignGameIcons(players){
+  const used = new Set();
+  players.forEach(p => {
+    if(p.gameIconKey && GAME_ICON_KEYS.includes(p.gameIconKey) && !used.has(p.gameIconKey)) used.add(p.gameIconKey);
+    else p.gameIconKey = null;
+  });
+  const pool = shuffle(GAME_ICON_KEYS.slice());
+  players.forEach(p => {
+    if(!p.gameIconKey){ const k = pool.find(x => !used.has(x)); if(k){ p.gameIconKey = k; used.add(k); } }
+  });
+}
+
 function createGame(seats, config){
   config = Object.assign({playerCount: Math.max(MIN_PLAYERS, seats.length), mafiaCount: 0, roles: DEFAULT_ROLES_CONFIG}, config);
   config.playerCount = Math.max(MIN_PLAYERS, Math.min(MAX_PLAYERS, config.playerCount, CHARACTERS.length + seats.length));
@@ -110,13 +125,14 @@ function createGame(seats, config){
     });
   });
 
+  assignGameIcons(players);
   return {
     night: 1, phase: 'night', players, bountyTarget: null, bountyPoints: 0, history: [],
     chatLog: [], mafiaChatLog: [], cultChatLog: [], voteLog: [], voteHistory: [], winner: null, gameOver: false,
     pendingNightVotes: {}, // playerId -> {kill, silence, protect, investigate, bounty, hideBehind}
     pendingDayVotes: {}, // playerId -> targetId
     detectiveLog: [], consigliereLog: [], morticianLog: [], farmerRevengeName: null, farmerRevengePending: null,
-    mayorRevealedId: null, lastDayVoteMayorTiebreak: false,
+    mayorRevealedId: null, lastDayVoteMayorTiebreak: false, lastDayVoteTie: null,
     // PREBETA Task 7 - who died in the immediately preceding NIGHT
     // specifically (never a day-vote elimination - those are already public
     // via the lynch reveal). Set to this round's own nightDeaths at the end
@@ -728,6 +744,9 @@ function resolveDayVote(state, timedOutFallbackId){
     leadId = leaders[0];
   }
   const lead = noVotes ? null : byId(state, leadId);
+  // Remembered for the reveal screen: who tied, how many votes each had, and whether a living Mayor's pick (rather than the
+  // draw of lots) settled it. Null when there was a clear leader.
+  state.lastDayVoteTie = (leaders.length > 1 && lead) ? { ids: leaders.slice(), votes: maxV, mayorResolved: mayorTiebreakResolved, winnerId: lead.id } : null;
   if(lead){
     lead.alive = false;
     log(state, lead.name+' ('+lead.role+') was voted out by the town.');
@@ -1469,6 +1488,7 @@ function getPlayerView(state, playerId){
     // never role-gated, so it never becomes a tell about who the Mayor is -
     // it only ever says a tie was broken this round, not by whom.
     mayorTiebreakResolved: state.lastDayVoteMayorTiebreak,
+    lastVoteTie: state.lastDayVoteTie || null,
     // A short private recap of last night for the roles that otherwise learn nothing at dawn: did the Doctor's
     // protection matter, and what became of the family's target. Null for everyone else.
     myNightNote: nightNoteFor(state, me),

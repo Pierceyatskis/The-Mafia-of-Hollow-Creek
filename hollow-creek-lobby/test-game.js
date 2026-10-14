@@ -1019,4 +1019,27 @@ assert(resCultF.cultConvertedPlayer === null, 'Phase2 Task5: resolveNight confir
   assert(h.contributions.some(c => c.kind === 'accused' && c.who === 'B' && c.pct > 0) && h.contributions.some(c => c.kind === 'vote' && c.who === 'C' && c.pct > 0), 'Heat breakdown: lists who accused and who voted against you, with each one\'s share');
 }
 
+
+// Ties, and distinct portraits
+{
+  const mk = () => G.createGame([{id:'a',name:'A',gameIconKey:'avatar20'},{id:'b',name:'B',gameIconKey:'avatar20'},{id:'c',name:'C'},{id:'d',name:'D'},{id:'e',name:'E'},{id:'f',name:'F'}], {playerCount:6, mafiaCount:0, roles:{Godfather:true,Detective:true}});
+  const st = mk();
+  const keys = st.players.map(p => p.gameIconKey);
+  assert(new Set(keys).size === keys.length && keys.every(Boolean), 'Portraits: every seat gets its own game icon');
+  assert(st.players[0].gameIconKey === 'avatar20' && st.players[1].gameIconKey !== 'avatar20', 'Portraits: a chosen icon is kept, a duplicate pick is re-dealt');
+  const t = mk();
+  const [p0, p1, p2, p3, p4, p5] = t.players;
+  // p0 and p1 tie with two votes each
+  [[p2, p0], [p3, p0], [p4, p1], [p5, p1], [p0, p1], [p1, p0]].forEach(([voter, target]) => { t.pendingDayVotes[voter.id] = target.id; });
+  t.pendingDayVotes[p0.id] = p1.id; t.pendingDayVotes[p1.id] = p0.id;
+  // 3 votes each for p0 and p1 would need all six voters; recount what was set
+  const r = G.resolveDayVote(t);
+  const v = G.getPlayerView(t, p2.id);
+  assert(v.lastVoteTie && v.lastVoteTie.ids.length === 2 && !v.lastVoteTie.mayorResolved && v.lastVoteTie.ids.includes(v.lastVoteTie.winnerId), 'Ties: the reveal data names the tied players and who the draw picked');
+  const u = mk();
+  u.players.forEach((p, i) => { u.pendingDayVotes[p.id] = u.players[(i + 1) % 6].id; });
+  u.players.forEach(p => { u.pendingDayVotes[p.id] = u.players[0].id === p.id ? u.players[1].id : u.players[0].id; });
+  G.resolveDayVote(u);
+  assert(G.getPlayerView(u, 'c').lastVoteTie === null, 'Ties: no tie data when one player clearly had the most votes');
+}
 console.log('\nAll game.js checks completed.');
