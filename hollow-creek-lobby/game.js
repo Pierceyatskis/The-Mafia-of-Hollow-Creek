@@ -4,17 +4,17 @@
 // Every function here takes/returns plain data so it's easy to test in isolation.
 
 const CHARACTERS = [
-  {id:'mabel', name:'Mabel Finch', occ:'bakery owner', color:'#B8502A'},
-  {id:'otis', name:'Otis Redwood', occ:'mill hand', color:'#6B5B8A'},
-  {id:'agatha', name:'Sister Agatha Pruitt', occ:'church organist & town healer', color:'#4C7C67'},
-  {id:'nettie', name:'Nettie Calloway', occ:'town librarian', color:'#B08A3E'},
-  {id:'corky', name:'Corky Wade', occ:'general store clerk, ex-deputy', color:'#7A6A54'},
-  {id:'ida', name:'Ida Wexford', occ:'retiree, pie baker', color:'#9A7CA0'},
-  {id:'silas', name:'Silas Crane', occ:'church groundskeeper', color:'#4E6E8E'},
-  {id:'dot', name:'Dot Higgins', occ:'diner owner', color:'#C1544B'},
-  {id:'walt', name:'Walt Pemberton', occ:'town mechanic', color:'#5C6B47'},
-  {id:'roz', name:'Roz Okafor', occ:'schoolteacher', color:'#3E6E8E'},
-  {id:'tom', name:'Big Tom Yarrow', occ:'feed store owner', color:'#8C6B3E'}
+  {id:'mabel', name:'Mabel', fullName:'Mabel Finch', occ:'bakery owner', color:'#B8502A'},
+  {id:'otis', name:'Otis', fullName:'Otis Redwood', occ:'mill hand', color:'#6B5B8A'},
+  {id:'agatha', name:'Agatha', fullName:'Sister Agatha Pruitt', occ:'church organist & town healer', color:'#4C7C67'},
+  {id:'nettie', name:'Nettie', fullName:'Nettie Calloway', occ:'town librarian', color:'#B08A3E'},
+  {id:'corky', name:'Corky', fullName:'Corky Wade', occ:'general store clerk, ex-deputy', color:'#7A6A54'},
+  {id:'ida', name:'Ida', fullName:'Ida Wexford', occ:'retiree, pie baker', color:'#9A7CA0'},
+  {id:'silas', name:'Silas', fullName:'Silas Crane', occ:'church groundskeeper', color:'#4E6E8E'},
+  {id:'dot', name:'Dot', fullName:'Dot Higgins', occ:'diner owner', color:'#C1544B'},
+  {id:'walt', name:'Walt', fullName:'Walt Pemberton', occ:'town mechanic', color:'#5C6B47'},
+  {id:'roz', name:'Roz', fullName:'Roz Okafor', occ:'schoolteacher', color:'#3E6E8E'},
+  {id:'tom', name:'Big Tom', fullName:'Big Tom Yarrow', occ:'feed store owner', color:'#8C6B3E'}
 ];
 
 const ROLE_LABEL = {
@@ -114,7 +114,9 @@ function createGame(seats, config){
   });
   const remaining = config.playerCount - seats.length;
   const usedIds = new Set(seats.map(s => s.id));
-  const bench = CHARACTERS.filter(c => !usedIds.has(c.id));
+  // A real player whose name matches a short townsperson name ("Tom") keeps it; the townsperson falls back to their full name.
+  const takenNames = new Set(seats.map(s => String(s.name).trim().toLowerCase()));
+  const bench = CHARACTERS.filter(c => !usedIds.has(c.id)).map(c => takenNames.has(c.name.toLowerCase()) ? Object.assign({}, c, {name: c.fullName}) : c);
   bench.slice(0, Math.max(0, remaining)).forEach((c, i) => {
     const roleIdx = seats.length + i;
     players.push({

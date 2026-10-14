@@ -12,7 +12,7 @@ function assert(cond, msg){
   else console.log('ok - '+msg);
 }
 
-const NAMES = G.CHARACTERS.map(c => c.name);
+const NAMES = G.CHARACTERS.map(c => c.fullName);
 // Sanity: the roster this whole file leans on actually has the title-
 // prefixed / three-word names the fuzzy matcher needs to handle.
 assert(NAMES.includes('Corky Wade'), 'fixture sanity: Corky Wade is in the real character roster');

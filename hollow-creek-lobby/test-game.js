@@ -1042,4 +1042,11 @@ assert(resCultF.cultConvertedPlayer === null, 'Phase2 Task5: resolveNight confir
   G.resolveDayVote(u);
   assert(G.getPlayerView(u, 'c').lastVoteTie === null, 'Ties: no tie data when one player clearly had the most votes');
 }
+{
+  // Short townsperson names; a real player called "Tom" keeps it and the townsperson falls back to the full name
+  const g = G.createGame([{id:'p1', name:'Big Tom', isHuman:true}], {playerCount:12, mafiaCount:2});
+  const names = g.players.map(p => p.name);
+  assert(names.includes('Mabel') && !names.some(n => /Finch|Pruitt/.test(n)), 'Names: placeholder townspeople use short names');
+  assert(new Set(names.map(n => n.toLowerCase())).size === names.length, 'Names: no two players share a name');
+}
 console.log('\nAll game.js checks completed.');
