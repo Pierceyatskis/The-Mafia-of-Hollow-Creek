@@ -60,6 +60,21 @@ body.game-mode{height:100%; overflow:hidden;}
    text, which is invisible while a game is actually on screen) - a dropped
    socket mid-game used to leave the player staring at a frozen phase with
    no feedback and no way back in. This is the visible half of that fix. */
+/* join screen: three option cards instead of one long left-aligned column */
+#panel-mpentry .mp-intro{font-size:17px; color:var(--parchment-dim); line-height:1.6; margin:0 0 18px;}
+#panel-mpentry .mp-playing-as{display:flex; align-items:center; gap:12px; margin-bottom:22px; flex-wrap:wrap;}
+#panel-mpentry .mp-playing-label{font-family:var(--font-type); font-size:14px; letter-spacing:1.2px; text-transform:uppercase; color:var(--gold);}
+#panel-mpentry #mpentry-name-display{font-family:var(--font-ornate); font-size:22px; color:var(--gold-bright);}
+#panel-mpentry #mpentry-edit-profile-btn{padding:5px 14px; font-size:13px;}
+#panel-mpentry .mp-grid{display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:18px; align-items:stretch;}
+#panel-mpentry .mp-card{display:flex; flex-direction:column; gap:12px; padding:20px 22px 22px; border:1px solid var(--gold-dim); border-radius:10px; background:linear-gradient(rgba(34,26,19,0.82), rgba(20,15,11,0.9)); box-shadow:0 8px 22px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(227,177,85,0.08);}
+#panel-mpentry .mp-card h3{margin:0; font-family:var(--font-ornate); font-size:24px; letter-spacing:0.5px; color:var(--gold-bright);}
+#panel-mpentry .mp-card p{margin:0; font-size:15px; line-height:1.5; color:var(--parchment-dim); flex:1;}
+#panel-mpentry .mp-card .checkbox-row{display:flex; align-items:flex-start; gap:10px; font-size:14px; line-height:1.4; color:var(--parchment-dim); margin:0;}
+#panel-mpentry .mp-card .checkbox-row input{width:auto; margin-top:2px; flex-shrink:0;}
+#panel-mpentry .mp-card .btn{align-self:flex-start; font-size:16px; padding:12px 26px;}
+#panel-mpentry .mp-card input[type=text]{text-transform:uppercase; width:100%; max-width:200px; box-sizing:border-box; background:var(--panel-2); border:1px solid var(--gold-dim); border-radius:6px; padding:11px 14px; font-family:var(--font-type); font-size:22px; letter-spacing:6px; color:var(--parchment);}
+@media (max-width:1100px){ #panel-mpentry .mp-grid{grid-template-columns:1fr;} }
 #reconnect-banner{display:none; position:fixed; top:14px; left:50%; transform:translateX(-50%); z-index:1001; background:rgba(20,16,12,0.94); border:2px solid var(--gold-dim); border-radius:6px; padding:10px 20px; font-family:var(--font-type); font-size:13px; letter-spacing:0.5px; color:var(--parchment); box-shadow:0 4px 14px rgba(0,0,0,0.5);}
 #reconnect-banner.showing{display:block;}
 
@@ -2164,6 +2179,7 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
      syncRoleBadgePlacement) below 900px already, which covers this range too. */
   #panel-night, #panel-day, #panel-end{margin:-14px; padding:14px;}
   body{padding:16px 10px 40px;}
+  #top-header{padding-top:66px;}   /* room above for the fixed Leave/Back button so it never sits on the title */
   .folder{padding:14px;}
   header h1{font-size:32px;}
   .home-title-area{padding:7vh 0 20px;}
@@ -3008,22 +3024,31 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
       <span style="font-size:13px; color:var(--parchment);">You left a game that may still be going &mdash; room <b id="mpentry-rejoin-code"></b>.</span>
       <button class="btn" id="mpentry-rejoin-btn" style="margin-left:10px;">Rejoin it</button>
     </div>
-    <p style="font-size:13px; color:var(--parchment-dim); line-height:1.6; margin:0 0 16px;">Create a room and share the code, jump into an open public game, or join a friend's room directly.</p>
-    <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
-      <span style="font-family:var(--font-type); font-size:12px; letter-spacing:1px; text-transform:uppercase; color:var(--gold);">Playing as</span>
-      <span id="mpentry-name-display" style="font-family:var(--font-ornate); font-size:16px; color:var(--gold-bright);"></span>
-      <button class="btn ghost" id="mpentry-edit-profile-btn" style="padding:4px 12px; font-size:12px;">Edit</button>
+    <p class="mp-intro">Create a room and share the code, jump into an open public game, or join a friend's room directly.</p>
+    <div class="mp-playing-as">
+      <span class="mp-playing-label">Playing as</span>
+      <span id="mpentry-name-display"></span>
+      <button class="btn ghost" id="mpentry-edit-profile-btn">Edit</button>
     </div>
-    <label class="checkbox-row" style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--parchment-dim); margin-bottom:8px;"><input type="checkbox" id="mpentry-mic-pref-check" style="width:auto;"> I have a mic — match me into voice-enabled games</label>
-    <button class="btn" id="mpentry-quick-match-btn">Quick Match</button>
-    <div style="margin-top:20px;">
-      <label class="checkbox-row" style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--parchment-dim); margin-bottom:10px;"><input type="checkbox" id="mpentry-public-check" style="width:auto;"> Make my room public (joinable via Quick Match)</label>
-      <button class="btn" id="mpentry-create-btn">Create a room</button>
-    </div>
-    <div style="margin-top:20px;">
-      <label>Or join with a code</label>
-      <input type="text" id="mpentry-code-input" placeholder="ABCD" maxlength="4" style="text-transform:uppercase; max-width:160px; background:var(--panel-2); border:1px solid var(--gold-dim); border-radius:5px; padding:9px 11px; font-family:var(--font-body); font-size:14px; color:var(--parchment);">
-      <button class="btn" id="mpentry-join-btn" style="margin-left:8px;">Join room</button>
+    <div class="mp-grid">
+      <div class="mp-card">
+        <h3>Quick Match</h3>
+        <p>Drop into an open public game that is still gathering players.</p>
+        <label class="checkbox-row"><input type="checkbox" id="mpentry-mic-pref-check"> I have a mic &mdash; match me into voice-enabled games</label>
+        <button class="btn" id="mpentry-quick-match-btn">Quick Match</button>
+      </div>
+      <div class="mp-card">
+        <h3>Host a Game</h3>
+        <p>Open a room, then share the four-letter code with your friends.</p>
+        <label class="checkbox-row"><input type="checkbox" id="mpentry-public-check"> Make my room public (joinable via Quick Match)</label>
+        <button class="btn" id="mpentry-create-btn">Create a room</button>
+      </div>
+      <div class="mp-card">
+        <h3>Join a Friend</h3>
+        <p>Got a code? Type it in to take a seat at their table.</p>
+        <input type="text" id="mpentry-code-input" placeholder="ABCD" maxlength="4" autocomplete="off" autocapitalize="characters">
+        <button class="btn" id="mpentry-join-btn">Join room</button>
+      </div>
     </div>
     <p class="msg err" id="mpentry-error" style="display:none; margin-top:14px;"></p>
   </div>

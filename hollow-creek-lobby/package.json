@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node test-scoring.js && node test-game.js && node test-server.js && node test-chat-classifier.js && node test-browser.js"
   },
   "keywords": [],
   "author": "",
