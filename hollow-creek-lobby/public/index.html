@@ -12186,55 +12186,46 @@ document.getElementById('daylayout-stage-mute-btn').addEventListener('click', fu
 // every time; a distinct fallback set covers a round-1 death with no
 // recorded activity at all.
 var OBIT_INTROS = [
-  '{name} was found dead in the early hours of the morning.',
-  'The town awoke today to grim news: {name} was found dead.',
-  '{name}’s body was discovered this morning, sending a chill through Hollow Creek.',
-  'Hollow Creek mourns the loss of {name}, found dead overnight.'
+  '{name} was found dead this morning.',
+  '{name} was discovered dead at first light.',
+  'The body of {name} was found early this morning.'
 ];
 var OBIT_LASTWORDS = [
-  'Their last recorded words to the town were: “{text}.”',
-  'In their final remarks before the town, they said: “{text}.”',
-  'Town records show their last statement was: “{text}.”'
+  '{name}\'s last words to the town were: “{text}”',
+  '{name} was last heard to say: “{text}”',
+  '{name}\'s final remark in the town talk was: “{text}”'
 ];
 var OBIT_ROLECLAIM = [
-  'In their final address to the town, they had claimed: “{text}.”',
-  'Shortly before their death, they declared to all: “{text}.”',
-  'They had publicly stated: “{text}.”'
+  '{name} had told the town: “{text}”'
 ];
 var OBIT_ROLECLAIM_ROLE = [
-  'They had told the town they were the {role}.',
-  'Shortly before their death, they had claimed to be the {role}.',
-  'By their own account, they were the {role}.'
+  '{name} had told the town they were the {role}.',
+  '{name} had publicly claimed to be the {role}.',
+  'By {name}\'s own account, they were the {role}.'
 ];
 // How the dead player stood with the people around them, from the public record only (chat stances, accusations,
-// votes). One sentence, chosen by who was warm to whom - a kind word is never framed as "closeness" when the
-// other side was hostile.
+// votes). Every sentence names who did what, and a kind word is never framed as friendship when the other side was hostile.
 var OBIT_REL_MUTUAL = [
-  '{a} and {b} had stood up for one another in the days before.',
-  'Those who watched the town talk say {a} and {b} had each other\'s backs.',
-  '{a} and {b} were often on the same side, each speaking up for the other.'
+  '{a} and {b} had spoken up for one another.',
+  '{a} and {b} had stood by each other in the town talk.'
 ];
 var OBIT_REL_DEAD_DEFENDED = [
-  '{a} had spoken up in defense of {b}.',
-  'Not long before the end, {a} was vouching for {b} in front of the whole town.',
-  '{a} had told the town that {b} could be trusted.'
+  '{a} had spoken up for {b}.',
+  '{a} had defended {b} before the town.'
 ];
 var OBIT_REL_OTHER_DEFENDED = [
-  '{b} had come to {a}\'s defense when suspicion fell on them.',
-  '{b} was one of the few who stood up for {a}.',
-  '{b} had vouched for {a}, insisting they were no threat to the town.'
+  '{b} had spoken up for {a}.',
+  '{b} had defended {a} before the town.'
 ];
 var OBIT_REL_DEAD_BACKED = [
-  '{a} had backed {b}\'s side in the discussion.',
-  '{a} had sided with {b} when the town was talking.'
+  '{a} had sided with {b} in the discussion.'
 ];
 var OBIT_REL_OTHER_BACKED = [
-  '{b} had backed {a}\'s side in the discussion.',
-  '{b} had sided with {a} when the town was talking.'
+  '{b} had sided with {a} in the discussion.'
 ];
 var OBIT_REL_FEUD = [
-  '{a} and {b} had been at odds, each pointing a finger at the other.',
-  'There was no love lost between {a} and {b}: each had gone after the other.'
+  '{a} and {b} had accused each other.',
+  '{a} and {b} had been at odds, each accusing the other.'
 ];
 function obitRelationship(dead, view){
   var players = view.players || [], chat = view.chatLog || [];
@@ -12265,39 +12256,25 @@ function obitRelationship(dead, view){
   return obitPick(pool).replace(/\{a\}/g, dead.name).replace(/\{b\}/g, best.other.name);
 }
 var OBIT_ACCUSED = [
-  'Not long before their death, they had publicly accused {target}.',
-  'Town records show they had pointed the finger at {target}.',
-  'They had last raised suspicion against {target}.'
+  '{name} had accused {target}.',
+  '{name} had named {target} as a suspect.',
+  '{name} had pointed the finger at {target}.'
 ];
 var OBIT_ACCUSED_QUOTE = [
-  'Not long before their death, they had publicly accused {target}, telling the town: “{text}.”',
-  'Town records show they had pointed the finger at {target}: “{text}.”',
-  'They had last raised suspicion against {target}, saying: “{text}.”'
+  '{name} had accused {target}: “{text}”',
+  '{name} had named {target} as a suspect, saying: “{text}”',
+  '{name} had pointed the finger at {target}: “{text}”'
 ];
 var OBIT_VOTED = [
-  'When the town last called for a vote, they cast theirs for {target}.',
-  'Their final vote had been against {target}.',
-  'Records show their last ballot named {target}.'
+  '{name} cast their last ballot against {target}.',
+  'At the last vote, {name} voted against {target}.',
+  '{name}\'s last vote was against {target}.'
 ];
 var OBIT_CLOSING = [
-  'Beyond this, little else is known of their final hours.',
-  'The whole town is devastated to hear the news.',
-  'Town members are already speculating about the true origin of their death.',
-  'Whispers and rumors are already spreading through the streets of Hollow Creek.',
-  'Neighbors say the loss has left the whole town reeling.',
-  'Little else is known, and Hollow Creek is left to wonder what really happened.'
-];
-var OBIT_INVESTIGATION = [
-  'The exact cause of death has not yet been confirmed, and the town council has opened an inquiry.',
-  'Local authorities say the circumstances surrounding the death remain under investigation.',
-  'No official cause of death has been released, though an inquiry is already underway.',
-  'The town council has promised a full inquiry, though few expect it to move quickly.'
-];
-var OBIT_MEMORIAL = [
-  'A small memorial gathering is being arranged near the town square in their honor.',
-  'Friends and neighbors are already laying flowers along the road where they were last seen.',
-  'The church bell is expected to ring tonight in their memory.',
-  'Hollow Creek will hold a moment of silence at tomorrow’s town meeting.'
+  'The Chronicle will report further as the facts allow.',
+  'The town council has opened an inquiry.',
+  'Neighbors are asked to keep their doors locked after dark.',
+  'A service will be held at the chapel.'
 ];
 var OBIT_BYLINE = [
   '— Staff report, Hollow Creek Chronicle',
@@ -12305,16 +12282,26 @@ var OBIT_BYLINE = [
   '— Hollow Creek Chronicle, Morning Edition'
 ];
 var OBIT_NODATA = [
-  '{name} was found dead before the town ever had the chance to gather. Little is known of their final hours.',
-  'The town never heard from {name} - they were found dead before the first meeting could take place.',
-  '{name} was gone before the town could gather. No words, no votes, no accusations - only silence.'
+  '{name} was found dead before the town had gathered. Little is known of their last hours.',
+  'The town never heard from {name}: they were found dead before the first meeting.',
+  '{name} was gone before the town could gather. No words, no votes, no accusations.'
+];
+// the Chronicle's lead on a night when nobody died and nobody was saved
+var QUIET_NIGHT_STORY = [
+  'Hollow Creek passed the night without a death. The streets were quiet and no one reports anything amiss. The Chronicle reminds readers that quiet nights are not always what they seem.',
+  'No one was lost in the night. The town council thanks the watch for a calm evening, and neighbors are asked to stay alert all the same.'
 ];
 function obitPick(arr){ return arr[Math.floor(Math.random() * arr.length)]; }
-// Templates already supply the closing period after the quote - strip
-// one off the source message first so a message that already ends in
-// ./!/? doesn't end up with two punctuation marks in a row.
-function obitQuote(text){ return String(text || '').replace(/[.!?]+$/, ''); }
-function obitShort(text, max){ var t = obitQuote(text); return t.length > max ? t.slice(0, max - 1).replace(/\s+\S*$/, '') + '...' : t; }
+// Templates supply their own closing mark after a quote - strip a trailing ./!/? off the source message and add a period.
+function obitQuote(text){ return String(text || '').replace(/[.!?]+$/, '') + '.'; }
+function obitShort(text, max){ var t = String(text || '').replace(/[.!?]+$/, ''); if(t.length > max) t = t.slice(0, max - 1).replace(/\s+\S*$/, '') + '...'; return t + (/\.\.\.$/.test(t) ? '' : '.'); }
+function obitFill(t, map){ return t.replace(/\{(\w+)\}/g, function(m, k){ return map[k] != null ? map[k] : m; }); }
+// Who the morning paper is about: whoever the overnight report names as found dead (a lynch is yesterday's news).
+function lastNightVictim(view){
+  var report = view.cachedOvernightReport || '';
+  var named = (view.players || []).filter(function(p){ return !p.alive && report.indexOf(p.name) >= 0; });
+  return named.length ? named[0] : null;
+}
 function buildObituary(deadPlayer, view){
   var name = deadPlayer.name;
   var myChats = (view.chatLog || []).filter(function(m){ return m.playerId === deadPlayer.id && m.kind !== 'whisperAnnounce' && m.text; });
@@ -12326,37 +12313,34 @@ function buildObituary(deadPlayer, view){
   var myVotes = (view.voteHistory || []).filter(function(v){ return v.voterId === deadPlayer.id && v.targetId; });
   var lastVote = myVotes.length ? myVotes[myVotes.length - 1] : null;
   var relation = obitRelationship(deadPlayer, view);
-  if(!lastChat && !lastAccusation && !lastVote && !relation){
-    return obitPick(OBIT_NODATA).replace(/\{name\}/g, name) + ' ' + obitPick(OBIT_INVESTIGATION) + ' ' + obitPick(OBIT_MEMORIAL);
-  }
-  var sentences = [obitPick(OBIT_INTROS).replace('{name}', name)];
+  if(!lastChat && !lastAccusation && !lastVote && !relation) return obitFill(obitPick(OBIT_NODATA), {name: name}) + ' ' + obitPick(OBIT_CLOSING);
+  var sentences = [obitFill(obitPick(OBIT_INTROS), {name: name})];
   var accusingChats = myChats.filter(function(m){ return m.category === 'accusation' && m.targetId; });
   var lastAccusingChat = accusingChats.length ? accusingChats[accusingChats.length - 1] : null;
   // a line already used for the accusation or the role claim is not quoted a second time as "last words"
-  if(lastChat && lastChat !== lastAccusingChat && lastChat !== lastRoleClaim) sentences.push(obitPick(OBIT_LASTWORDS).replace('{text}', obitShort(lastChat.text, 110)));
+  if(lastChat && lastChat !== lastAccusingChat && lastChat !== lastRoleClaim) sentences.push(obitFill(obitPick(OBIT_LASTWORDS), {name: name, text: obitShort(lastChat.text, 110)}));
   if(lastRoleClaim){
     var claimed = lastRoleClaim.claimedRole && ROLE_SHORT[lastRoleClaim.claimedRole];
-    if(claimed) sentences.push(obitPick(OBIT_ROLECLAIM_ROLE).replace('{role}', claimed));
-    else sentences.push(obitPick(OBIT_ROLECLAIM).replace('{text}', obitShort(lastRoleClaim.text, 110)));
+    if(claimed) sentences.push(obitFill(obitPick(OBIT_ROLECLAIM_ROLE), {name: name, role: claimed}));
+    else sentences.push(obitFill(obitPick(OBIT_ROLECLAIM), {name: name, text: obitShort(lastRoleClaim.text, 110)}));
   }
-  // Prefer the actual accusing line (quoted) over the bare "they accused X" fallback.
+  // Prefer the actual accusing line (quoted) over the bare "accused X" fallback.
   if(lastAccusingChat){
     var quotedTarget = (view.players || []).find(function(p){ return p.id === lastAccusingChat.targetId; });
-    if(quotedTarget) sentences.push(obitPick(OBIT_ACCUSED_QUOTE).replace('{target}', quotedTarget.name).replace('{text}', obitShort(lastAccusingChat.text, 110)));
+    if(quotedTarget) sentences.push(obitFill(obitPick(OBIT_ACCUSED_QUOTE), {name: name, target: quotedTarget.name, text: obitShort(lastAccusingChat.text, 110)}));
     else lastAccusingChat = null;
   }
   if(!lastAccusingChat && lastAccusation){
     var accTarget = (view.players || []).find(function(p){ return p.id === lastAccusation.targetId; });
-    if(accTarget) sentences.push(obitPick(OBIT_ACCUSED).replace('{target}', accTarget.name));
+    if(accTarget) sentences.push(obitFill(obitPick(OBIT_ACCUSED), {name: name, target: accTarget.name}));
   }
   if(lastVote){
     var voteTarget = (view.players || []).find(function(p){ return p.id === lastVote.targetId; });
-    if(voteTarget) sentences.push(obitPick(OBIT_VOTED).replace('{target}', voteTarget.name));
+    if(voteTarget) sentences.push(obitFill(obitPick(OBIT_VOTED), {name: name, target: voteTarget.name}));
   }
   if(relation) sentences.push(relation);
-  // the closing lines are filler: only as many as fit the column
-  var closings = [obitPick(OBIT_CLOSING), Math.random() < 0.5 ? obitPick(OBIT_INVESTIGATION) : obitPick(OBIT_MEMORIAL)];
-  closings.forEach(function(c){ if(sentences.join(' ').length + c.length < 560) sentences.push(c); });
+  var closing = obitPick(OBIT_CLOSING);
+  if(sentences.join(' ').length + closing.length < 560) sentences.push(closing);
   return sentences.join(' ');
 }
 // Near-miss "narrow escape" story - the Chronicle's other front-page
@@ -12438,17 +12422,18 @@ function renderObituary(){
   // game.js resolveNight - so it only survives to the next morning's paper,
   // never lingers from an earlier round the way a standing death does).
   var survivor = latestView.cachedNearMissId ? (latestView.players || []).find(function(p){ return p.id === latestView.cachedNearMissId; }) : null;
-  var dead = survivor ? null : mostRecentlyDeadPlayer(latestView);
-  if(!survivor && !dead){ box.style.display = 'none'; circle.style.display = 'none'; underline.style.display = 'none'; return; }
+  var dead = survivor ? null : lastNightVictim(latestView);
+  var quiet = !survivor && !dead;
   box.style.display = 'block';
   circle.style.display = 'block';
   underline.style.display = 'block';
   var headlineEl = document.getElementById('daylayout-obit-headline');
-  var subject = survivor || dead;
+  var subject = survivor || dead || {name: 'Hollow Creek'};
   document.getElementById('daylayout-obit-headline-name').textContent = subject.name.toUpperCase();
-  document.getElementById('daylayout-obit-headline-sub').textContent = survivor ? 'NARROW ESCAPE' : 'FOUND DEAD';
-  document.getElementById('daylayout-obit-portrait').src = newsPortraitFor(subject);
-  document.getElementById('daylayout-obit-body').textContent = survivor ? buildSurvivorStory(survivor) : buildObituary(dead, latestView);
+  document.getElementById('daylayout-obit-headline-sub').textContent = survivor ? 'NARROW ESCAPE' : quiet ? 'A QUIET NIGHT' : 'FOUND DEAD';
+  document.getElementById('daylayout-obit-portrait').src = quiet ? DAYTIME_IMG.newsIconUnknown : newsPortraitFor(subject);
+  document.getElementById('daylayout-obit-portrait').style.display = quiet ? 'none' : '';
+  document.getElementById('daylayout-obit-body').textContent = survivor ? buildSurvivorStory(survivor) : quiet ? obitPick(QUIET_NIGHT_STORY) : buildObituary(dead, latestView);
   document.getElementById('daylayout-obit-byline').textContent = obitPick(OBIT_BYLINE);
   fitObituaryText();
   // The headline wraps to 1 or 2 lines depending on name length, so the
