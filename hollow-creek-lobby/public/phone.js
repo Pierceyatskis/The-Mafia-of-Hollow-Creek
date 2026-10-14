@@ -29,11 +29,23 @@
   };
   function nightRegion(){
     var f = document.getElementById('game-folder');
-    var h = f ? f.offsetHeight : 640;
-    return { x: 620, y: 140, w: 680, h: Math.max(560, 10 + h + 40) };
+    var h = f ? Math.max(f.offsetHeight, f.scrollHeight) : 640;   // the card can overflow the folder's own max-height
+    var r = { x: 620, y: 140, w: 680, h: Math.max(560, 10 + h + 40) };
+    return r;
+  }
+  // On a phone the mafia get a "Family" tab at night (their pick board and private chat) instead of a side panel.
+  function isFamilyNight(){
+    if(typeof latestView === 'undefined' || !latestView || latestView.phase !== 'night') return false;
+    var me = latestView.players.filter(function(p){ return p.id === myPlayerId; })[0];
+    return !!me && me.alive && me.align === 'mafia' && me.role !== 'Hitman';
+  }
+  function inFamilyTab(){ var c = document.getElementById('design-canvas'); return !!c && c.classList.contains('bg-night') && P.nightTab === 'family' && isFamilyNight(); }
+  function familyRegion(){
+    var fam = document.getElementById('mafia-chat-section');
+    return { x: 620, y: 150, w: 680, h: Math.max(520, (fam ? fam.offsetHeight : 600) + 40) };
   }
   function region(canvas){
-    if(canvas.classList.contains('bg-night')) return nightRegion();
+    if(canvas.classList.contains('bg-night')){ if(inFamilyTab()) return familyRegion(); return nightRegion(); }
     if(canvas.classList.contains('bg-day')) return REGIONS[P.tab && REGIONS[P.tab] ? P.tab : 'hall'];
     return { x: 0, y: 0, w: 1920, h: 1080 };
   }
@@ -42,6 +54,8 @@
     var inGame = canvas.classList.contains('game-mode');
     document.body.classList.toggle('phone', true);
     if(!inGame){ canvas.style.transform = 'none'; canvas.style.clipPath = ''; renderChrome(false); return; }
+    if(!isFamilyNight()) P.nightTab = 'night';
+    document.body.classList.toggle('fam-tab', inFamilyTab());
     var r = region(canvas);
     var availH = h - TOP - BOT;
     var s = Math.min(w / r.w, availH / r.h);
@@ -84,19 +98,21 @@
       if(REGIONS[t]){ setTab(t); }
       else if(t === 'notebook'){ if(typeof SoundFX !== 'undefined') SoundFX.playCaseFileOpen(); if(typeof openNotebookModal === 'function') openNotebookModal(); }
       else if(t === 'files'){ if(typeof SoundFX !== 'undefined') SoundFX.playCaseFileOpen(); if(typeof caseLogActiveTab !== 'undefined') caseLogActiveTab = 'rounds'; if(typeof openCaseLogModal === 'function') openCaseLogModal(); }
-      else if(t === 'night'){ if(typeof updateCanvasScale === 'function') updateCanvasScale(); }
+      else if(t === 'night'){ P.nightTab = 'night'; if(typeof updateCanvasScale === 'function') updateCanvasScale(); }
+      else if(t === 'family'){ P.nightTab = 'family'; P.famSeen = (latestView && latestView.mafiaChatLog) ? latestView.mafiaChatLog.length : 0; if(typeof updateCanvasScale === 'function') updateCanvasScale(); }
     });
   }
   var ICONS = {
     town: '<svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 100-8 4 4 0 000 8zm-8 9c0-4 3.6-7 8-7s8 3 8 7z"/></svg>',
     hall: '<svg viewBox="0 0 24 24"><path d="M3 5h18v3H3zm1 4h16l-1 11H5zm4 2v7h2v-7zm6 0v7h2v-7z"/></svg>',
     chat: '<svg viewBox="0 0 24 24"><path d="M4 4h16a1 1 0 011 1v11a1 1 0 01-1 1h-9l-5 4v-4H4a1 1 0 01-1-1V5a1 1 0 011-1z"/></svg>',
+    family: '<svg viewBox="0 0 24 24"><path d="M9 11a3.5 3.5 0 100-7 3.5 3.5 0 000 7zm7 1a3 3 0 100-6 3 3 0 000 6zM2 20c0-3.6 3.1-6 7-6s7 2.4 7 6zm14-5c3 0 6 1.7 6 5h-5c0-2-.5-3.6-1-5z"/></svg>',
     night: '<svg viewBox="0 0 24 24"><path d="M20 15.5A8.5 8.5 0 018.5 4 8.5 8.5 0 1020 15.5z"/></svg>',
     notebook: '<svg viewBox="0 0 24 24"><path d="M6 3h12a1 1 0 011 1v16a1 1 0 01-1 1H6zm-2 3h2v2H4zm0 5h2v2H4zm0 5h2v2H4z"/></svg>',
     files: '<svg viewBox="0 0 24 24"><path d="M3 5a1 1 0 011-1h5l2 2h9a1 1 0 011 1v12a1 1 0 01-1 1H4a1 1 0 01-1-1z"/></svg>'
   };
   function tabsFor(canvas){
-    if(canvas.classList.contains('bg-night')) return [['night', 'Night'], ['notebook', 'Notebook'], ['files', 'Case File']];
+    if(canvas.classList.contains('bg-night')) return isFamilyNight() ? [['night', 'Night'], ['family', 'Family'], ['notebook', 'Notebook'], ['files', 'Case File']] : [['night', 'Night'], ['notebook', 'Notebook'], ['files', 'Case File']];
     return [['town', 'Town'], ['hall', 'Stage'], ['chat', 'Chat'], ['notebook', 'Notebook'], ['files', 'Case File']];
   }
   function renderChrome(show){
@@ -107,7 +123,7 @@
     if(!on) return;
     var canvas = document.getElementById('design-canvas');
     var tabs = tabsFor(canvas);
-    var cur = canvas.classList.contains('bg-night') ? 'night' : (P.tab && REGIONS[P.tab] ? P.tab : 'hall');
+    var cur = canvas.classList.contains('bg-night') ? (inFamilyTab() ? 'family' : 'night') : (P.tab && REGIONS[P.tab] ? P.tab : 'hall');
     var key = tabs.map(function(t){ return t[0]; }).join() + '|' + cur;
     if(key !== P.lastKey){
       P.lastKey = key;
@@ -115,6 +131,8 @@
         return '<button type="button" data-t="' + t[0] + '"' + (t[0] === cur ? ' class="on"' : '') + '><i>' + ICONS[t[0]] + '</i><span>' + t[1] + '</span><b class="dot"></b></button>';
       }).join('');
     }
+    var famBtn = P.bar.querySelector('[data-t="family"] .dot');
+    if(famBtn){ var n = (latestView && latestView.mafiaChatLog) ? latestView.mafiaChatLog.length : 0; famBtn.style.display = (cur !== 'family' && n > (P.famSeen || 0)) ? 'block' : 'none'; }
     var chatBtn = P.bar.querySelector('[data-t="chat"] .dot');
     if(chatBtn) chatBtn.style.display = (P.unreadChat && cur !== 'chat') ? 'block' : 'none';
     syncTop();
@@ -157,7 +175,7 @@
     if(key !== lastPhase){ lastPhase = key; if(/^day-discuss|^day-vote/.test(key)) { P.tab = 'hall'; if(typeof updateCanvasScale === 'function') updateCanvasScale(); } }
     // the night card changes height as the picker opens/closes
     var canvas = document.getElementById('design-canvas');
-    if(canvas && canvas.classList.contains('bg-night')){ var f = document.getElementById('game-folder'); var hh = f ? f.offsetHeight : 0; if(hh !== P.nightH){ P.nightH = hh; if(typeof updateCanvasScale === 'function') updateCanvasScale(); } }
+    if(canvas && canvas.classList.contains('bg-night')){ var f = document.getElementById('game-folder'); var fam = document.getElementById('mafia-chat-section'); var hh = (f ? Math.max(f.offsetHeight, f.scrollHeight) : 0) + (inFamilyTab() && fam ? fam.offsetHeight + 1000 : 0); if(hh !== P.nightH){ P.nightH = hh; if(typeof updateCanvasScale === 'function') updateCanvasScale(); } }
   }
   setInterval(tick, 400);
   // keep the on-screen keyboard from zooming the page: iOS zooms any focused field under 16px

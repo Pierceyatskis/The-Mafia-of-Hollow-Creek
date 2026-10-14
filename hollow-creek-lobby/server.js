@@ -390,6 +390,7 @@ function sendGameState(room) {
       p.isOwner = room.ownerIds.has(p.id);
       p.shame = shameLabel(room, p.id);
     });
+    if (room.state.phase === 'night' && isFamilyVoter(G.byId(room.state, rp.id))) view.familyPicks = familyPicksFor(room);
     rp.socket.send(JSON.stringify({ type: 'gameState', view, phaseEndsAt: room.phaseEndsAt, ownerPowers: !!process.env.OWNER_KEY }));
   });
 }
@@ -627,9 +628,27 @@ function maybeEarlyResolve(room) {
   }
 }
 
+// The family can see each other's kill picks (tentative while choosing, locked once confirmed) so they can agree before dawn.
+function isFamilyVoter(sp) { return !!sp && sp.alive && sp.align === 'mafia' && sp.role !== 'Hitman'; }
+function familyPicksFor(room) {
+  if (!room.state) return [];
+  return room.state.players.filter(p => isFamilyVoter(p) && G.mafiaVoters(room.state).some(v => v.id === p.id)).map(p => {
+    const pick = room.familyPicks && room.familyPicks[p.id];
+    return { id: p.id, targetId: pick ? pick.targetId : null, locked: !!(pick && pick.locked), auto: !p.isHuman };
+  });
+}
+function broadcastFamilyPicks(room) {
+  const picks = familyPicksFor(room);
+  room.players.forEach(rp => {
+    const rsp = G.byId(room.state, rp.id);
+    if (isFamilyVoter(rsp) && rp.socket.readyState === WebSocket.OPEN) rp.socket.send(JSON.stringify({ type: 'familyPicks', picks }));
+  });
+}
+
 function beginNightPhase(room) {
   room.state.phase = 'night';
   room.nightSubmitted = new Set();
+  room.familyPicks = {};   // mafia kill picks, live: playerId -> {targetId, locked}
   room.nightEarlyPending = null;
   room.phaseEndsAt = Date.now() + NIGHT_DURATION_MS;
   clearPhaseTimer(room);
@@ -1232,6 +1251,16 @@ wss.on('connection', (socket) => {
       if (!sp || !sp.alive || !sp.isHuman) return;
       const sanitized = sanitizeNightAction(msg.action);
       room.state.pendingNightVotes[player.id] = sanitized;
+      // A role with two actions (e.g. the Godfather's kill + silence) sends each one as it is confirmed. A partial send
+      // is kept (so a kill confirmed before the clock runs out still counts) but does not count as "done" yet.
+      if (msg.partial) {
+        if (isFamilyVoter(sp) && sanitized.kill) {
+          room.familyPicks = room.familyPicks || {};
+          room.familyPicks[player.id] = { targetId: sanitized.kill, locked: true };
+          broadcastFamilyPicks(room);
+        }
+        return;
+      }
       if (sp.role === 'Doctor' && sanitized.protect) {
         G.recordLivingCountSnapshot(room.state, player.id, sp.role, 'protect');
       }
@@ -1239,7 +1268,27 @@ wss.on('connection', (socket) => {
         G.recordLivingCountSnapshot(room.state, player.id, sp.role, 'hideBehind');
       }
       room.nightSubmitted.add(player.id);
+      if (isFamilyVoter(sp) && sanitized.kill) {
+        room.familyPicks = room.familyPicks || {};
+        room.familyPicks[player.id] = { targetId: sanitized.kill, locked: true };
+        broadcastFamilyPicks(room);
+      }
       maybeEarlyResolve(room);
+    }
+
+    // A family member's pick while still choosing (before Confirm) - shown to the rest of the family only.
+    else if (msg.type === 'familyPick') {
+      const { room, player } = getRoomAndPlayer(socket);
+      if (!room || !room.started || room.state.phase !== 'night') return;
+      const sp = G.byId(room.state, player.id);
+      if (!isFamilyVoter(sp)) return;
+      const existing = room.familyPicks && room.familyPicks[player.id];
+      if (existing && existing.locked) return;
+      const t = msg.targetId ? G.byId(room.state, String(msg.targetId)) : null;
+      room.familyPicks = room.familyPicks || {};
+      if (t && t.alive && t.align !== 'mafia' && t.id !== sp.id) room.familyPicks[player.id] = { targetId: t.id, locked: false };
+      else delete room.familyPicks[player.id];
+      broadcastFamilyPicks(room);
     }
 
     else if (msg.type === 'dayChat') {

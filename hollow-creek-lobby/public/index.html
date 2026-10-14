@@ -1990,6 +1990,32 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
 .poll-compose input{width:100%; box-sizing:border-box; margin-bottom:6px; background:var(--panel-2); border:1px solid var(--line); border-radius:5px; padding:7px 10px; font-family:var(--font-body); font-size:13px; color:var(--parchment);}
 .poll-compose-actions{display:flex; gap:8px; align-items:center;}
 .poll-compose-msg{font-size:12px; color:var(--danger); margin-left:6px;}
+/* the family panel: who the mafia are picking, plus their private chat, docked beside the night card */
+#mafia-chat-section{box-sizing:border-box; display:none; flex-direction:column; gap:10px; padding:14px 16px 14px; border:1px solid rgba(217,54,43,0.55); border-radius:10px; background:linear-gradient(rgba(38,17,14,1), rgba(20,10,9,1)); box-shadow:0 10px 26px rgba(0,0,0,0.55), inset 0 0 0 1px rgba(217,54,43,0.12);}
+#design-canvas.bg-night #mafia-chat-section{position:absolute; left:28px; top:190px; width:410px; max-height:760px; z-index:30;}
+.family-title{margin:0; font-family:var(--font-ornate); font-size:21px; color:#f0a39b; display:flex; align-items:baseline; justify-content:space-between; gap:8px; flex-wrap:wrap;}
+.family-title span{font-family:var(--font-type); font-size:10.5px; letter-spacing:.5px; color:var(--parchment-dim); font-weight:400;}
+#family-picks{display:flex; flex-direction:column; gap:6px;}
+.family-pick{display:flex; align-items:center; gap:10px; padding:6px 8px; border:1px solid var(--line); border-radius:7px; background:rgba(0,0,0,0.25);}
+.family-pick .fp-name{flex:1; min-width:0; font-family:var(--font-ornate); font-size:15px; color:var(--parchment); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.family-pick .fp-target{display:flex; align-items:center; gap:6px; font-family:var(--font-type); font-size:12.5px; color:var(--parchment);}
+.family-pick .fp-target img{width:26px; height:26px; border-radius:4px; object-fit:cover; border:1px solid var(--gold-dim);}
+.family-pick .fp-wait{font-family:var(--font-type); font-size:12px; font-style:italic; color:var(--parchment-dim);}
+.family-pick .fp-lock{font-size:11px; color:#86d98f; letter-spacing:.4px; text-transform:uppercase; font-family:var(--font-type);}
+.family-pick.you{border-color:var(--gold-dim); background:rgba(227,177,85,0.08);}
+.family-verdict{padding:7px 10px; border-radius:7px; font-family:var(--font-type); font-size:12.5px; line-height:1.4;}
+.family-verdict.agree{background:rgba(70,150,90,0.18); border:1px solid rgba(134,217,143,0.5); color:#bfe8c6;}
+.family-verdict.split{background:rgba(217,54,43,0.18); border:1px solid rgba(217,54,43,0.6); color:#f4b3ab;}
+.family-verdict.none{background:rgba(255,255,255,0.05); border:1px solid var(--line); color:var(--parchment-dim);}
+.family-chat-head{font-family:var(--font-type); font-size:11.5px; letter-spacing:1.4px; text-transform:uppercase; color:#f0a39b; border-top:1px solid rgba(217,54,43,0.3); padding-top:8px;}
+#mafia-chat-log{min-height:120px; max-height:300px; overflow-y:auto; padding:2px 2px; scrollbar-width:thin;}
+#mafia-chat-log:empty::before{content:'No messages yet. Agree on a target before the night ends.'; display:block; padding:6px 4px; font-size:12.5px; font-style:italic; color:var(--parchment-dim);}
+#mafia-chat-log .chatline{padding:6px 2px; cursor:default; font-size:13px;}
+#mafia-chat-input-row{display:flex; gap:8px;}
+#mafia-chat-input{flex:1; min-width:0; background:var(--panel-2); border:1px solid var(--danger); border-radius:5px; padding:9px 11px; font-family:var(--font-body); font-size:13px; color:var(--parchment);}
+#mafia-chat-send-btn{padding:9px 16px;}
+body.phone #design-canvas.bg-night #mafia-chat-section{display:none !important; left:630px; top:165px; width:660px; max-height:880px;}
+body.phone.fam-tab #design-canvas.bg-night #mafia-chat-section{display:flex !important;}
 /* earlier days' chat folds into one tappable line in Town Talk */
 /* settings window: grouped rows with switches */
 .settings-content{width:min(560px, 94vw); max-width:560px; max-height:86vh; display:flex; flex-direction:column;}
@@ -2304,7 +2330,7 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
 }
 </style>
 <link rel="stylesheet" href="tutorial.css?v=1">
-<link rel="stylesheet" href="phone.css?v=1">
+<link rel="stylesheet" href="phone.css?v=2">
 </head>
 <body>
 <div id="boot-loading">
@@ -3271,12 +3297,14 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
     <p class="msg ok" id="night-result" style="display:none;"></p>
     <p class="night-progress" id="night-progress" style="display:none;"></p>
     <div id="night-spinner" class="spinner" style="display:none; margin-top:12px;">the town is dreaming its secrets...</div>
-    <div id="mafia-chat-section" style="display:none; margin-top:20px; border-top:1px solid var(--line); padding-top:16px;">
-      <h2 class="sec" style="color:var(--danger);">Mafia chat <span style="font-family:var(--font-type); font-size:11px; color:var(--parchment-dim); text-transform:none; letter-spacing:0;">(only your family sees this)</span></h2>
+    <div id="mafia-chat-section" style="display:none;">
+      <h2 class="family-title">The Family <span>only your family sees this</span></h2>
+      <div id="family-picks"></div>
+      <div class="family-chat-head">Family chat</div>
       <div id="mafia-chat-log"></div>
-      <div id="mafia-chat-input-row" style="display:flex; gap:8px; margin-top:10px;">
-        <input type="text" id="mafia-chat-input" maxlength="140" placeholder="Talk to your partner..." style="flex:1; background:var(--panel-2); border:1px solid var(--danger); border-radius:5px; padding:9px 11px; font-family:var(--font-body); font-size:13px; color:var(--parchment);">
-        <button class="btn" id="mafia-chat-send-btn" style="padding:9px 16px;">Send</button>
+      <div id="mafia-chat-input-row">
+        <input type="text" id="mafia-chat-input" maxlength="140" placeholder="Talk it over with your family...">
+        <button class="btn" id="mafia-chat-send-btn">Send</button>
       </div>
     </div>
     <div id="cult-chat-section" style="display:none; margin-top:20px; border-top:1px solid var(--line); padding-top:16px;">
@@ -4068,6 +4096,7 @@ function handleServerMessage(msg){
     }
     switchPanel('lobby');
   } else if(msg.type==='gameState'){
+    if(msg.view && msg.view.familyPicks){ latestFamilyPicks = msg.view.familyPicks; } else if(msg.view && msg.view.phase !== 'night'){ latestFamilyPicks = []; }
     phaseEndsAt = msg.phaseEndsAt;
     ownerPowers = !!msg.ownerPowers;
     renderFromServerView(msg.view);
@@ -4106,6 +4135,9 @@ function handleServerMessage(msg){
     }
   } else if(msg.type==='pollUpdate'){
     if(pollIndex[msg.pollId]){ pollIndex[msg.pollId].options = msg.options; refreshPollCards(msg.pollId); }
+  } else if(msg.type==='familyPicks'){
+    latestFamilyPicks = msg.picks || [];
+    renderFamilyPicks();
   } else if(msg.type==='mafiaChatMsg'){
     // Also kept in the view: renderNightAction rebuilds this log from
     // latestView.mafiaChatLog, which only refreshes on a full gameState - so
@@ -5486,6 +5518,7 @@ document.getElementById('intro-modal').addEventListener('click', function(e){
 
 var lastActivePanelKey = null;
 function switchPanel(p){
+  if(p !== 'night'){ var fam = document.getElementById('mafia-chat-section'); if(fam) fam.style.display = 'none'; }
   SoundFX.setAmbience(p);
   var isMenu = (p==='home' || p==='howto' || p==='profile');
   document.getElementById('home-folder').style.display = (p==='home') ? 'block' : 'none';
@@ -5803,6 +5836,7 @@ function renderNightActionsPanel(h, cfg){
     if(t.classList.contains('na-person')){
       var a0 = actByKey(nightUI.picking); SoundFX.click();
       nightUI.sel[a0.key] = t.dataset.id;
+      if(a0.key === 'kill') sendWS({type:'familyPick', targetId: t.dataset.id});
       // the kill pick can't also be the silence pick
       acts.forEach(function(o){ if(o!==a0 && o.key==='sil' && nightUI.sel.sil===t.dataset.id && a0.key==='kill') delete nightUI.sel.sil; });
       nightUI.picking = null; nightUI.armed = null;
@@ -5815,7 +5849,7 @@ function renderNightActionsPanel(h, cfg){
         if(nightUI.done[key]){ SoundFX.click(); delete nightUI.done[key]; delete nightUI.done[key+'_skip']; nightUI.armed = null; }
         else if(nightUI.sel[key]){
           if(a.arm && nightUI.armed!==key){ nightUI.armed = key; SoundFX.click(); }
-          else { SoundFX.confirm(); nightUI.done[key] = true; nightUI.armed = null; }
+          else { SoundFX.confirm(); nightUI.done[key] = true; nightUI.armed = null; if(acts.some(function(o){ return !nightUI.done[o.key]; })){ acts.forEach(function(o){ if(nightUI.sel[o.key] && !nightUI.done[o.key+'_skip']) pendingNightAction[o.field] = nightUI.sel[o.key]; }); sendWS({type:'nightAction', partial:true, action: pendingNightAction}); } }
         }
       }
     }
@@ -5825,6 +5859,34 @@ function renderNightActionsPanel(h, cfg){
   render();
 }
 
+// The family panel lives directly in the canvas (not inside the night folder, which is itself transformed), so it can sit beside the card.
+(function(){ var sec = document.getElementById('mafia-chat-section'), cv = document.getElementById('design-canvas'); if(sec && cv) cv.appendChild(sec); })();
+var latestFamilyPicks = [];
+function renderFamilyPicks(){
+  var box = document.getElementById('family-picks'); if(!box || !latestView) return;
+  var humanPicks = latestFamilyPicks.filter(function(p){ return !p.auto; });
+  var rows = latestFamilyPicks.map(function(fp){
+    var p = byId(fp.id); if(!p) return '';
+    var me = fp.id === myPlayerId;
+    var t = fp.targetId ? byId(fp.targetId) : null;
+    var target = fp.auto ? '<span class="fp-wait">decides at dawn</span>'
+      : t ? '<span class="fp-target"><img src="'+portraitImgFor(t)+'" alt="">'+escapeHtmlMp(t.name)+'</span>'+(fp.locked ? '<span class="fp-lock">locked &#10003;</span>' : '')
+      : '<span class="fp-wait">still deciding...</span>';
+    return '<div class="family-pick'+(me?' you':'')+'">'+avatarHTML(p,28)+'<span class="fp-name">'+escapeHtmlMp(p.name)+(me?' (you)':'')+'</span>'+target+'</div>';
+  }).join('');
+  var counts = {}; humanPicks.forEach(function(fp){ if(fp.targetId) counts[fp.targetId] = (counts[fp.targetId]||0)+1; });
+  var ids = Object.keys(counts), verdict;
+  if(!ids.length) verdict = '<div class="family-verdict none">Nobody has picked a target yet. Talk it through below.</div>';
+  else {
+    var top = Math.max.apply(null, ids.map(function(k){return counts[k];}));
+    var leaders = ids.filter(function(k){ return counts[k]===top; });
+    var undecided = humanPicks.filter(function(fp){ return !fp.targetId; }).length;
+    if(leaders.length===1 && ids.length===1 && !undecided){ var tp = byId(leaders[0]); verdict = '<div class="family-verdict agree">The family agrees: <b>'+escapeHtmlMp(tp?tp.name:'?')+'</b>.</div>'; }
+    else if(leaders.length===1 && ids.length===1){ var tp2 = byId(leaders[0]); verdict = '<div class="family-verdict none">Leading: <b>'+escapeHtmlMp(tp2?tp2.name:'?')+'</b>. Waiting on '+undecided+' more.</div>'; }
+    else verdict = '<div class="family-verdict split"><b>Split vote.</b> If you do not agree, dawn is a coin flip between your picks. Use the chat to settle on one.</div>';
+  }
+  box.innerHTML = rows + verdict;
+}
 function renderNightAction(){
   var h = you();
   var area = document.getElementById('night-action');
@@ -5845,8 +5907,9 @@ function renderNightAction(){
   // of this channel entirely, so the section stays hidden for him too even
   // though his own alignment would otherwise qualify.
   if(h.align==='mafia' && h.role!=='Hitman'){
-    document.getElementById('mafia-chat-section').style.display='block';
+    document.getElementById('mafia-chat-section').style.display='flex';
     renderMafiaChatLog();
+    renderFamilyPicks();
   } else {
     document.getElementById('mafia-chat-section').style.display='none';
   }
@@ -9454,6 +9517,7 @@ function submitNightAction(){
 // ---- Further multiplayer overrides (function declarations - last one in
 // source order wins for every call site, including ones defined earlier) ----
 function switchPanel(p){
+  if(p !== 'night'){ var fam2 = document.getElementById('mafia-chat-section'); if(fam2) fam2.style.display = 'none'; }
   updateRejoinButtons();
   SoundFX.setAmbience(p);
   var isMenu = (p==='home' || p==='howto' || p==='profile');
@@ -9788,7 +9852,7 @@ function sendHumanChatMessage(){
   renderReplyPreview();
 }
 
-function appendMafiaChatLine(entry){
+function appendMafiaChatLine(entry, quiet){
   var log = document.getElementById('mafia-chat-log');
   if(!log) return;
   var div = document.createElement('div');
@@ -9797,14 +9861,15 @@ function appendMafiaChatLine(entry){
   div.className = 'chatline'+youClass;
   div.innerHTML = avatarHTML(p||{name:entry.name,color:'#C1544B'},22)+'<span class="who">'+escapeHtmlMp(entry.name)+'</span><span class="line">"'+escapeHtmlMp(entry.text)+'"</span>';
   log.appendChild(div);
-  SoundFX.chatBlip();
+  log.scrollTop = log.scrollHeight;
+  if(!quiet && entry.playerId !== myPlayerId) SoundFX.chatBlip();
 }
 
 function renderMafiaChatLog(){
   var log = document.getElementById('mafia-chat-log');
   if(!log || !latestView) return;
   log.innerHTML = '';
-  (latestView.mafiaChatLog||[]).forEach(function(m){ appendMafiaChatLine({playerId:m.playerId, name:m.name, text:m.text}); });
+  (latestView.mafiaChatLog||[]).forEach(function(m){ appendMafiaChatLine({playerId:m.playerId, name:m.name, text:m.text}, true); });
 }
 
 function sendMafiaChatMessage(){
@@ -12383,7 +12448,7 @@ initGame();
   }).catch(function(){});
 })();
 </script>
-<script src="phone.js?v=1"></script>
+<script src="phone.js?v=5"></script>
 <script src="tutorial.js?v=1"></script>
 </body>
 </html>

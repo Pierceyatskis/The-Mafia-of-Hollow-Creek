@@ -910,6 +910,44 @@ async function testPingPong() {
   ws.close();
 }
 
+async function testFamilyPicks() {
+  const MAX_ATTEMPTS = 20;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    const host = await createRoom('FP1');
+    const players = [host];
+    for (let i = 2; i <= 9; i++) players.push(await joinRoom(host.roomCode, 'FP' + i));
+    const roles = Object.assign({}, require('./game.js').DEFAULT_ROLES_CONFIG);
+    const started = Promise.all(players.map(p => once(p.ws, m => m.type === 'gameState')));
+    send(host.ws, { type: 'start', playerCount: 9, mafiaCount: 2, roles });
+    const gs = await started;
+    const mafiaIdxs = gs.map((r, i) => r.view.myAlign === 'mafia' && r.view.myRole !== 'Hitman' ? i : -1).filter(i => i !== -1);
+    const townIdx = gs.findIndex(r => r.view.myAlign !== 'mafia');
+    if (mafiaIdxs.length < 2 || townIdx === -1) { players.forEach(p => { try { p.ws.close(); } catch (e) {} }); continue; }
+    const A = players[mafiaIdxs[0]], B = players[mafiaIdxs[1]], T = players[townIdx];
+    const target = gs[townIdx].view.players.find(p => p.id === T.playerId);
+    let townSaw = false; T.ws.on('message', raw => { if (JSON.parse(raw).type === 'familyPicks') townSaw = true; });
+    const bTentative = once(B.ws, m => m.type === 'familyPicks' && m.picks.some(x => x.id === A.playerId && x.targetId === T.playerId && !x.locked), 5000);
+    send(A.ws, { type: 'familyPick', targetId: T.playerId });
+    await bTentative;
+    assert(true, 'Family picks: a teammate sees a mafia player\'s tentative kill pick before they confirm');
+    const bLocked = once(B.ws, m => m.type === 'familyPicks' && m.picks.some(x => x.id === A.playerId && x.targetId === T.playerId && x.locked), 5000);
+    send(A.ws, { type: 'nightAction', action: { kill: T.playerId } });
+    await bLocked;
+    assert(true, 'Family picks: confirming the kill locks the pick for the rest of the family');
+    // a partial send (one of two actions confirmed) is kept for resolution but does not end the night for that player
+    const partialTarget = gs[townIdx].view.players.find(p => p.id === T.playerId);
+    send(B.ws, { type: 'nightAction', partial: true, action: { kill: T.playerId } });
+    const bSeesB = once(A.ws, m => m.type === 'familyPicks' && m.picks.some(x => x.id === B.playerId && x.locked), 5000);
+    await bSeesB;
+    assert(true, 'Family picks: a partial (first-of-two) confirmation still locks the pick for the family');
+    await new Promise(r => setTimeout(r, 300));
+    assert(!townSaw, 'Family picks: nothing about the mafia\'s picks reaches a town player');
+    players.forEach(p => { try { p.ws.close(); } catch (e) {} });
+    return;
+  }
+  assert(false, 'Family picks: could not seat 2+ real mafia players after ' + MAX_ATTEMPTS + ' attempts');
+}
+
 async function main() {
   await testUndercapacityStartRejected();
   await testCustomRolesEnabled();
@@ -936,6 +974,7 @@ async function main() {
   await testDayChatInferredAccusationAndAgreement();
   await testLobbyChatIsPerRoom();
   await testPingPong();
+  await testFamilyPicks();
 
   console.log('\n' + (failures === 0 ? 'All server.js integration checks passed.' : failures + ' CHECK(S) FAILED.'));
   process.exit(failures === 0 ? 0 : 1);
