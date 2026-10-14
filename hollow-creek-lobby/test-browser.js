@@ -22,7 +22,7 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 function startServer() {
   const env = Object.assign({}, process.env, {
     PORT: String(PORT), NIGHT_DURATION_MS: '60000', NIGHT_EARLY_RESOLVE_DELAY_MS: '300', DAY_VOTE_EARLY_RESOLVE_DELAY_MS: '300',
-    DAY_DISCUSS_DURATION_MS: '9000', DAY_VOTE_DURATION_MS: '30000'
+    DAY_DISCUSS_DURATION_MS: '9000', DAY_VOTE_DURATION_MS: '30000', START_COUNTDOWN_MS: '300'
   });
   const child = spawn(process.execPath, ['server.js'], { cwd: __dirname, env, stdio: ['ignore', 'pipe', 'pipe'] });
   return new Promise((resolve, reject) => {

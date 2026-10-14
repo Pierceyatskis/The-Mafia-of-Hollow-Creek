@@ -8,6 +8,7 @@ const WebSocket = require(path.join(__dirname, 'node_modules', 'ws'));
 
 const PORT = 8098;
 process.env.PORT = PORT;
+process.env.START_COUNTDOWN_MS = '50';
 // day-discuss has no early-resolve path (unlike night/day-vote, which resolve
 // the moment everyone's submitted) - shrink it so tests don't have to sit
 // through the real 90s discussion timer to reach day-vote.
@@ -902,6 +903,26 @@ async function testLobbyChatIsPerRoom() {
   assert(res === 200, 'Static files: a cache-busting ?query string still serves the file');
 }
 
+async function testStartCountdown() {
+  const host = await createRoom('SC1');
+  const players = [host];
+  for (let i = 2; i <= 6; i++) players.push(await joinRoom(host.roomCode, 'SC' + i));
+  const order = [];
+  const guest = players[1];
+  guest.ws.on('message', raw => { const m = JSON.parse(raw); if (m.type === 'startCountdown' || m.type === 'gameState') order.push(m.type); });
+  const started = once(guest.ws, m => m.type === 'gameState');
+  const roles = Object.assign({}, require('./game.js').DEFAULT_ROLES_CONFIG, { Godfather: false, DoubleAgent: false, Detective: false, Doctor: false, Miller: false, BountyHunter: false, CrazyGranny: false });
+  const cd = once(guest.ws, m => m.type === 'startCountdown', 2000);
+  send(host.ws, { type: 'start', playerCount: 6, mafiaCount: 1, roles });
+  const c = await cd;
+  assert(c.endsAt > Date.now() - 1000 && c.seconds >= 0, 'Countdown: every player in the room is told the game is about to start');
+  const late = await joinRoom(host.roomCode, 'SCLate');
+  await started;
+  assert(order[0] === 'startCountdown' && order.indexOf('gameState') > 0, 'Countdown: the game state only arrives after the countdown message');
+  assert(late.error && /about to start|already started/.test(late.error), 'Countdown: nobody can join the room once it is counting down');
+  players.forEach(p => { try { p.ws.close(); } catch (e) {} });
+}
+
 async function testPingPong() {
   const ws = await connect();
   const pPong = once(ws, m => m.type === 'pong', 2000);
@@ -974,6 +995,7 @@ async function main() {
   await testDayChatInferredAccusationAndAgreement();
   await testLobbyChatIsPerRoom();
   await testPingPong();
+  await testStartCountdown();
   await testFamilyPicks();
 
   console.log('\n' + (failures === 0 ? 'All server.js integration checks passed.' : failures + ' CHECK(S) FAILED.'));

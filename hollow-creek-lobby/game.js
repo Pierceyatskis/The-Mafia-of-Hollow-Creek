@@ -4,17 +4,17 @@
 // Every function here takes/returns plain data so it's easy to test in isolation.
 
 const CHARACTERS = [
-  {id:'mabel', name:'Mabel', fullName:'Mabel Finch', occ:'bakery owner', color:'#B8502A'},
-  {id:'otis', name:'Otis', fullName:'Otis Redwood', occ:'mill hand', color:'#6B5B8A'},
-  {id:'agatha', name:'Agatha', fullName:'Sister Agatha Pruitt', occ:'church organist & town healer', color:'#4C7C67'},
-  {id:'nettie', name:'Nettie', fullName:'Nettie Calloway', occ:'town librarian', color:'#B08A3E'},
-  {id:'corky', name:'Corky', fullName:'Corky Wade', occ:'general store clerk, ex-deputy', color:'#7A6A54'},
-  {id:'ida', name:'Ida', fullName:'Ida Wexford', occ:'retiree, pie baker', color:'#9A7CA0'},
-  {id:'silas', name:'Silas', fullName:'Silas Crane', occ:'church groundskeeper', color:'#4E6E8E'},
-  {id:'dot', name:'Dot', fullName:'Dot Higgins', occ:'diner owner', color:'#C1544B'},
-  {id:'walt', name:'Walt', fullName:'Walt Pemberton', occ:'town mechanic', color:'#5C6B47'},
-  {id:'roz', name:'Roz', fullName:'Roz Okafor', occ:'schoolteacher', color:'#3E6E8E'},
-  {id:'tom', name:'Big Tom', fullName:'Big Tom Yarrow', occ:'feed store owner', color:'#8C6B3E'}
+  {id:'mabel', gender:'f', name:'Mabel', fullName:'Mabel Finch', occ:'bakery owner', color:'#B8502A'},
+  {id:'otis', gender:'m', name:'Otis', fullName:'Otis Redwood', occ:'mill hand', color:'#6B5B8A'},
+  {id:'agatha', gender:'f', name:'Agatha', fullName:'Sister Agatha Pruitt', occ:'church organist & town healer', color:'#4C7C67'},
+  {id:'nettie', gender:'f', name:'Nettie', fullName:'Nettie Calloway', occ:'town librarian', color:'#B08A3E'},
+  {id:'corky', gender:'m', name:'Corky', fullName:'Corky Wade', occ:'general store clerk, ex-deputy', color:'#7A6A54'},
+  {id:'ida', gender:'f', name:'Ida', fullName:'Ida Wexford', occ:'retiree, pie baker', color:'#9A7CA0'},
+  {id:'silas', gender:'m', name:'Silas', fullName:'Silas Crane', occ:'church groundskeeper', color:'#4E6E8E'},
+  {id:'dot', gender:'f', name:'Dot', fullName:'Dot Higgins', occ:'diner owner', color:'#C1544B'},
+  {id:'walt', gender:'m', name:'Walt', fullName:'Walt Pemberton', occ:'town mechanic', color:'#5C6B47'},
+  {id:'roz', gender:'f', name:'Roz', fullName:'Roz Okafor', occ:'schoolteacher', color:'#3E6E8E'},
+  {id:'tom', gender:'m', name:'Big Tom', fullName:'Big Tom Yarrow', occ:'feed store owner', color:'#8C6B3E'}
 ];
 
 const ROLE_LABEL = {
@@ -79,6 +79,9 @@ function buildRolePool(config){
 // Every seat gets its own shadowed portrait so the town board and notebook are not a wall of identical silhouettes.
 // A player's own chosen icon is kept unless someone else already has it; everyone else is dealt one that is still free.
 const GAME_ICON_KEYS = Array.from({length: 20}, (_, i) => 'avatar' + (16 + i));
+// The silhouettes read as men (avatar16-20, 26-30) or women (avatar21-25, 31-35), so the townspeople are dealt an icon that matches who they are.
+const GAME_ICON_GENDER = {};
+GAME_ICON_KEYS.forEach(k => { const n = Number(k.slice(6)); GAME_ICON_GENDER[k] = ((n >= 16 && n <= 20) || (n >= 26 && n <= 30)) ? 'm' : 'f'; });
 function assignGameIcons(players){
   const used = new Set();
   players.forEach(p => {
@@ -86,6 +89,11 @@ function assignGameIcons(players){
     else p.gameIconKey = null;
   });
   const pool = shuffle(GAME_ICON_KEYS.slice());
+  // townspeople with a known gender pick first from the matching half; anyone left (real players with no choice) gets whatever is free
+  players.filter(p => !p.gameIconKey && p.gender).forEach(p => {
+    const k = pool.find(x => !used.has(x) && GAME_ICON_GENDER[x] === p.gender);
+    if(k){ p.gameIconKey = k; used.add(k); }
+  });
   players.forEach(p => {
     if(!p.gameIconKey){ const k = pool.find(x => !used.has(x)); if(k){ p.gameIconKey = k; used.add(k); } }
   });
@@ -120,7 +128,7 @@ function createGame(seats, config){
   bench.slice(0, Math.max(0, remaining)).forEach((c, i) => {
     const roleIdx = seats.length + i;
     players.push({
-      id: c.id, name: c.name, occ: c.occ, color: c.color, isHuman: false, isPlaceholder: true,
+      id: c.id, name: c.name, gender: c.gender, occ: c.occ, color: c.color, isHuman: false, isPlaceholder: true,
       alive: true, silencedToday: false, role: roles[roleIdx], align: alignOf(roles[roleIdx]),
       flipped: false, investigateCount: 0, usedNavySealCounter: false, usedVigilanteShot: false,
       usedMayorReveal: false

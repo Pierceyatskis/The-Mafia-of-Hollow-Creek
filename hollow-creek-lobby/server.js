@@ -19,6 +19,7 @@ const PORT = process.env.PORT || 8080;
 // voting time are also host-configurable per room (see sanitizeDurationMs
 // below and room.discussMs/room.voteMs) - these constants are just the
 // defaults a room falls back to until the host picks something else.
+const START_COUNTDOWN_MS = Number(process.env.START_COUNTDOWN_MS) || 10000;
 const NIGHT_DURATION_MS = Number(process.env.NIGHT_DURATION_MS) || 60000;
 const DAY_DISCUSS_DURATION_MS = Number(process.env.DAY_DISCUSS_DURATION_MS) || 90000;
 // Once every living player has locked in their night choice, hold the night screen this long before resolving so the change to morning is a clean transition instead of an instant flash.
@@ -282,6 +283,11 @@ function joinRoom(socket, code, name, avatarKey, color, gameIconKey) {
 }
 
 // One JSON message to everyone in the room with an open socket.
+function cancelStartCountdown(room, notify) {
+  if (!room.startTimer) return;
+  clearTimeout(room.startTimer); room.startTimer = null; room.startsAt = null;
+  if (notify) broadcastRoom(room, { type: 'startCancelled' });
+}
 function broadcastRoom(room, obj) {
   const m = JSON.stringify(obj);
   room.players.forEach(rp => { if (rp.socket.readyState === WebSocket.OPEN) rp.socket.send(m); });
@@ -345,12 +351,14 @@ function removePlayer(socket) {
     // let it keep resolving on its placeholder-driven timers same as usual.
     if (!room.started) {
       clearPhaseTimer(room);
+      cancelStartCountdown(room, false);
       delete rooms[code];
       console.log(`Room ${code} closed (empty)`);
     }
     return;
   }
   if (wasHost) room.hostId = room.players[0].id;
+  if (wasHost) cancelStartCountdown(room, true);   // a new host has to press Start again
   if (!room.started) broadcastRoster(code);
   else { if (wasHost) sendGameState(room); maybeEarlyResolve(room); }
 }
@@ -837,6 +845,10 @@ wss.on('connection', (socket) => {
         socket.send(JSON.stringify({ type: 'error', message: 'That game has already started.' }));
         return;
       }
+      if (room.startTimer) {
+        socket.send(JSON.stringify({ type: 'error', message: 'That game is about to start. Try again in a moment.' }));
+        return;
+      }
       if (room.players.length >= G.MAX_PLAYERS) {
         socket.send(JSON.stringify({ type: 'error', message: 'That room is full.' }));
         return;
@@ -1164,57 +1176,77 @@ wss.on('connection', (socket) => {
         socket.send(JSON.stringify({ type: 'error', message: 'Only the host can start the game.' }));
         return;
       }
-      if (room.started) return;
+      if (room.started || room.startTimer) return;
 
-      let playerCount = Number(msg.playerCount);
-      if (!Number.isFinite(playerCount)) playerCount = 8;
-      playerCount = Math.round(playerCount);
-
-      let mafiaCount = Number(msg.mafiaCount);
-      if (!Number.isFinite(mafiaCount)) mafiaCount = 1;
-      mafiaCount = Math.max(0, Math.min(G.MAX_MAFIA_COUNT, Math.round(mafiaCount)));
-
-      const roles = sanitizeRolesConfig(msg.roles);
-      const seats = room.players.map(p => ({ id: p.id, name: p.name, avatarKey: p.avatarKey, gameIconKey: p.gameIconKey, color: p.color }));
-      const config = { playerCount, mafiaCount, roles };
-      // Host-configurable per room (Accessibility/Settings follow-up) - kept
-      // on the room so every phase for the rest of this room's life (this
-      // game and any "play again" rematch) uses the same chosen durations
-      // instead of always falling back to the module-wide defaults.
-      room.discussMs = sanitizeDurationMs(msg.discussSeconds, MIN_DISCUSS_SECONDS, MAX_DISCUSS_SECONDS, DAY_DISCUSS_DURATION_MS);
-      room.voteMs = sanitizeDurationMs(msg.voteSeconds, MIN_VOTE_SECONDS, MAX_VOTE_SECONDS, DAY_VOTE_DURATION_MS);
-      room.stageTurnMs = sanitizeDurationMs(msg.speakerSeconds, MIN_STAGE_TURN_SECONDS, MAX_STAGE_TURN_SECONDS, STAGE_TURN_SECONDS * 1000);
-      room.voiceEnabled = !!msg.voiceEnabled;
-      // Floor-control state for the voice/stage feature - a transport/session
-      // concern layered on top of the game, not a mafia rule, so it lives
-      // here rather than in game.js's state. selfMuted/hostMuted persist the
-      // whole game (rebuilt fresh only here, on a brand new start/play-again);
-      // everything else is per-round or per-turn, reset in beginDayDiscussPhase
-      // and startSpeakerTurn respectively.
-      room.stage = {
-        speakerId: null, queue: [], turnDeadline: null, turnStartedAt: null, turnTimer: null,
-        donateUsedBy: new Set(), voteOffStageVotes: new Set(),
-        selfMuted: new Set(), hostMuted: new Map(), reactedBy: new Map()
-      };
-
-      let state;
-      try {
-        state = G.createGame(seats, config);
-      } catch (e) {
-        socket.send(JSON.stringify({ type: 'error', message: e.message }));
-        return;
+      // Dry run so a bad setup (too few seats, impossible role mix) is reported right away rather than after the countdown.
+      {
+        let pc = Number(msg.playerCount); if (!Number.isFinite(pc)) pc = 8; pc = Math.round(pc);
+        let mc = Number(msg.mafiaCount); if (!Number.isFinite(mc)) mc = 1; mc = Math.max(0, Math.min(G.MAX_MAFIA_COUNT, Math.round(mc)));
+        try {
+          G.createGame(room.players.map(p => ({ id: p.id, name: p.name, avatarKey: p.avatarKey, gameIconKey: p.gameIconKey, color: p.color })), { playerCount: pc, mafiaCount: mc, roles: sanitizeRolesConfig(msg.roles) });
+        } catch (e) {
+          socket.send(JSON.stringify({ type: 'error', message: e.message }));
+          return;
+        }
       }
 
-      room.started = true;
-      room.scoreRounds = []; room.allCum = {}; room.lastSummary = null;
-      room.lobbyChat = [];   // the lobby chat belongs to that waiting period only - never carries into a game or the next lobby
-      room.state = state;
-      room.cumulativeScores = {};
-      room.lastNightResult = null;
-      room.lastDayResult = null;
-      room.lastConfig = config; // remembered so "Play again" can offer the same presets
-      console.log(`Room ${socket.roomCode} started with ${seats.length} real player(s), ${room.state.players.length} total seats`);
-      beginNightPhase(room);
+      // The game begins START_COUNTDOWN_MS after the host presses Start; everyone in the room sees the countdown and the lobby is locked meanwhile.
+      room.startsAt = Date.now() + START_COUNTDOWN_MS;
+      broadcastRoom(room, { type: 'startCountdown', endsAt: room.startsAt, seconds: Math.round(START_COUNTDOWN_MS / 1000) });
+      room.startTimer = setTimeout(() => {
+        room.startTimer = null; room.startsAt = null;
+        if (room.started || !rooms[socket.roomCode]) return;
+        let playerCount = Number(msg.playerCount);
+        if (!Number.isFinite(playerCount)) playerCount = 8;
+        playerCount = Math.round(playerCount);
+
+        let mafiaCount = Number(msg.mafiaCount);
+        if (!Number.isFinite(mafiaCount)) mafiaCount = 1;
+        mafiaCount = Math.max(0, Math.min(G.MAX_MAFIA_COUNT, Math.round(mafiaCount)));
+
+        const roles = sanitizeRolesConfig(msg.roles);
+        const seats = room.players.map(p => ({ id: p.id, name: p.name, avatarKey: p.avatarKey, gameIconKey: p.gameIconKey, color: p.color }));
+        const config = { playerCount, mafiaCount, roles };
+        // Host-configurable per room (Accessibility/Settings follow-up) - kept
+        // on the room so every phase for the rest of this room's life (this
+        // game and any "play again" rematch) uses the same chosen durations
+        // instead of always falling back to the module-wide defaults.
+        room.discussMs = sanitizeDurationMs(msg.discussSeconds, MIN_DISCUSS_SECONDS, MAX_DISCUSS_SECONDS, DAY_DISCUSS_DURATION_MS);
+        room.voteMs = sanitizeDurationMs(msg.voteSeconds, MIN_VOTE_SECONDS, MAX_VOTE_SECONDS, DAY_VOTE_DURATION_MS);
+        room.stageTurnMs = sanitizeDurationMs(msg.speakerSeconds, MIN_STAGE_TURN_SECONDS, MAX_STAGE_TURN_SECONDS, STAGE_TURN_SECONDS * 1000);
+        room.voiceEnabled = !!msg.voiceEnabled;
+        // Floor-control state for the voice/stage feature - a transport/session
+        // concern layered on top of the game, not a mafia rule, so it lives
+        // here rather than in game.js's state. selfMuted/hostMuted persist the
+        // whole game (rebuilt fresh only here, on a brand new start/play-again);
+        // everything else is per-round or per-turn, reset in beginDayDiscussPhase
+        // and startSpeakerTurn respectively.
+        room.stage = {
+          speakerId: null, queue: [], turnDeadline: null, turnStartedAt: null, turnTimer: null,
+          donateUsedBy: new Set(), voteOffStageVotes: new Set(),
+          selfMuted: new Set(), hostMuted: new Map(), reactedBy: new Map()
+        };
+
+        let state;
+        try {
+          state = G.createGame(seats, config);
+        } catch (e) {
+          socket.send(JSON.stringify({ type: 'error', message: e.message }));
+          broadcastRoom(room, { type: 'startCancelled' });
+          return;
+        }
+
+        room.started = true;
+        room.scoreRounds = []; room.allCum = {}; room.lastSummary = null;
+        room.lobbyChat = [];   // the lobby chat belongs to that waiting period only - never carries into a game or the next lobby
+        room.state = state;
+        room.cumulativeScores = {};
+        room.lastNightResult = null;
+        room.lastDayResult = null;
+        room.lastConfig = config; // remembered so "Play again" can offer the same presets
+        console.log(`Room ${socket.roomCode} started with ${seats.length} real player(s), ${room.state.players.length} total seats`);
+        beginNightPhase(room);
+      }, START_COUNTDOWN_MS);
     }
 
     else if (msg.type === 'playAgain') {

@@ -1040,10 +1040,10 @@ body.force-reduced-motion .ballot-box-seal.playing{animation:none !important; op
    regardless of how many are showing at once. */
 .nightkill-victims{display:flex; flex-wrap:wrap; justify-content:center; align-items:flex-start; gap:8px 40px;}
 .nightkill-victim{display:flex; flex-direction:column; align-items:center;}
-.nightkill-card{position:relative; width:190px; height:190px; margin-bottom:22px; opacity:0; transform:scale(0.85); animation:nightkillCardIn 1.0s cubic-bezier(.2,.8,.2,1) 1.5s forwards;}
+.nightkill-card{position:relative; width:180px; height:264px; margin-bottom:22px; opacity:0; transform:scale(0.85); animation:nightkillCardIn 1.0s cubic-bezier(.2,.8,.2,1) 1.5s forwards;}
 .nightkill-card .portrait-frame{width:100%; height:100%;}
 .nightkill-card .portrait-frame .photo-img{filter:grayscale(45%) sepia(15%);}
-.nightkill-card .mystery-portrait .photo-img{object-fit:contain; background:var(--panel-2);}
+.nightkill-card .mystery-portrait .photo-img{object-fit:cover; background:var(--panel-2);}
 .nightkill-card .nightkill-stamp{position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) rotate(-14deg) scale(0.6); opacity:0; font-family:var(--font-type); font-size:16px; font-weight:700; letter-spacing:4px; text-transform:uppercase; padding:6px 18px; border:2px solid var(--danger); color:var(--danger); background:rgba(10,7,6,0.55); text-shadow:0 0 10px rgba(193,39,45,0.5); white-space:nowrap; animation:stampSlam 0.5s cubic-bezier(.34,1.56,.64,1) 2.6s forwards;}
 .nightkill-name{font-family:var(--font-display); font-weight:700; font-size:40px; letter-spacing:2px; margin:0 0 6px; color:var(--gold-bright); text-shadow:0 0 10px rgba(227,177,85,0.5), 0 0 34px rgba(227,177,85,0.3), 0 4px 16px rgba(0,0,0,0.9); opacity:0; animation:deathTextIn 0.8s ease-out 2.7s forwards;}
 .nightkill-role{font-family:var(--font-type); font-size:13px; letter-spacing:3px; text-transform:uppercase; color:var(--parchment-dim); margin:0 0 18px; opacity:0; animation:deathTextIn 0.8s ease-out 3.6s forwards;}
@@ -2404,18 +2404,18 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
 .rule-val-ro{border-radius:5px; background:rgba(0,0,0,0.3); border-color:#7a5a2c;}
 .rule-switch{border-color:#7a5a2c; background:linear-gradient(180deg,#1d140c,#33261a); box-shadow:inset 0 1px 3px rgba(0,0,0,0.7);}
 /* muted category colors: weathered steel blue, oxblood, dusty plum */
-.role-faction-col.role-faction-town{color:#7f95a6;}
-.role-faction-col.role-faction-mafia{color:#a8695f;}
-.role-faction-col.role-faction-other{color:#9a8aa8;}
+.role-faction-col.role-faction-town{color:var(--align-town);}
+.role-faction-col.role-faction-mafia{color:var(--danger);}
+.role-faction-col.role-faction-other{color:var(--align-neutral);}
 .role-faction-label{border-bottom:1px solid currentColor; box-shadow:0 1px 0 rgba(0,0,0,0.5); opacity:0.95;}
-.role-faction-town .chip.selected{border-color:#9db0bf;}
-.role-faction-mafia .chip.selected{border-color:#b9786d;}
-.role-faction-other .chip.selected{border-color:#ad9cba;}
+.role-faction-town .chip.selected{border-color:var(--align-town);}
+.role-faction-mafia .chip.selected{border-color:var(--danger);}
+.role-faction-other .chip.selected{border-color:var(--align-neutral);}
 .chip.selected::after{background:#c9a24e; color:#1a1208;}
-.rules-pill.mafia{border-color:rgba(168,105,95,0.6); color:#d6aaa2;}
-.rules-pill.town{border-color:rgba(127,149,166,0.6); color:#bccbd6;}
-.rules-pill.other{border-color:rgba(154,138,168,0.6); color:#cfc3d8;}
-#role-tip .rt-team.Town{background:#5f7487;} #role-tip .rt-team.Mafia{background:#7d3a32;} #role-tip .rt-team.Neutral,#role-tip .rt-team.Cult{background:#6b5a7c;}
+.rules-pill.mafia{border-color:rgba(217,54,43,0.7); color:#f4a79f;}
+.rules-pill.town{border-color:rgba(90,160,255,0.7); color:#b4d4ff;}
+.rules-pill.other{border-color:rgba(199,155,255,0.7); color:#dfc9ff;}
+#role-tip .rt-team.Town{background:#2f5f9a;} #role-tip .rt-team.Mafia{background:#8a1c14;} #role-tip .rt-team.Neutral,#role-tip .rt-team.Cult{background:#6a4a8a;}
 .rules-preset{border-radius:6px; border-color:#d9b25a;}
 /* chat controls: inset paper tabs and aged-brass quick-reply chips with larger, higher-contrast labels */
 .case-log-tab, .day-chat-sidebar .case-log-tab{
@@ -2429,14 +2429,9 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
 }
 .chat-quick-phrase-btn:hover{border-color:#d9b25a; color:#fff4d4;}
 /* role-reveal team colors: muted so the team cue doesn't out-shout the parchment palette */
-#vote-reveal-role-name.align-town, .role-reveal-name.align-town{color:#5d7183 !important; text-shadow:none;}
-#vote-reveal-role-name.align-mafia{color:#7d2a22;}
-/* dossier / directory judgment icons: printed-ink look - sepia-toned, pressed into the paper, with a faint emboss edge */
-.notebook-judgment-btn img, .notebook-card-status-row img{
-  filter:sepia(0.75) saturate(0.85) contrast(1.25) brightness(0.72) drop-shadow(0 1px 0 rgba(255,244,214,0.55)) drop-shadow(0 -1px 0 rgba(40,25,10,0.3));
-  mix-blend-mode:multiply;
-}
-.notebook-judgment-btn{border-color:rgba(90,60,30,0.55); box-shadow:inset 0 0 0 1px rgba(255,248,226,0.35), inset 0 2px 4px rgba(90,60,30,0.18);}
+#vote-reveal-role-name.align-town{color:#2a5ca0 !important;}
+.role-reveal-name.align-town{color:#4C86C6 !important;}
+#vote-reveal-role-name.align-mafia{color:#8B1414;}
 /* notebook directory: long names wrap (up to two lines) and unused slots disappear instead of reading as missing content */
 .notebook-card-name{white-space:normal; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; line-height:1.12; font-size:clamp(11px, 1vw, 16px); word-break:break-word; padding-right:4px;}
 .notebook-slot.empty{display:none;}
@@ -2456,7 +2451,7 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
 .daylayout-roster-tile-frame{object-fit:fill;}
 .daylayout-roster-tile.is-dead .daylayout-roster-tile-avatar{filter:grayscale(0.85) brightness(0.8);}
 .daylayout-roster-tile.is-dead .daylayout-roster-tile-frame{filter:grayscale(0.55) brightness(0.8);}
-.daylayout-roster-tile-name{display:block; left:14%; top:77.6%; width:72%; height:12.6%; line-height:26px; font-size:12px; letter-spacing:0; padding:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.daylayout-roster-tile-name{display:flex; align-items:center; justify-content:center; text-align:center; left:17%; top:73.6%; width:66%; height:9.4%; line-height:1; font-size:12px; letter-spacing:0; padding:0; white-space:nowrap; overflow:hidden;}
 /* wide buttons: nine-slice so corners and trim never stretch. Primary = red, secondary = quieter charcoal. Labels stay live text. */
 #create-game-btn, #mpentry-create-btn, #mpentry-quick-match-btn, #mpentry-join-btn, #setup-start-btn, #profile-save-btn,
 #chat-send-btn, #ghost-inline-send, #ghost-chat-send-btn, #lobby-chat-send, #mafia-chat-send-btn, #cult-chat-send-btn, #player-action-whisper-send-btn,
@@ -2479,12 +2474,33 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
 #daylayout-stage-kick-btn .kick-fill{left:15%; right:15%; bottom:15%; border-radius:3px; z-index:1;}
 #daylayout-stage-kick-btn::after{z-index:2;}
 
-.notebook-card-corners{position:absolute; inset:-1.5%; pointer-events:none; z-index:2;}
-.notebook-card-corners i{position:absolute; width:30%; height:30%; background:url('assets/ui/hc-notebook-photo-corners.webp') no-repeat; background-size:200% 200%;}
+.notebook-card-corners{position:absolute; inset:-5%; pointer-events:none; z-index:2;}
+.notebook-card-corners i{position:absolute; width:36%; height:36%; background:url('assets/ui/hc-notebook-photo-corners.webp') no-repeat; background-size:200% 200%;}
 .notebook-card-corners i:nth-child(1){left:0; top:0; background-position:0 0;}
 .notebook-card-corners i:nth-child(2){right:0; top:0; background-position:100% 0;}
 .notebook-card-corners i:nth-child(3){left:0; bottom:0; background-position:0 100%;}
 .notebook-card-corners i:nth-child(4){right:0; bottom:0; background-position:100% 100%;}
+
+#start-countdown .sc-box{text-align:center; padding:34px 70px 30px; border:2px solid #b08840; border-radius:8px; background:linear-gradient(180deg, rgba(60,42,22,0.96), rgba(22,15,9,0.97)); box-shadow:0 0 60px rgba(0,0,0,0.8), inset 0 0 0 1px rgba(0,0,0,0.6);}
+#start-countdown .sc-label{font-family:var(--font-type); letter-spacing:3px; text-transform:uppercase; font-size:15px; color:var(--parchment-dim);}
+#start-countdown .sc-num{font-family:var(--font-ornate); font-weight:700; font-size:150px; line-height:1.05; color:var(--gold-bright); text-shadow:0 4px 18px rgba(0,0,0,0.9);}
+#start-countdown .sc-num.pop{animation:scPop .8s ease-out;}
+#start-countdown .sc-sub{font-family:var(--font-type); font-size:14px; color:var(--parchment-dim);}
+@keyframes scPop{0%{transform:scale(1.35); opacity:.4;} 40%{transform:scale(1); opacity:1;} 100%{transform:scale(1);}}
+
+/* second batch of asset buttons */
+#nightkill-continue-btn, #leave-confirm-leave-btn, #mpentry-rejoin-btn, #tutorial-btn{
+  background:none; border-style:solid; border-width:0; border-image:url('assets/ui/hc-button-primary-wide-red.webp') 38% 7% fill / 14px 11px stretch;
+  color:#f6e2b0; text-shadow:0 1px 2px rgba(0,0,0,0.8); border-radius:0;
+}
+#lobby-poll-btn, #howto-btn, #achievements-btn, #leaderboard-btn, #settings-btn, #profile-btn{
+  background:none; border-style:solid; border-width:0; border-image:url('assets/ui/hc-button-secondary-wide-charcoal.webp') 38% 7% fill / 14px 11px stretch;
+  color:#d8ccb0; text-shadow:0 1px 2px rgba(0,0,0,0.8); border-radius:0;
+}
+#lobby-code-copy, .btn.mp-kick-btn, .btn.mp-shame-btn{
+  background:none; border-style:solid; border-width:0; border-image:url('assets/ui/hc-button-secondary-wide-charcoal.webp') 38% 7% fill / 9px 8px stretch;
+  color:#d8ccb0; text-shadow:0 1px 2px rgba(0,0,0,0.8); border-radius:0;
+}
 </style>
 <link rel="stylesheet" href="tutorial.css?v=1">
 <link rel="stylesheet" href="phone.css?v=2">
@@ -3193,6 +3209,9 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
   </div>
 </div>
 
+<div id="start-countdown" class="role-card-overlay" style="display:none; z-index:450;" role="status" aria-live="polite">
+  <div class="sc-box"><div class="sc-label">The game begins in</div><div class="sc-num" id="start-countdown-num">10</div><div class="sc-sub">Get ready. Everyone is being seated.</div></div>
+</div>
 <div id="leave-confirm-modal" class="role-card-overlay" style="display:none; z-index:400;">
   <div class="role-card-modal-content player-action-content" style="text-align:center; max-width:min(460px,92vw);">
     <h2 class="intro-modal-title" id="leave-confirm-title" style="margin-bottom:10px;">Leave the game?</h2>
@@ -4037,22 +4056,36 @@ function playBallotDrop(targetId){
     document.body.appendChild(card);
     var w = card.offsetWidth, h = card.offsetHeight;
     var sx = a.left + a.width/2 - w/2, sy = a.top + a.height/2 - h/2;
-    var mx = (sx + (b.left + b.width/2 - w/2)) / 2, my = Math.min(sy, b.top) - 90;       // top of the arc
-    var hx = b.left + b.width/2 - w/2, hy = b.top - h*0.55;                               // hovering over the slot
-    var dy = b.top + b.height*0.30 - h/2;                                                  // sunk into the slot
+    // The painted box's slot: centered on the box, a few px below its top edge. The card hovers over it, then slides down INTO it:
+    // the last stretch happens inside a clip window whose bottom edge is the slot line, so the lower part of the card disappears into the box.
+    var slotCx = b.left + b.width*0.5, slotY = b.top + b.height*0.07;
+    var sc = 0.5, ch = h*sc;
+    var mx = (sx + (slotCx - w/2)) / 2, my = Math.min(sy, slotY) - 110;                      // top of the arc
+    var hx = slotCx - w/2, hy = (slotY - 12 - ch/2) - h/2;                                    // hovering just above the slot, upright
     SoundFX.click();
     var anim = card.animate([
       { transform:'translate('+sx+'px,'+sy+'px) scale(0.9) rotate(-5deg)', opacity:0 },
-      { transform:'translate('+sx+'px,'+(sy-14)+'px) scale(1.08) rotate(-3deg)', opacity:1, offset:0.14 },
-      { transform:'translate('+mx+'px,'+my+'px) scale(0.92) rotate(4deg)', opacity:1, offset:0.5 },
-      { transform:'translate('+hx+'px,'+hy+'px) scale(0.62) rotate(0deg)', opacity:1, offset:0.78 },
-      { transform:'translate('+hx+'px,'+dy+'px) scale(0.5,0.18) rotate(0deg)', opacity:0.9, offset:0.94 },
-      { transform:'translate('+hx+'px,'+dy+'px) scale(0.5,0.05) rotate(0deg)', opacity:0 }
-    ], { duration:1050, easing:'cubic-bezier(.35,.1,.35,1)', fill:'forwards' });
+      { transform:'translate('+sx+'px,'+(sy-14)+'px) scale(1.08) rotate(-3deg)', opacity:1, offset:0.18 },
+      { transform:'translate('+mx+'px,'+my+'px) scale(0.85) rotate(4deg)', opacity:1, offset:0.58 },
+      { transform:'translate('+hx+'px,'+hy+'px) scale('+sc+') rotate(0deg)', opacity:1 }
+    ], { duration:760, easing:'cubic-bezier(.35,.1,.35,1)', fill:'forwards' });
     anim.onfinish = function(){
-      card.remove();
-      box.classList.remove('thump'); void box.offsetWidth; box.classList.add('thump');
-      SoundFX.confirm();
+      var clip = document.createElement('div');
+      var cw = 160, chh = 240;
+      clip.style.cssText = 'position:fixed; z-index:400; pointer-events:none; overflow:hidden; left:'+(slotCx-cw/2)+'px; top:'+(slotY-chh)+'px; width:'+cw+'px; height:'+chh+'px;';
+      card.style.position = 'absolute'; card.style.left = '0'; card.style.top = '0';
+      var lx = cw/2 - w/2, ty = (chh - 12 - ch/2) - h/2;
+      document.body.appendChild(clip); clip.appendChild(card);
+      var drop = ch + 18;
+      var down = card.animate([
+        { transform:'translate('+lx+'px,'+ty+'px) scale('+sc+')', opacity:1 },
+        { transform:'translate('+lx+'px,'+(ty+drop)+'px) scale('+(sc*0.9)+','+sc+')', opacity:1 }
+      ], { duration:420, easing:'cubic-bezier(.5,0,.9,.6)', fill:'forwards' });
+      down.onfinish = function(){
+        clip.remove();
+        box.classList.remove('thump'); void box.offsetWidth; box.classList.add('thump');
+        SoundFX.confirm();
+      };
     };
   }catch(e){}
 }
@@ -4230,6 +4263,10 @@ function handleServerMessage(msg){
     switchPanel('mpentry');
     var mpErrEl = document.getElementById('mpentry-error');
     if(mpErrEl){ mpErrEl.textContent = msg.message || "Couldn't rejoin that game."; mpErrEl.style.display = 'block'; }
+  } else if(msg.type==='startCountdown'){
+    showStartCountdown(msg.endsAt);
+  } else if(msg.type==='startCancelled'){
+    hideStartCountdown(true);
   } else if(msg.type==='roster'){
     ownerPowers = !!msg.ownerPowers;
     renderMpRoster(msg.players);
@@ -4261,6 +4298,7 @@ function handleServerMessage(msg){
     }
     switchPanel('lobby');
   } else if(msg.type==='gameState'){
+    hideStartCountdown(false);
     if(msg.view && msg.view.familyPicks){ latestFamilyPicks = msg.view.familyPicks; } else if(msg.view && msg.view.phase !== 'night'){ latestFamilyPicks = []; }
     phaseEndsAt = msg.phaseEndsAt;
     ownerPowers = !!msg.ownerPowers;
@@ -6979,7 +7017,7 @@ function showNightKillRevealScreen(victims, onContinue){
   // distinct portrait by default, no exceptions."
   document.getElementById('nightkill-victims').innerHTML = victims.map(function(v){
     return '<div class="nightkill-victim">'+
-      '<div class="nightkill-card"><div class="portrait-frame mystery-portrait"><img class="photo-img" src="'+portraitImgFor(v)+'" alt=""><img class="frame-overlay" src="'+FRAME_IMG+'" alt=""></div><span class="nightkill-stamp">eliminated</span></div>'+
+      '<div class="nightkill-card"><div class="portrait-frame hc-tall mystery-portrait"><img class="photo-img" src="'+portraitImgFor(v)+'" alt=""><img class="frame-overlay" src="'+FRAME_TALL_IMG+'" alt=""></div><span class="nightkill-stamp">eliminated</span></div>'+
       '<h2 class="nightkill-name">'+escapeHtmlMp(v.name)+'</h2>'+
       '</div>';
   }).join('');
@@ -9085,6 +9123,29 @@ function updateQuickVoteBtn(){
   btn.classList.toggle('active', quickVoteMode);
   btn.innerHTML = quickVoteMode ? 'Pick a player&hellip;' : 'Vote for&hellip;';
 }
+// 10-second countdown shown to the whole room after the host presses Start (the server starts the game when it ends)
+var startCountdownTimer = null;
+function showStartCountdown(endsAt){
+  var box = document.getElementById('start-countdown'), num = document.getElementById('start-countdown-num');
+  if(!box) return;
+  clearInterval(startCountdownTimer);
+  box.style.display = 'flex';
+  var btn = document.getElementById('setup-start-btn'); if(btn) btn.disabled = true;
+  var last = null;
+  function tick(){
+    var left = Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
+    num.textContent = left;
+    if(left !== last){ last = left; try{ SoundFX.playTick && SoundFX.playTick(); }catch(e){} num.classList.remove('pop'); void num.offsetWidth; num.classList.add('pop'); }
+    if(left <= 0) clearInterval(startCountdownTimer);
+  }
+  tick(); startCountdownTimer = setInterval(tick, 200);
+}
+function hideStartCountdown(cancelled){
+  clearInterval(startCountdownTimer); startCountdownTimer = null;
+  var box = document.getElementById('start-countdown'); if(box) box.style.display = 'none';
+  if(cancelled){ var btn = document.getElementById('setup-start-btn'); if(btn) btn.disabled = false; }
+}
+
 function fitRosterNames(){
   // shrink long names to fit the nameplate (down to 8px); ellipsis only as a last resort
   document.querySelectorAll('.daylayout-roster-tile-name').forEach(function(el){

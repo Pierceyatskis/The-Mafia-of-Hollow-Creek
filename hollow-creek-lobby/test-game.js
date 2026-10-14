@@ -1049,4 +1049,16 @@ assert(resCultF.cultConvertedPlayer === null, 'Phase2 Task5: resolveNight confir
   assert(names.includes('Mabel') && !names.some(n => /Finch|Pruitt/.test(n)), 'Names: placeholder townspeople use short names');
   assert(new Set(names.map(n => n.toLowerCase())).size === names.length, 'Names: no two players share a name');
 }
+{
+  // Townspeople get silhouettes that match who they are (men: avatar16-20/26-30, women: avatar21-25/31-35)
+  let bad = 0;
+  for(let i = 0; i < 40; i++){
+    const g = G.createGame([{id:'p1', name:'Human', isHuman:true}], {playerCount:12, mafiaCount:2});
+    g.players.filter(p => p.isPlaceholder).forEach(p => {
+      const n = Number(String(p.gameIconKey).slice(6)); const male = (n >= 16 && n <= 20) || (n >= 26 && n <= 30);
+      if((p.gender === 'm') !== male) bad++;
+    });
+  }
+  assert(bad === 0, 'Icons: every townsperson is dealt a silhouette of their own gender (Mabel a woman, Otis a man...)');
+}
 console.log('\nAll game.js checks completed.');

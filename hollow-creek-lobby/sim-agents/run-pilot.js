@@ -345,7 +345,7 @@ class Agent {
 
 // ---------------------------------------------------------------- run
 (async () => {
-  const server = spawn(process.execPath, ['server.js'], { cwd: ROOT, env: Object.assign({}, process.env, { PORT: String(PORT), NIGHT_EARLY_RESOLVE_DELAY_MS: '1500', DAY_VOTE_EARLY_RESOLVE_DELAY_MS: '1500' }, Object.fromEntries(Object.entries(DUR).map(([k, x]) => [k, String(x)]))), stdio: 'ignore' });
+  const server = spawn(process.execPath, ['server.js'], { cwd: ROOT, env: Object.assign({}, process.env, { PORT: String(PORT), NIGHT_EARLY_RESOLVE_DELAY_MS: '1500', DAY_VOTE_EARLY_RESOLVE_DELAY_MS: '1500', START_COUNTDOWN_MS: '100' }, Object.fromEntries(Object.entries(DUR).map(([k, x]) => [k, String(x)]))), stdio: 'ignore' });
   await sleep(1500);
   const agents = NAMES.slice(0, N).map(n => new Agent(n));
   await Promise.all(agents.map(a => a.ready));
