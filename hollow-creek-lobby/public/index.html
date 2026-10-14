@@ -396,6 +396,9 @@ body.force-reduced-motion .daylayout-roster-tile.qv-target{animation:none; box-s
    ballotWaxSeal) instead of a plain drawn circle, so this reads as the
    same "you have something new" symbol the envelope already uses. */
 #daylayout-news-notification-badge{position:absolute; top:-12px; right:2%; width:30px; height:30px; z-index:4; pointer-events:none;}
+#daylayout-casefile-notification-badge{position:absolute; top:-6px; right:6%; width:30px; height:30px; z-index:4; pointer-events:none;}
+#daylayout-casefile-notification-seal{position:absolute; inset:0; width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.6));}
+#daylayout-casefile-notification-badge span{position:relative; display:flex; width:100%; height:100%; align-items:center; justify-content:center; font-family:var(--font-type); font-size:13px; font-weight:700; color:#fff8ec; text-shadow:0 1px 2px rgba(0,0,0,0.8);}
 #daylayout-news-notification-seal{position:absolute; inset:0; width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.6));}
 #daylayout-news-notification-badge span{position:relative; display:flex; width:100%; height:100%; align-items:center; justify-content:center; font-family:var(--font-type); font-size:13px; font-weight:700; color:#fff8ec; text-shadow:0 1px 2px rgba(0,0,0,0.8);}
 /* Second desk prop - moved to the far-left stretch of the desk (clear of
@@ -1659,6 +1662,74 @@ h2.sec{font-family:var(--font-type); font-size:13px; letter-spacing:2px; text-tr
 .avatar{display:inline-flex; align-items:center; justify-content:center; border-radius:50%; color:var(--parchment); font-family:var(--font-type); flex-shrink:0;}
 .daily-modifier-banner{display:flex; align-items:baseline; gap:8px; font-family:var(--font-type); font-size:13px; color:var(--parchment-dim); border:1px dashed var(--gold-dim); border-radius:6px; padding:9px 13px; margin:0 0 16px;}
 .daily-modifier-banner .dmb-label{color:var(--gold-bright); text-transform:uppercase; letter-spacing:1px; font-size:11px; flex-shrink:0;}
+/* ---- lobby: roster + chat on the left, one "Game Rules" card on the right (the host edits it, everyone else sees the same card live) ---- */
+.lobby-grid{display:grid; grid-template-columns:minmax(0,1fr) minmax(400px,540px); gap:26px; align-items:start;}
+.lobby-main{min-width:0;}
+.lobby-side{position:sticky; top:14px; padding:18px 20px 20px; border:1px solid var(--gold-dim); border-radius:10px; background:linear-gradient(rgba(34,26,19,0.9), rgba(20,15,11,0.93)); box-shadow:0 10px 26px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(227,177,85,0.08);}
+.lobby-head{display:flex; align-items:center; gap:16px; flex-wrap:wrap; margin-bottom:6px;}
+.lobby-code{display:flex; align-items:center; gap:10px; padding:5px 8px 5px 14px; border:1px dashed var(--gold-dim); border-radius:8px; background:rgba(227,177,85,0.06);}
+.lobby-code-label{font-family:var(--font-type); font-size:11px; letter-spacing:1.4px; text-transform:uppercase; color:var(--parchment-dim);}
+.lobby-code b{font-family:var(--font-type); font-size:26px; letter-spacing:7px; color:var(--gold-bright); padding-left:4px;}
+.lobby-code .btn{padding:5px 12px; font-size:12px;}
+.lobby-seats{margin:0 0 12px; font-size:14px; color:var(--parchment-dim);}
+.lobby-seats b{color:var(--parchment);}
+.rules-head{display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;}
+.rules-who{font-family:var(--font-type); font-size:11.5px; letter-spacing:1px; text-transform:uppercase; color:var(--parchment-dim); border:1px solid var(--line); border-radius:12px; padding:3px 10px;}
+.rules-who.is-host{color:var(--gold-bright); border-color:var(--gold-dim);}
+.rules-sub{margin:6px 0 14px; font-size:13.5px; line-height:1.5; color:var(--parchment-dim);}
+.rules-preset{display:inline-flex; flex-wrap:wrap; align-items:center; gap:2px 8px; white-space:nowrap; margin-bottom:12px; padding:7px 14px; border:1px solid var(--gold-bright); border-radius:8px; background:rgba(227,177,85,0.09); font-family:var(--font-ornate); font-weight:600; font-size:16px; color:var(--gold-bright);}
+.rules-preset small{white-space:normal;font-family:var(--font-type); font-weight:400; font-size:11.5px; letter-spacing:.4px; color:var(--parchment-dim);}
+.rule-rows{display:flex; flex-direction:column; gap:7px; margin-bottom:6px;}
+.rule-row{display:flex; align-items:center; justify-content:space-between; gap:14px; padding:9px 12px; border:1px solid var(--line); border-radius:8px; background:rgba(0,0,0,0.18);}
+.rule-label{min-width:0; display:flex; flex-direction:column; gap:2px;}
+.rule-label b{font-family:var(--font-ornate); font-size:16px; font-weight:600; color:var(--parchment);}
+.rule-label small{font-family:var(--font-type); font-size:11.5px; line-height:1.35; color:var(--parchment-dim);}
+.rule-ctl{display:flex; align-items:center; gap:8px; flex-shrink:0;}
+.rule-btn{width:34px; height:34px; border-radius:7px; border:1px solid var(--gold-dim); background:var(--panel-2); color:var(--gold-bright); font-size:20px; line-height:1; cursor:pointer; transition:background .12s, border-color .12s, transform .08s;}
+.rule-btn:hover{background:rgba(227,177,85,0.14); border-color:var(--gold-bright);}
+.rule-btn:active{transform:scale(0.94);}
+.rule-val{min-width:84px; text-align:center; font-family:var(--font-ornate); font-weight:700; font-size:24px; color:var(--gold-bright);}
+.rule-val-ro{padding:3px 12px; border-radius:7px; background:rgba(227,177,85,0.1); border:1px solid rgba(227,177,85,0.28); min-width:0;}
+.rule-val-ro.off{color:var(--parchment-dim); background:rgba(255,255,255,0.04); border-color:var(--line);}
+.rule-row-toggle{cursor:pointer;}
+.rule-switch-input{position:absolute; opacity:0; width:0; height:0;}
+.rule-switch{position:relative; width:50px; height:28px; border-radius:14px; background:#3a3028; border:1px solid var(--line); transition:background .15s;}
+.rule-switch::after{content:''; position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%; background:var(--parchment-dim); transition:transform .15s, background .15s;}
+.rule-switch-input:checked + .rule-switch{background:rgba(227,177,85,0.45); border-color:var(--gold-bright);}
+.rule-switch-input:checked + .rule-switch::after{transform:translateX(22px); background:var(--gold-bright);}
+.rule-switch-input:focus-visible + .rule-switch{outline:2px solid var(--gold-bright); outline-offset:2px;}
+.rule-changed{animation:ruleFlash 1.6s ease;}
+@keyframes ruleFlash{0%,35%{background:rgba(227,177,85,0.34); border-color:var(--gold-bright);} 100%{background:rgba(0,0,0,0.18);}}
+.rules-roles-head{display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin:16px 0 2px;}
+.rules-roles-head h3{margin:0; font-family:var(--font-type); font-size:13px; letter-spacing:1.6px; text-transform:uppercase; color:var(--gold);}
+.rules-roles-count{font-family:var(--font-type); font-size:12px; color:var(--parchment-dim);}
+.rules-hint{margin:2px 0 8px; font-size:12.5px; color:var(--parchment-dim);}
+.rules-summary{display:flex; flex-wrap:wrap; gap:6px 8px; margin-top:10px;}
+.rules-pill{font-family:var(--font-type); font-size:12px; padding:4px 10px; border-radius:12px; border:1px solid var(--line); color:var(--parchment);}
+.rules-pill b{margin-right:4px;}
+.rules-pill.mafia{border-color:rgba(217,54,43,0.55); color:#f0a39b;}
+.rules-pill.town{border-color:rgba(90,160,255,0.5); color:#a9cdfb;}
+.rules-pill.other{border-color:rgba(199,155,255,0.5); color:#d9c0fb;}
+.rules-start{width:100%; padding:12px 18px; font-size:17px;}
+.lobby-side .role-faction-columns{margin:8px 0 0; gap:12px;}
+.lobby-side .role-faction-col{flex:1 1 150px; min-width:140px;}
+.lobby-side .chip{cursor:pointer;}
+.lobby-side .chip.chip-readonly{cursor:help;}
+.chip.selected::before{content:''; position:absolute; left:0; top:0; bottom:0; width:3px; border-radius:5px 0 0 5px; background:currentColor;}
+/* the role description that appears after hovering a role for half a second */
+#role-tip{position:fixed; z-index:2147483000; width:min(340px, calc(100vw - 24px)); box-sizing:border-box; padding:14px 16px 12px; border:2px solid #6b4a20; border-radius:10px; color:#2a1708; pointer-events:none; opacity:0; transform:translateY(4px); transition:opacity .14s ease, transform .14s ease;
+  background:linear-gradient(rgba(255,244,214,0.97), rgba(236,214,166,0.98)), url('assets/ui/parchment.webp') center/cover; box-shadow:0 14px 34px rgba(0,0,0,0.65), inset 0 0 0 1px rgba(255,255,255,0.4);}
+#role-tip.show{opacity:1; transform:none;}
+#role-tip .rt-top{display:flex; align-items:center; gap:10px; margin-bottom:6px;}
+#role-tip .rt-top img{width:44px; height:60px; object-fit:cover; border-radius:4px; border:1px solid #6b4a20; flex-shrink:0;}
+#role-tip .rt-name{font-family:var(--font-ornate); font-weight:700; font-size:20px; line-height:1.1; color:#2a1208;}
+#role-tip .rt-team{display:inline-block; margin-top:3px; font-family:var(--font-type); font-size:10.5px; letter-spacing:1.2px; text-transform:uppercase; padding:1px 8px; border-radius:9px; color:#fff;}
+#role-tip .rt-team.Town{background:#2f5f9a;} #role-tip .rt-team.Mafia{background:#8a1c14;} #role-tip .rt-team.Neutral,#role-tip .rt-team.Cult{background:#6a4a8a;}
+#role-tip .rt-bio{font-size:13.5px; line-height:1.45; margin:6px 0;}
+#role-tip ul{margin:4px 0 0 16px; padding:0; font-size:12.5px; line-height:1.4;}
+#role-tip li{margin:2px 0;}
+@media (max-width:1050px){ .lobby-grid{grid-template-columns:1fr;} .lobby-side{position:static;} }
+@media (max-width:640px){ .rule-row{padding:8px 10px; gap:8px;} .rule-label b{font-size:15px;} .rule-label small{font-size:11px;} .rule-val{min-width:58px; font-size:21px;} .rule-btn{width:38px; height:38px;} .lobby-side{padding:14px 12px 16px;} .lobby-code b{font-size:22px; letter-spacing:5px;} }
 .mode-toggle{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:0 0 22px;}
 .mode-toggle-btn{background:var(--panel-2); border:1px solid var(--line); border-radius:7px; padding:12px 14px; text-align:left; cursor:pointer; font-family:var(--font-ornate); font-weight:600; font-size:14px; color:var(--parchment); transition:border-color .15s ease, background .15s ease;}
 .mode-toggle-btn:hover{border-color:var(--gold-dim);}
@@ -2426,6 +2497,10 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
 <div id="daylayout-desk-casefile-wrap" class="daylayout-btn-fx">
 <img id="daylayout-desk-casefile" alt="">
 <div id="daylayout-desk-casefile-title">Case File</div>
+<div id="daylayout-casefile-notification-badge" style="display:none;" title="New role claim in the Case File">
+  <img id="daylayout-casefile-notification-seal" alt="">
+  <span>1</span>
+</div>
 </div>
 <div id="daylayout-desk-notebook-wrap" class="daylayout-btn-fx" role="button" tabindex="0" aria-label="Open your private notebook">
 <img id="daylayout-desk-notebook" alt="">
@@ -3062,8 +3137,18 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
   </div>
 
   <div id="panel-lobby" style="display:none;">
-    <h2 class="sec">Room Roster <span id="mp-room-code"></span></h2>
-    <div id="mp-roster"></div>
+    <div class="lobby-grid">
+      <div class="lobby-main">
+        <div class="lobby-head">
+          <h2 class="sec" style="margin:0;">Room Roster</h2>
+          <div class="lobby-code" id="lobby-code-pill" title="Share this code so friends can join">
+            <span class="lobby-code-label">Room code</span><b id="lobby-code-text">----</b>
+            <button class="btn ghost" id="lobby-code-copy" type="button">Copy</button>
+          </div>
+          <span id="mp-room-code" style="display:none;"></span>
+        </div>
+        <p class="lobby-seats" id="lobby-seats-line"></p>
+        <div id="mp-roster"></div>
     <div id="lobby-chat" style="margin-top:18px;">
       <h2 class="sec" style="margin-bottom:8px;">Lobby Chat</h2>
       <div class="lobby-chat-log" id="lobby-chat-log"><p class="chat-empty">Nobody has said anything yet.</p></div>
@@ -3074,82 +3159,60 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
       </div>
       <div id="lobby-poll-wrap"></div>
     </div>
-    <p class="msg" id="mp-waiting-msg" style="display:none; margin-top:12px; color:var(--parchment-dim);">Waiting for the host to start the game...</p>
-    <div id="mp-waiting-preview" style="display:none; margin-top:14px; border-top:1px solid var(--line); padding-top:14px;">
-      <button class="btn ghost" id="mp-waiting-howto-btn" style="margin-bottom:14px;">How to Play</button>
-      <p style="font-size:13px; color:var(--parchment-dim); margin:0 0 10px;">This round: <span id="mp-waiting-seats"></span> seats, <span id="mp-waiting-mafia"></span> regular mafia.</p>
-      <p class="msg" id="mp-waiting-roles-label" style="color:var(--parchment-dim); margin-bottom:4px;">Roles in play</p>
-      <div id="mp-waiting-roles"></div>
+        <button class="btn ghost" id="mp-leave-btn" style="margin-top:18px;">Leave room</button>
+      </div>
+
+      <aside class="lobby-side" id="lobby-rules-card">
+        <div class="rules-head">
+          <h2 class="sec" style="margin:0;">Game Rules</h2>
+          <span class="rules-who" id="rules-who"></span>
+        </div>
+        <p class="rules-sub" id="rules-sub"></p>
+
+        <div id="mp-host-config" style="display:none;">
+          <div class="mode-toggle" id="mode-toggle">
+            <button class="mode-toggle-btn active" data-mode="full" id="mode-full-btn">Full Case<span class="mode-toggle-sub">All roles, standard timers</span></button>
+            <button class="mode-toggle-btn" data-mode="quick" id="mode-quick-btn">Quick Case<span class="mode-toggle-sub">8 players, faster timers, ~15 min</span></button>
+          </div>
+
+          <div class="rule-rows">
+            <div class="rule-row"><div class="rule-label"><b>Total seats</b><small>real players + <span id="setup-ai-count">11</span> placeholder townspeople</small></div>
+              <div class="rule-ctl"><button class="rule-btn" id="setup-players-minus" aria-label="Fewer seats">&minus;</button><span class="rule-val" id="setup-players-count">12</span><button class="rule-btn" id="setup-players-plus" aria-label="More seats">+</button></div></div>
+            <div class="rule-row"><div class="rule-label"><b>Regular mafia</b><small>family members with an equal vote on who dies</small></div>
+              <div class="rule-ctl"><button class="rule-btn" id="setup-mafia-minus" aria-label="Fewer mafia">&minus;</button><span class="rule-val" id="setup-mafia-count">0</span><button class="rule-btn" id="setup-mafia-plus" aria-label="More mafia">+</button></div></div>
+            <div class="rule-row"><div class="rule-label"><b>Discussion time</b><small>how long the town talks before voting opens</small></div>
+              <div class="rule-ctl"><button class="rule-btn" id="setup-discuss-minus" aria-label="Shorter discussion">&minus;</button><span class="rule-val" id="setup-discuss-count">90s</span><button class="rule-btn" id="setup-discuss-plus" aria-label="Longer discussion">+</button></div></div>
+            <div class="rule-row"><div class="rule-label"><b>Voting time</b><small>how long the town has to cast votes</small></div>
+              <div class="rule-ctl"><button class="rule-btn" id="setup-vote-minus" aria-label="Shorter voting">&minus;</button><span class="rule-val" id="setup-vote-count">105s</span><button class="rule-btn" id="setup-vote-plus" aria-label="Longer voting">+</button></div></div>
+            <div class="rule-row"><div class="rule-label"><b>Speaker time</b><small>each speaker's turn on the stage when others wait (needs the stage on)</small></div>
+              <div class="rule-ctl"><button class="rule-btn" id="setup-speaker-minus" aria-label="Shorter turns">&minus;</button><span class="rule-val" id="setup-speaker-count">15s</span><button class="rule-btn" id="setup-speaker-plus" aria-label="Longer turns">+</button></div></div>
+            <label class="rule-row rule-row-toggle" for="setup-voice-checkbox"><div class="rule-label"><b>Voice stage</b><small>one player speaks at a time, others queue for a turn</small></div>
+              <div class="rule-ctl"><input type="checkbox" id="setup-voice-checkbox" class="rule-switch-input"><span class="rule-switch" aria-hidden="true"></span></div></label>
+          </div>
+
+          <div class="rules-roles-head"><h3>Roles in play</h3><span class="rules-roles-count" id="setup-roles-count"></span></div>
+          <p class="rules-hint">Click a role to turn it on or off. Hover one for a moment to read what it does.</p>
+          <div id="setup-role-grid"></div>
+          <div class="rules-summary" id="setup-summary"></div>
+          <p class="msg" id="setup-cult-note" style="display:none; margin-top:10px; color:var(--align-cult); font-size:13px;">Cult Leader introduces a genuine third faction with its own separate win condition — this isn't just town vs. mafia anymore.</p>
+          <p class="msg" id="setup-slots-msg" style="margin-top:10px; color:var(--parchment-dim);"></p>
+          <p class="msg err" id="setup-error" style="display:none;"></p>
+          <div style="margin-top:14px;"><button class="btn rules-start" id="setup-start-btn">Start game</button></div>
+        </div>
+
+        <div id="mp-waiting-preview" style="display:none;">
+          <div class="rules-preset" id="mp-waiting-preset"></div>
+          <div class="rule-rows" id="mp-waiting-rules"></div>
+          <div class="rules-roles-head"><h3>Roles in play</h3><span class="rules-roles-count" id="mp-waiting-roles-count"></span></div>
+          <p class="rules-hint">Hover a role for a moment to read what it does. Dimmed roles are not in this game.</p>
+          <div id="mp-waiting-roles"></div>
+          <div class="rules-summary" id="mp-waiting-summary"></div>
+          <p class="msg" id="mp-waiting-msg" style="display:none; margin-top:12px; color:var(--parchment-dim);">Waiting for the host to start the game...</p>
+          <button class="btn ghost" id="mp-waiting-howto-btn" style="margin-top:14px;">How to Play</button>
+          <span id="mp-waiting-seats" style="display:none;"></span><span id="mp-waiting-mafia" style="display:none;"></span><span id="mp-waiting-roles-label" style="display:none;"></span>
+        </div>
+      </aside>
     </div>
-
-    <div id="mp-host-config" style="display:none; margin-top:18px; border-top:1px solid var(--line); padding-top:16px;">
-      <h2 class="sec">Set up the round</h2>
-      <p style="font-size:13px; color:var(--parchment-dim); line-height:1.6; margin:0 0 16px;">Choose how many seats are in Hollow Creek this round and which roles are in play. Empty seats are filled with placeholder townsfolk. The godfather always stays in, so the mafia has someone to run it.</p>
-
-
-      <div class="mode-toggle" id="mode-toggle">
-        <button class="mode-toggle-btn active" data-mode="full" id="mode-full-btn">Full Case<span class="mode-toggle-sub">All roles, standard timers</span></button>
-        <button class="mode-toggle-btn" data-mode="quick" id="mode-quick-btn">Quick Case<span class="mode-toggle-sub">8 players, faster timers, ~15 min</span></button>
-      </div>
-
-      <h2 class="sec">Total seats</h2>
-      <div style="display:flex; align-items:center; gap:14px; margin-bottom:6px;">
-        <button class="btn ghost" id="setup-players-minus" style="padding:6px 16px;">&minus;</button>
-        <span id="setup-players-count" style="font-family:var(--font-ornate); font-weight:700; font-size:22px; color:var(--gold-bright); min-width:30px; text-align:center;">12</span>
-        <button class="btn ghost" id="setup-players-plus" style="padding:6px 16px;">+</button>
-        <span style="font-family:var(--font-type); font-size:12px; color:var(--parchment-dim);">real players + <span id="setup-ai-count">11</span> placeholder townspeople</span>
-      </div>
-
-      <h2 class="sec" style="margin-top:20px;">Regular mafia</h2>
-      <div style="display:flex; align-items:center; gap:14px; margin-bottom:6px;">
-        <button class="btn ghost" id="setup-mafia-minus" style="padding:6px 16px;">&minus;</button>
-        <span id="setup-mafia-count" style="font-family:var(--font-ornate); font-weight:700; font-size:22px; color:var(--gold-bright); min-width:30px; text-align:center;">0</span>
-        <button class="btn ghost" id="setup-mafia-plus" style="padding:6px 16px;">+</button>
-        <span style="font-family:var(--font-type); font-size:12px; color:var(--parchment-dim);">rank-and-file family members, each with an equal vote on who dies</span>
-      </div>
-
-      <h2 class="sec" style="margin-top:20px;">Discussion time</h2>
-      <div style="display:flex; align-items:center; gap:14px; margin-bottom:6px;">
-        <button class="btn ghost" id="setup-discuss-minus" style="padding:6px 16px;">&minus;</button>
-        <span id="setup-discuss-count" style="font-family:var(--font-ornate); font-weight:700; font-size:22px; color:var(--gold-bright); min-width:50px; text-align:center;">90s</span>
-        <button class="btn ghost" id="setup-discuss-plus" style="padding:6px 16px;">+</button>
-        <span style="font-family:var(--font-type); font-size:12px; color:var(--parchment-dim);">how long the town talks before voting opens</span>
-      </div>
-
-      <h2 class="sec" style="margin-top:20px;">Voting time</h2>
-      <div style="display:flex; align-items:center; gap:14px; margin-bottom:6px;">
-        <button class="btn ghost" id="setup-vote-minus" style="padding:6px 16px;">&minus;</button>
-        <span id="setup-vote-count" style="font-family:var(--font-ornate); font-weight:700; font-size:22px; color:var(--gold-bright); min-width:50px; text-align:center;">105s</span>
-        <button class="btn ghost" id="setup-vote-plus" style="padding:6px 16px;">+</button>
-        <span style="font-family:var(--font-type); font-size:12px; color:var(--parchment-dim);">how long the town has to actually cast votes</span>
-      </div>
-
-      <h2 class="sec" style="margin-top:20px;">Speaker time</h2>
-      <div style="display:flex; align-items:center; gap:14px; margin-bottom:6px;">
-        <button class="btn ghost" id="setup-speaker-minus" style="padding:6px 16px;">&minus;</button>
-        <span id="setup-speaker-count" style="font-family:var(--font-ornate); font-weight:700; font-size:22px; color:var(--gold-bright); min-width:50px; text-align:center;">15s</span>
-        <button class="btn ghost" id="setup-speaker-plus" style="padding:6px 16px;">+</button>
-        <span style="font-family:var(--font-type); font-size:12px; color:var(--parchment-dim);">how long each speaker gets on the stage when others are waiting (needs Voice on)</span>
-      </div>
-
-      <h2 class="sec" style="margin-top:20px;">Voice</h2>
-      <label style="display:flex; align-items:center; gap:10px; margin-bottom:6px; cursor:pointer;">
-        <input type="checkbox" id="setup-voice-checkbox" style="width:auto;">
-        <span style="font-family:var(--font-type); font-size:13px; color:var(--parchment-dim);">Turn on the stage — one player speaks at a time, others queue for a turn. Off by default.</span>
-      </label>
-
-      <h2 class="sec" style="margin-top:20px;">Roles in play</h2>
-      <div id="setup-role-grid"></div>
-      <p class="msg" id="setup-cult-note" style="display:none; margin-top:10px; color:var(--align-cult); font-size:13px;">Cult Leader introduces a genuine third faction with its own separate win condition — this isn't just town vs. mafia anymore.</p>
-      <p class="msg" id="setup-slots-msg" style="margin-top:10px; color:var(--parchment-dim);"></p>
-      <p class="msg err" id="setup-error" style="display:none;"></p>
-
-      <div style="margin-top:18px;">
-        <button class="btn" id="setup-start-btn">Start game</button>
-      </div>
-    </div>
-
-    <button class="btn ghost" id="mp-leave-btn" style="margin-top:14px;">Leave room</button>
   </div>
 
   <div id="panel-night" style="display:none;">
@@ -3940,7 +4003,8 @@ function handleServerMessage(msg){
     if(typeof msg.voteSeconds === 'number') GAME_CONFIG.voteSeconds = msg.voteSeconds;
     if(typeof msg.speakerSeconds === 'number') GAME_CONFIG.speakerSeconds = msg.speakerSeconds;
     if(typeof msg.voiceEnabled === 'boolean') GAME_CONFIG.voiceEnabled = msg.voiceEnabled;
-    if(!amHost) renderWaitingRolesView();
+    if(typeof msg.quickMode === 'boolean') GAME_CONFIG.quickMode = msg.quickMode;
+    if(!amHost){ renderWaitingRolesView(); var sl = document.getElementById('lobby-seats-line'); if(sl && latestRosterPlayers) renderMpRoster(latestRosterPlayers); }
   } else if(msg.type==='returnToLobby'){
     latestSummary = null; egView = null; egBuiltKey = null; egDismissedKey = null; hideEndgame();
     // Same room/players/host - the game just reset back to a pre-start
@@ -4084,7 +4148,9 @@ function nameTagsHTML(p){
 // server has OWNER_KEY configured - it says so in every roster/gameState.
 var ownerPowers = false, amOwner = false;
 function canShame(p){ return !!(ownerPowers && amOwner && p && !p.isOwner && p.id !== myPlayerId); }
+var latestRosterPlayers = null;
 function renderMpRoster(players){
+  latestRosterPlayers = players;
   players.forEach(function(p){ lobbyNames[p.id] = p.name; if(p.id===myPlayerId){ amHost = p.isHost; amOwner = !!p.isOwner; } });
   document.getElementById('lobby-poll-btn').style.display = amHost ? '' : 'none';
   document.getElementById('mp-roster').innerHTML = players.map(function(p){
@@ -4104,6 +4170,13 @@ function renderMpRoster(players){
   document.querySelectorAll('.mp-kick-btn').forEach(function(btn){
     btn.addEventListener('click', function(){ openReasonPickerModal('kick', btn.getAttribute('data-kick-id')); });
   });
+  var codeText = document.getElementById('lobby-code-text'); if(codeText) codeText.textContent = myRoomCode || '----';
+  var hostP = players.find(function(p){ return p.isHost; });
+  var whoEl = document.getElementById('rules-who'), subEl = document.getElementById('rules-sub');
+  if(whoEl){ whoEl.textContent = amHost ? 'You are the host' : 'Host: ' + (hostP ? hostP.name : '?'); whoEl.classList.toggle('is-host', amHost); }
+  if(subEl) subEl.textContent = amHost ? 'You set the rules. Everyone in the room sees every change as you make it.' : 'Only the host can change these. They update here live as the host edits them.';
+  var seatsEl = document.getElementById('lobby-seats-line');
+  if(seatsEl) seatsEl.innerHTML = '<b>' + players.length + '</b> of <b>' + GAME_CONFIG.playerCount + '</b> seats taken by real players' + (GAME_CONFIG.playerCount > players.length ? ' \u00b7 the other ' + (GAME_CONFIG.playerCount - players.length) + ' are filled by placeholder townspeople' : '');
   document.getElementById('mp-host-config').style.display = amHost ? 'block' : 'none';
   document.getElementById('mp-waiting-msg').style.display = amHost ? 'none' : 'block';
   document.getElementById('mp-waiting-preview').style.display = amHost ? 'none' : 'block';
@@ -4113,10 +4186,46 @@ function renderMpRoster(players){
 // A waiting (non-host) player's read-only view of the host's current
 // setup-screen choices - GAME_CONFIG here is kept in sync via the
 // 'configUpdate' messages the host's own renderSetupScreen() broadcasts.
+var lastRulesSnapshot = null;
+function fmtSeconds(n){ return n >= 60 ? Math.floor(n / 60) + ':' + ('0' + (n % 60)).slice(-2) : n + 's'; }
+function currentRuleValues(){
+  return [
+    ['seats', 'Total seats', 'real players + placeholder townspeople', String(GAME_CONFIG.playerCount)],
+    ['mafia', 'Regular mafia', 'family members with an equal vote on who dies', String(GAME_CONFIG.mafiaCount)],
+    ['discuss', 'Discussion time', 'how long the town talks before voting opens', fmtSeconds(GAME_CONFIG.discussSeconds)],
+    ['vote', 'Voting time', 'how long the town has to cast votes', fmtSeconds(GAME_CONFIG.voteSeconds)],
+    ['speaker', 'Speaker time', 'each speaker\'s turn on the stage when others wait', fmtSeconds(GAME_CONFIG.speakerSeconds)],
+    ['voice', 'Voice stage', 'one player speaks at a time, others queue for a turn', GAME_CONFIG.voiceEnabled ? 'On' : 'Off']
+  ];
+}
+// How the chosen roles split into teams, shown to the host and to everyone else.
+function rulesSummaryHTML(){
+  var mafiaRoles = 0, townRoles = 0, otherRoles = 0;
+  SPECIAL_ROLES.filter(function(r){ return r !== 'Mafia' && GAME_CONFIG.roles[r]; }).forEach(function(r){ var a = alignOf(r); if(a === 'mafia') mafiaRoles++; else if(a === 'town') townRoles++; else otherRoles++; });
+  var mafiaTotal = mafiaRoles + GAME_CONFIG.mafiaCount;
+  var used = mafiaTotal + townRoles + otherRoles, plain = Math.max(0, GAME_CONFIG.playerCount - used);
+  return '<span class="rules-pill mafia"><b>' + mafiaTotal + '</b>mafia-side</span>' +
+    '<span class="rules-pill town"><b>' + townRoles + '</b>town specials</span>' +
+    (otherRoles ? '<span class="rules-pill other"><b>' + otherRoles + '</b>other</span>' : '') +
+    '<span class="rules-pill"><b>' + plain + '</b>plain townsfolk</span>';
+}
+function rolesOnCount(){ return SPECIAL_ROLES.filter(function(r){ return r !== 'Mafia' && GAME_CONFIG.roles[r]; }).length; }
 function renderWaitingRolesView(){
   document.getElementById('mp-waiting-seats').textContent = GAME_CONFIG.playerCount;
   document.getElementById('mp-waiting-mafia').textContent = GAME_CONFIG.mafiaCount;
+  var vals = currentRuleValues();
+  var changed = {};
+  if(lastRulesSnapshot) vals.forEach(function(v){ if(lastRulesSnapshot[v[0]] !== undefined && lastRulesSnapshot[v[0]] !== v[3]) changed[v[0]] = true; });
+  var next = {}; vals.forEach(function(v){ next[v[0]] = v[3]; }); lastRulesSnapshot = next;
+  document.getElementById('mp-waiting-preset').innerHTML = GAME_CONFIG.quickMode ? 'Quick Case <small>8 players, faster timers, about 15 min</small>' : 'Full Case <small>all roles, standard timers</small>';
+  document.getElementById('mp-waiting-rules').innerHTML = vals.map(function(v){
+    var off = v[0] === 'voice' && !GAME_CONFIG.voiceEnabled;
+    var small = v[0] === 'seats' ? 'real players + ' + Math.max(0, GAME_CONFIG.playerCount - Math.max(1, Object.keys(lobbyNames).length)) + ' placeholder townspeople' : v[2];
+    return '<div class="rule-row' + (changed[v[0]] ? ' rule-changed' : '') + '"><div class="rule-label"><b>' + v[1] + '</b><small>' + small + '</small></div><div class="rule-ctl"><span class="rule-val rule-val-ro' + (off ? ' off' : '') + '">' + v[3] + '</span></div></div>';
+  }).join('');
   document.getElementById('mp-waiting-roles').innerHTML = roleColumnsHTML({readOnly:true});
+  document.getElementById('mp-waiting-roles-count').textContent = rolesOnCount() + ' special roles on';
+  document.getElementById('mp-waiting-summary').innerHTML = rulesSummaryHTML();
 }
 document.getElementById('mp-waiting-howto-btn').addEventListener('click', function(){
   // Overlay only - passing a no-op close callback instead of the default
@@ -6805,7 +6914,7 @@ function roleChipHTML(r, opts){
   var on = GAME_CONFIG.roles[r];
   var roleImg = ROLE_IMG[r];
   var cls = 'chip'+(on?' selected':'')+(opts.readOnly?' chip-readonly':'');
-  return '<div class="'+cls+'"'+(opts.readOnly?'':' data-role="'+r+'"')+'>'+
+  return '<div class="'+cls+'" data-tip-role="'+r+'"'+(opts.readOnly?'':' data-role="'+r+'"')+'>'+
     '<span class="chip-avatar">'+(roleImg?'<img src="'+roleImg+'" alt="">':'')+'</span>'+
     '<span class="chip-name">'+ROLE_SHORT[r]+'</span>'+
     '</div>';
@@ -6830,7 +6939,7 @@ function roleColumnsHTML(opts){
 // informational server-side, never itself starts or validates a game.
 function sendHostConfigUpdate(){
   if(!amHost) return;
-  sendWS({type:'hostConfigUpdate', playerCount: GAME_CONFIG.playerCount, mafiaCount: GAME_CONFIG.mafiaCount, roles: GAME_CONFIG.roles, discussSeconds: GAME_CONFIG.discussSeconds, voteSeconds: GAME_CONFIG.voteSeconds, speakerSeconds: GAME_CONFIG.speakerSeconds, voiceEnabled: GAME_CONFIG.voiceEnabled});
+  sendWS({type:'hostConfigUpdate', quickMode: !!GAME_CONFIG.quickMode, playerCount: GAME_CONFIG.playerCount, mafiaCount: GAME_CONFIG.mafiaCount, roles: GAME_CONFIG.roles, discussSeconds: GAME_CONFIG.discussSeconds, voteSeconds: GAME_CONFIG.voteSeconds, speakerSeconds: GAME_CONFIG.speakerSeconds, voiceEnabled: GAME_CONFIG.voiceEnabled});
 }
 function renderSetupScreen(){
   // (The old "Today's Case" prompt - and the silent timer multiplier that rode along with it - is gone: the timers are exactly what the host sets.)
@@ -6847,9 +6956,9 @@ function renderSetupScreen(){
   document.getElementById('setup-players-count').textContent = GAME_CONFIG.playerCount;
   document.getElementById('setup-ai-count').textContent = GAME_CONFIG.playerCount - 1;
   document.getElementById('setup-mafia-count').textContent = GAME_CONFIG.mafiaCount;
-  document.getElementById('setup-discuss-count').textContent = GAME_CONFIG.discussSeconds+'s';
-  document.getElementById('setup-vote-count').textContent = GAME_CONFIG.voteSeconds+'s';
-  document.getElementById('setup-speaker-count').textContent = GAME_CONFIG.speakerSeconds+'s';
+  document.getElementById('setup-discuss-count').textContent = fmtSeconds(GAME_CONFIG.discussSeconds);
+  document.getElementById('setup-vote-count').textContent = fmtSeconds(GAME_CONFIG.voteSeconds);
+  document.getElementById('setup-speaker-count').textContent = fmtSeconds(GAME_CONFIG.speakerSeconds);
   document.getElementById('setup-voice-checkbox').checked = !!GAME_CONFIG.voiceEnabled;
   document.getElementById('mode-full-btn').classList.toggle('active', !GAME_CONFIG.quickMode);
   document.getElementById('mode-quick-btn').classList.toggle('active', !!GAME_CONFIG.quickMode);
@@ -6865,9 +6974,48 @@ function renderSetupScreen(){
   // know, right here at config time, that they're introducing a genuinely
   // different win-condition shape, not just another role.
   document.getElementById('setup-cult-note').style.display = GAME_CONFIG.roles.CultLeader ? 'block' : 'none';
+  document.getElementById('setup-roles-count').textContent = rolesOnCount() + ' special roles on';
+  document.getElementById('setup-summary').innerHTML = rulesSummaryHTML();
   updateSetupSlotsMsg();
   sendHostConfigUpdate();
 }
+// ---- Hover a role in the lobby for half a second to read what it does (the same text as the role card) ----
+(function(){
+  var tip = document.createElement('div'); tip.id = 'role-tip'; document.body.appendChild(tip);
+  var timer = null, current = null;
+  function teamOf(r){ return roleTeamLabel ? roleTeamLabel(r) : 'Town'; }
+  function show(chip){
+    var r = chip.getAttribute('data-tip-role'); if(!r) return;
+    var bio = (typeof ROLE_BIO !== 'undefined' && ROLE_BIO[r]) || '';
+    var pts = (typeof ROLE_POINTS !== 'undefined' && ROLE_POINTS[r]) || [];
+    var img = ROLE_IMG && ROLE_IMG[r];
+    var team = teamOf(r);
+    tip.innerHTML = '<div class="rt-top">' + (img ? '<img src="' + img + '" alt="">' : '') + '<div><div class="rt-name">' + escapeHtmlMp(ROLE_SHORT[r] || r) + '</div><span class="rt-team ' + team + '">' + team + '</span></div></div>' +
+      '<div class="rt-bio">' + escapeHtmlMp(bio) + '</div>' + (pts.length ? '<ul>' + pts.map(function(x){ return '<li>' + escapeHtmlMp(x) + '</li>'; }).join('') + '</ul>' : '');
+    var rect = chip.getBoundingClientRect();
+    tip.style.left = '0px'; tip.style.top = '0px'; tip.classList.add('show');
+    var w = tip.offsetWidth, h = tip.offsetHeight;
+    var x = Math.min(window.innerWidth - w - 12, Math.max(12, rect.left + rect.width / 2 - w / 2));
+    var y = rect.top - h - 10; if(y < 12) y = Math.min(window.innerHeight - h - 12, rect.bottom + 10);
+    tip.style.left = x + 'px'; tip.style.top = y + 'px';
+  }
+  function hide(){ clearTimeout(timer); timer = null; current = null; tip.classList.remove('show'); }
+  function start(chip){ if(current === chip) return; hide(); current = chip; timer = setTimeout(function(){ if(current === chip) show(chip); }, 500); }
+  var lobby = document.getElementById('panel-lobby');
+  lobby.addEventListener('mouseover', function(e){ var c = e.target.closest && e.target.closest('[data-tip-role]'); if(c) start(c); else if(current) hide(); });
+  lobby.addEventListener('mouseleave', hide);
+  lobby.addEventListener('click', function(e){ if(e.target.closest && e.target.closest('[data-tip-role]')) { clearTimeout(timer); timer = null; } });
+  // a finger held on a role for half a second does the same
+  lobby.addEventListener('touchstart', function(e){ var c = e.target.closest && e.target.closest('[data-tip-role]'); if(c) start(c); }, {passive:true});
+  lobby.addEventListener('touchend', function(){ setTimeout(hide, 1800); }, {passive:true});
+  window.addEventListener('scroll', hide, true);
+})();
+document.getElementById('lobby-code-copy').addEventListener('click', function(){
+  var btn = this, code = myRoomCode || '';
+  function done(){ btn.textContent = 'Copied!'; setTimeout(function(){ btn.textContent = 'Copy'; }, 1400); }
+  try{ if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(code).then(done, done); return; } }catch(e){}
+  done();
+});
 document.getElementById('mode-quick-btn').addEventListener('click', function(){
   if(GAME_CONFIG.quickMode) return;
   FULL_CASE_CONFIG_SNAPSHOT = {playerCount: GAME_CONFIG.playerCount, mafiaCount: GAME_CONFIG.mafiaCount, roles: Object.assign({}, GAME_CONFIG.roles)};
@@ -8227,6 +8375,7 @@ function fitNoteBodyText(el){
 // doesn't match this, so a new day's paper re-flags itself even if the
 // player already read a previous night's edition.
 var newsSeenNight = null;
+var claimsSeenCount = 0, latestClaimCount = 0;
 var daylayoutPrevLivingCount = null;
 var daylayoutSubtitleNight = null;
 var daylayoutSubtitleText = '';
@@ -8682,6 +8831,14 @@ function renderDayPanel(){
   var me = meFromView(view);
   document.getElementById('night-num-b').textContent = view.night;
   document.getElementById('daylayout-news-notification-badge').style.display = (newsSeenNight !== view.night) ? 'flex' : 'none';
+  // a dot on the Case File each time someone new makes a role claim (counted per player + role), cleared when it is opened
+  var claimKeys = {}; (view.chatLog || []).forEach(function(m){ if(m.category === 'role_claim' && m.claimedRole && m.playerId !== myPlayerId) claimKeys[m.playerId + ':' + m.claimedRole] = 1; });
+  var claimCount = Object.keys(claimKeys).length;
+  var cfBadge = document.getElementById('daylayout-casefile-notification-badge');
+  if(claimCount < claimsSeenCount) claimsSeenCount = claimCount;
+  cfBadge.style.display = (claimCount > claimsSeenCount) ? 'flex' : 'none';
+  cfBadge.querySelector('span').textContent = String(Math.min(9, claimCount - claimsSeenCount));
+  latestClaimCount = claimCount;
   // Bug 1: the Detective's read needs to show the moment day begins, not
   // only if they happen to click into the role badge or wait for the next
   // night's action screen - the multiplayer client never had an equivalent
@@ -11706,7 +11863,7 @@ var DAYTIME_IMG = {
     'watch-hand-hour': 'watchHourHand', 'watch-hand-minute': 'watchMinuteHand',
     'watch-glow': 'watchGlow', 'role-envelope-sprite': 'envClosed',
     'cabinet-bulletin-bg': 'cabinetBulletin', 'cabinet-stage-bg': 'cabinetStage', 'cabinet-voting-bg': 'cabinetVoting',
-    'vote-confirmed-seal': 'ballotWaxSeal', 'daylayout-news-notification-seal': 'notificationSeal', 'daylayout-cabinet-full': 'cabinetFull', 'daylayout-roster-frame': 'chatPanelFrame',
+    'vote-confirmed-seal': 'ballotWaxSeal', 'daylayout-news-notification-seal': 'notificationSeal', 'daylayout-casefile-notification-seal': 'notificationSeal', 'daylayout-cabinet-full': 'cabinetFull', 'daylayout-roster-frame': 'chatPanelFrame',
     'daylayout-timer-bar': 'timerBar', 'daylayout-game-title': 'gameTitle', 'daylayout-chat-frame': 'chatPanelFrame',
     'daylayout-desk-newspaper': 'deskNewspaper', 'daylayout-desk-casefile': 'deskCaseFile',
     'daylayout-desk-notebook': 'deskNotebook', 'daylayout-desk-gear': 'deskGear',
@@ -12002,8 +12159,10 @@ document.getElementById('daylayout-news-modal').addEventListener('click', functi
 // Second desk prop - opens the pre-existing Case File modal (same one the
 // night-phase floating badge uses), just triggered from the desk instead.
 document.getElementById('daylayout-desk-casefile-wrap').addEventListener('click', function(){
+  var hasNewClaim = latestClaimCount > claimsSeenCount;
+  claimsSeenCount = latestClaimCount; document.getElementById('daylayout-casefile-notification-badge').style.display = 'none';
   SoundFX.playCaseFileOpen();
-  caseLogActiveTab = 'rounds';
+  caseLogActiveTab = hasNewClaim ? 'claims' : 'rounds';
   openCaseLogModal();
 });
 // Third desk prop - opens the private Notebook (Town Directory), same

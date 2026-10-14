@@ -1128,7 +1128,7 @@ wss.on('connection', (socket) => {
       const voteMs = sanitizeDurationMs(msg.voteSeconds, MIN_VOTE_SECONDS, MAX_VOTE_SECONDS, DAY_VOTE_DURATION_MS);
       const speakerMs = sanitizeDurationMs(msg.speakerSeconds, MIN_STAGE_TURN_SECONDS, MAX_STAGE_TURN_SECONDS, STAGE_TURN_SECONDS * 1000);
       const voiceEnabled = !!msg.voiceEnabled;
-      room.draftConfig = { playerCount, mafiaCount, roles, discussSeconds: discussMs / 1000, voteSeconds: voteMs / 1000, speakerSeconds: speakerMs / 1000, voiceEnabled };
+      room.draftConfig = { quickMode: !!msg.quickMode, playerCount, mafiaCount, roles, discussSeconds: discussMs / 1000, voteSeconds: voteMs / 1000, speakerSeconds: speakerMs / 1000, voiceEnabled };
       room.players.forEach(rp => {
         if (rp.socket.readyState === WebSocket.OPEN) {
           rp.socket.send(JSON.stringify(Object.assign({ type: 'configUpdate' }, room.draftConfig)));

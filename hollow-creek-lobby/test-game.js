@@ -1005,6 +1005,9 @@ assert(resCultF.cultConvertedPlayer === null, 'Phase2 Task5: resolveNight confir
   assert(G.extractClaimedRole("I'm the detective") === 'Detective', 'Claimed role: "I\'m the detective" -> Detective');
   assert(G.extractClaimedRole("i'm not the mafia, i'm the doctor") === 'Doctor', 'Claimed role: a denial of one role does not hide the role actually claimed');
   assert(G.extractClaimedRole('I am', { recentTexts: ['who is the doctor?'] }) === 'Doctor', 'Claimed role: a bare "I am" takes the role from the question it answers');
+  assert(G.extractClaimedRole('I checked Dex last night, he came back innocent') === 'Detective', 'Claimed role: reporting an investigation result counts as a Detective claim');
+  assert(G.extractClaimedRole('I protected Finn last night') === 'Doctor', 'Claimed role: saying you protected someone counts as a Doctor claim');
+  assert(G.extractClaimedRole('I checked the clock') === null, 'Claimed role: ordinary talk about "checking" something is not a claim');
   assert(G.extractClaimedRole('i am just a villager') === 'Civilian', 'Claimed role: villager counts as Civilian');
   const st = G.createGame([{id:'a',name:'A'},{id:'b',name:'B'},{id:'c',name:'C'},{id:'d',name:'D'},{id:'e',name:'E'},{id:'f',name:'F'}], {playerCount:6, mafiaCount:0, roles:{Godfather:true,Detective:true}});
   const v = G.getPlayerView(st, 'a');

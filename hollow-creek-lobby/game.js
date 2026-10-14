@@ -879,11 +879,24 @@ function roleInText(text){
   Object.keys(CLAIM_WORD_ALIASES).forEach(w => consider(w, CLAIM_WORD_ALIASES[w]));
   return best ? best.role : null;
 }
+// A claim made without naming the role: "I checked Dex last night, he's innocent" (a Detective), "I protected Ada" (a Doctor),
+// "I examined the body" (a Mortician). Needs a result word / the action itself so ordinary chat ("I checked the clock") is left alone.
+function indirectClaimRole(text){
+  const t = String(text || '').toLowerCase();
+  if(/\bi(?:'ve| have)?\s+(?:checked|investigated|looked into|searched)\b[^.!?]*\b(?:innocent|guilty|clean|suspicious|came back|read)\b/.test(t)
+    || /\bmy (?:investigation|check|result|read)s?\b[^.!?]*\b(?:innocent|guilty|clean|suspicious|came back|says|showed|shows)\b/.test(t)
+    || /\bi(?:'ve| have)?\s+(?:checked|investigated)\s+(?!the\b|a\b|my\b|that\b|this\b)\w+[^.!?]*\blast night\b/.test(t)) return 'Detective';
+  if(/\bi(?:'ve| have|'m| am| was)?\s*(?:protected|protecting|saved|saving)\s+(?!the\b|my\b)\w+/.test(t) && /\b(?:night|last night|tonight|every night)\b/.test(t)) return 'Doctor';
+  if(/\bi(?:'ve| have)?\s+(?:examined|autopsied)\b[^.!?]*\b(?:body|corpse|dead|victim|was)\b/.test(t)) return 'Mortician';
+  return null;
+}
 function extractClaimedRole(text, ctx){
   const t = String(text || '').toLowerCase();
   const m = /\b(?:i(?:'m| am)|my role is)\b([^.!?]*)/.exec(t);
   const direct = m ? roleInText(m[1]) : null;
   if(direct) return direct;
+  const indirect = indirectClaimRole(t);
+  if(indirect) return indirect;
   ctx = ctx || {};
   const lines = [ctx.replyToText].concat((ctx.recentTexts || []).slice().reverse());
   for(const line of lines){ if(line && /\bwho\b/i.test(line)){ const r = roleInText(line); if(r) return r; } }
@@ -993,6 +1006,7 @@ function analyzeChatMessage(text, playerNames, context){
   // definitely the mafia" still reaches it fine.
   const roleClaimRe = new RegExp('\\bi(?:\'m| am)\\b(?:(?!\\bnot\\b)[^.!?])*\\b(?:' + CHAT_ROLE_WORDS_PATTERN + ')\\b');
   if (roleClaimRe.test(t) || /\bmy role is\b/.test(t)) return R('role_claim');
+  if (indirectClaimRole(t)) return R('role_claim');
 
   // Context upgrade: "I am"/"that's me" alone carries no role word of its
   // own, so it only reads as a role claim when it's actually answering a
