@@ -506,14 +506,15 @@ body.force-reduced-motion .daylayout-roster-tile.qv-target{animation:none; box-s
    circle annotation (07b41db4), converted from fractions of the full
    1024x1536 source into fractions of OUR crop (13,0,1010,1523), then to
    px against the image's ~658x993 rendered box. */
-#daylayout-obituary{position:absolute; left:324px; top:181px; width:319px; height:404px; overflow:hidden; pointer-events:none; font-family:var(--font-body); color:#2a2015;}
-#daylayout-obit-headline{margin:16px 0 28px; font-family:var(--font-display); font-weight:700; font-size:27px; line-height:1.15; letter-spacing:0.5px; text-transform:uppercase; color:#161006; text-align:center;}
+#daylayout-obituary{position:absolute; left:338px; top:181px; width:282px; height:392px; overflow:hidden; box-sizing:border-box; pointer-events:none; font-family:var(--font-body); color:#2a2015;}
+#daylayout-obit-headline{margin:14px 0 22px; font-family:var(--font-display); font-weight:700; font-size:27px; line-height:1.15; letter-spacing:0.5px; text-transform:uppercase; color:#161006; text-align:center;}
 #daylayout-obit-headline-name{display:block;}
 #daylayout-obit-headline-sub{display:block;}
-#daylayout-obit-content{display:flex; gap:10px; align-items:flex-start;}
-#daylayout-obit-portrait{flex:0 0 122px; width:122px; height:auto; border:1px solid #3a2f22; filter:sepia(0.3);}
-#daylayout-obit-body{flex:1; min-width:0; margin:0; font-size:11.5px; line-height:1.42; color:#2a2015;}
-#daylayout-obit-byline{margin:10px 0 0; font-size:11px; font-style:italic; text-align:right; color:#4a3b2a;}
+#daylayout-obit-content{display:block; margin-top:18px;}
+#daylayout-obit-content::after{content:''; display:block; clear:both;}
+#daylayout-obit-portrait{float:left; width:96px; height:auto; margin:2px 10px 4px 0; border:1px solid #3a2f22; filter:sepia(0.3);}
+#daylayout-obit-body{margin:0; font-size:11.5px; line-height:1.38; color:#2a2015; overflow-wrap:anywhere; text-align:left;}
+#daylayout-obit-byline{margin:6px 0 0; clear:both; font-size:10.5px; font-style:italic; text-align:right; color:#4a3b2a;}
 /* TEMP day-layout-rebuild step 3 - "Town Bulletin" title over the cabinet's
    header plaque. Position re-measured directly off the raw c45610ee pixels
    (scanned the plaque's brass-bordered dark plate at the cabinet's own
@@ -12200,6 +12201,69 @@ var OBIT_ROLECLAIM = [
   'Shortly before their death, they declared to all: “{text}.”',
   'They had publicly stated: “{text}.”'
 ];
+var OBIT_ROLECLAIM_ROLE = [
+  'They had told the town they were the {role}.',
+  'Shortly before their death, they had claimed to be the {role}.',
+  'By their own account, they were the {role}.'
+];
+// How the dead player stood with the people around them, from the public record only (chat stances, accusations,
+// votes). One sentence, chosen by who was warm to whom - a kind word is never framed as "closeness" when the
+// other side was hostile.
+var OBIT_REL_MUTUAL = [
+  '{a} and {b} had stood up for one another in the days before.',
+  'Those who watched the town talk say {a} and {b} had each other\'s backs.',
+  '{a} and {b} were often on the same side, each speaking up for the other.'
+];
+var OBIT_REL_DEAD_DEFENDED = [
+  '{a} had spoken up in defense of {b}.',
+  'Not long before the end, {a} was vouching for {b} in front of the whole town.',
+  '{a} had told the town that {b} could be trusted.'
+];
+var OBIT_REL_OTHER_DEFENDED = [
+  '{b} had come to {a}\'s defense when suspicion fell on them.',
+  '{b} was one of the few who stood up for {a}.',
+  '{b} had vouched for {a}, insisting they were no threat to the town.'
+];
+var OBIT_REL_DEAD_BACKED = [
+  '{a} had backed {b}\'s side in the discussion.',
+  '{a} had sided with {b} when the town was talking.'
+];
+var OBIT_REL_OTHER_BACKED = [
+  '{b} had backed {a}\'s side in the discussion.',
+  '{b} had sided with {a} when the town was talking.'
+];
+var OBIT_REL_FEUD = [
+  '{a} and {b} had been at odds, each pointing a finger at the other.',
+  'There was no love lost between {a} and {b}: each had gone after the other.'
+];
+function obitRelationship(dead, view){
+  var players = view.players || [], chat = view.chatLog || [];
+  var pos = {}, neg = {};   // key "from>to" -> weight
+  function add(map, from, to, w){ if(!from || !to || from === to) return; var k = from + '>' + to; map[k] = (map[k] || 0) + w; }
+  chat.forEach(function(m){
+    if(m.kind === 'whisperAnnounce') return;
+    if(m.defendedId) add(pos, m.playerId, m.defendedId, 2);
+    if(m.supportedId) add(pos, m.playerId, m.supportedId, 1);
+    if(m.category === 'accusation' && m.targetId) add(neg, m.playerId, m.targetId, 1);
+  });
+  (view.accusationLog || []).forEach(function(a){ add(neg, a.accuserId, a.targetId, 1); });
+  (view.voteHistory || []).forEach(function(v){ if(v.targetId) add(neg, v.voterId, v.targetId, 2); });
+  var best = null;
+  players.forEach(function(x){
+    if(x.id === dead.id) return;
+    var pD = pos[dead.id + '>' + x.id] || 0, pX = pos[x.id + '>' + dead.id] || 0;
+    var nD = neg[dead.id + '>' + x.id] || 0, nX = neg[x.id + '>' + dead.id] || 0;
+    var cand = null;
+    if(pD > 0 && pX > 0 && !nD && !nX) cand = {rank: 4, score: pD + pX, kind: 'mutual'};
+    else if(pX > 0 && !nX) cand = {rank: 3, score: pX, kind: pX >= 2 ? 'otherDefended' : 'otherBacked'};
+    else if(pD > 0 && !nD) cand = {rank: 2, score: pD, kind: pD >= 2 ? 'deadDefended' : 'deadBacked'};
+    else if(nD > 0 && nX > 0) cand = {rank: 1, score: nD + nX, kind: 'feud'};
+    if(cand && (!best || cand.rank > best.rank || (cand.rank === best.rank && cand.score > best.score))){ cand.other = x; best = cand; }
+  });
+  if(!best) return null;
+  var pool = {mutual: OBIT_REL_MUTUAL, otherDefended: OBIT_REL_OTHER_DEFENDED, otherBacked: OBIT_REL_OTHER_BACKED, deadDefended: OBIT_REL_DEAD_DEFENDED, deadBacked: OBIT_REL_DEAD_BACKED, feud: OBIT_REL_FEUD}[best.kind];
+  return obitPick(pool).replace(/\{a\}/g, dead.name).replace(/\{b\}/g, best.other.name);
+}
 var OBIT_ACCUSED = [
   'Not long before their death, they had publicly accused {target}.',
   'Town records show they had pointed the finger at {target}.',
@@ -12250,9 +12314,10 @@ function obitPick(arr){ return arr[Math.floor(Math.random() * arr.length)]; }
 // one off the source message first so a message that already ends in
 // ./!/? doesn't end up with two punctuation marks in a row.
 function obitQuote(text){ return String(text || '').replace(/[.!?]+$/, ''); }
+function obitShort(text, max){ var t = obitQuote(text); return t.length > max ? t.slice(0, max - 1).replace(/\s+\S*$/, '') + '...' : t; }
 function buildObituary(deadPlayer, view){
   var name = deadPlayer.name;
-  var myChats = (view.chatLog || []).filter(function(m){ return m.playerId === deadPlayer.id && m.kind !== 'whisperAnnounce'; });
+  var myChats = (view.chatLog || []).filter(function(m){ return m.playerId === deadPlayer.id && m.kind !== 'whisperAnnounce' && m.text; });
   var lastChat = myChats.length ? myChats[myChats.length - 1] : null;
   var roleClaims = myChats.filter(function(m){ return m.category === 'role_claim'; });
   var lastRoleClaim = roleClaims.length ? roleClaims[roleClaims.length - 1] : null;
@@ -12260,21 +12325,24 @@ function buildObituary(deadPlayer, view){
   var lastAccusation = myAccusations.length ? myAccusations[myAccusations.length - 1] : null;
   var myVotes = (view.voteHistory || []).filter(function(v){ return v.voterId === deadPlayer.id && v.targetId; });
   var lastVote = myVotes.length ? myVotes[myVotes.length - 1] : null;
-  if(!lastChat && !lastAccusation && !lastVote){
+  var relation = obitRelationship(deadPlayer, view);
+  if(!lastChat && !lastAccusation && !lastVote && !relation){
     return obitPick(OBIT_NODATA).replace(/\{name\}/g, name) + ' ' + obitPick(OBIT_INVESTIGATION) + ' ' + obitPick(OBIT_MEMORIAL);
   }
   var sentences = [obitPick(OBIT_INTROS).replace('{name}', name)];
   var accusingChats = myChats.filter(function(m){ return m.category === 'accusation' && m.targetId; });
   var lastAccusingChat = accusingChats.length ? accusingChats[accusingChats.length - 1] : null;
-  // If their very last line IS the accusation, it's quoted once below as the accusation rather than twice.
-  if(lastChat && lastChat.text && lastChat !== lastAccusingChat) sentences.push(obitPick(OBIT_LASTWORDS).replace('{text}', obitQuote(lastChat.text)));
-  if(lastRoleClaim && lastRoleClaim.text) sentences.push(obitPick(OBIT_ROLECLAIM).replace('{text}', obitQuote(lastRoleClaim.text)));
-  // Prefer the actual accusing line (every chat line the server read as an
-  // accusation, plus agreements with one, carries its target) - quoted - over
-  // the bare "they accused X" fallback.
+  // a line already used for the accusation or the role claim is not quoted a second time as "last words"
+  if(lastChat && lastChat !== lastAccusingChat && lastChat !== lastRoleClaim) sentences.push(obitPick(OBIT_LASTWORDS).replace('{text}', obitShort(lastChat.text, 110)));
+  if(lastRoleClaim){
+    var claimed = lastRoleClaim.claimedRole && ROLE_SHORT[lastRoleClaim.claimedRole];
+    if(claimed) sentences.push(obitPick(OBIT_ROLECLAIM_ROLE).replace('{role}', claimed));
+    else sentences.push(obitPick(OBIT_ROLECLAIM).replace('{text}', obitShort(lastRoleClaim.text, 110)));
+  }
+  // Prefer the actual accusing line (quoted) over the bare "they accused X" fallback.
   if(lastAccusingChat){
     var quotedTarget = (view.players || []).find(function(p){ return p.id === lastAccusingChat.targetId; });
-    if(quotedTarget && lastAccusingChat.text) sentences.push(obitPick(OBIT_ACCUSED_QUOTE).replace('{target}', quotedTarget.name).replace('{text}', obitQuote(lastAccusingChat.text)));
+    if(quotedTarget) sentences.push(obitPick(OBIT_ACCUSED_QUOTE).replace('{target}', quotedTarget.name).replace('{text}', obitShort(lastAccusingChat.text, 110)));
     else lastAccusingChat = null;
   }
   if(!lastAccusingChat && lastAccusation){
@@ -12285,8 +12353,10 @@ function buildObituary(deadPlayer, view){
     var voteTarget = (view.players || []).find(function(p){ return p.id === lastVote.targetId; });
     if(voteTarget) sentences.push(obitPick(OBIT_VOTED).replace('{target}', voteTarget.name));
   }
-  sentences.push(obitPick(OBIT_CLOSING));
-  sentences.push(Math.random() < 0.5 ? obitPick(OBIT_INVESTIGATION) : obitPick(OBIT_MEMORIAL));
+  if(relation) sentences.push(relation);
+  // the closing lines are filler: only as many as fit the column
+  var closings = [obitPick(OBIT_CLOSING), Math.random() < 0.5 ? obitPick(OBIT_INVESTIGATION) : obitPick(OBIT_MEMORIAL)];
+  closings.forEach(function(c){ if(sentences.join(' ').length + c.length < 560) sentences.push(c); });
   return sentences.join(' ');
 }
 // Near-miss "narrow escape" story - the Chronicle's other front-page
@@ -12350,6 +12420,14 @@ function newsPortraitFor(p){
   var key = p && p.gameIconKey ? 'newsIcon' + p.gameIconKey.charAt(0).toUpperCase() + p.gameIconKey.slice(1) : null;
   return (key && DAYTIME_IMG[key]) || DAYTIME_IMG.newsIconUnknown;
 }
+// The article column is a fixed size: shrink the text a half-px at a time until the whole story (and byline) fits.
+function fitObituaryText(){
+  var box = document.getElementById('daylayout-obituary'), body = document.getElementById('daylayout-obit-body'), by = document.getElementById('daylayout-obit-byline');
+  if(!box || !body || box.offsetParent === null) return;
+  body.style.fontSize = ''; by.style.fontSize = '';
+  var size = parseFloat(getComputedStyle(body).fontSize), minSize = 8.5;
+  while(box.scrollHeight > box.clientHeight + 0.5 && size > minSize){ size -= 0.5; body.style.fontSize = size + 'px'; by.style.fontSize = Math.max(8, size - 1) + 'px'; }
+}
 function renderObituary(){
   var box = document.getElementById('daylayout-obituary');
   var circle = document.getElementById('daylayout-news-marker-circle');
@@ -12372,6 +12450,7 @@ function renderObituary(){
   document.getElementById('daylayout-obit-portrait').src = newsPortraitFor(subject);
   document.getElementById('daylayout-obit-body').textContent = survivor ? buildSurvivorStory(survivor) : buildObituary(dead, latestView);
   document.getElementById('daylayout-obit-byline').textContent = obitPick(OBIT_BYLINE);
+  fitObituaryText();
   // The headline wraps to 1 or 2 lines depending on name length, so the
   // underline's top has to be measured after the real text is in place,
   // not assumed from a fixed offset.
