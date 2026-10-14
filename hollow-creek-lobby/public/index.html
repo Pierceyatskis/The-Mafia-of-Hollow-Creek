@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>The Mafia of Hollow Creek</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Rye&family=Special+Elite&family=Vollkorn:ital,wght@0,400;0,600;1,400&family=Cinzel:wght@500;600;700&display=swap" rel="stylesheet">
@@ -1406,25 +1406,6 @@ body.force-reduced-motion .notebook-view.notebook-page-turn{animation:none;}
 .notebook-timeline-row::before{content:'●'; color:#8a6a3a; font-size:0.6em; margin-right:6px; vertical-align:middle;}
 .notebook-timeline-day{color:#7a4038; font-weight:700;}
 
-@media (max-width:768px){
-  .notebook-overlay{padding:0;}
-  .notebook-book{width:100vw; height:100vh; max-height:100vh; aspect-ratio:auto;}
-  .notebook-view{position:absolute; inset:0; overflow-y:auto; background-size:cover;}
-  .notebook-filter-bar{position:sticky; top:0; left:0; right:0; height:auto; flex-wrap:wrap; padding:8px; background:rgba(20,14,10,0.55); backdrop-filter:blur(3px);}
-  .notebook-filter-tab{flex:1 1 30%; min-height:30px; font-size:11px;}
-  .notebook-vote-banner{position:static; margin:6px 10px;}
-  .notebook-directory-grid{position:static; display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:10px; pointer-events:auto;}
-  .notebook-card{position:static; width:auto; height:auto; padding:6px; background:rgba(255,250,235,0.55); border-radius:6px;}
-  .notebook-card-badges{top:2px; right:2px;}
-  .notebook-return-btn{position:sticky; top:0; left:0; width:120px; aspect-ratio:1408/419; margin:8px;}
-  .notebook-dossier-portrait-frame,.notebook-dossier-name,.notebook-dossier-status,.notebook-judgment-row,.notebook-vote-btn,.notebook-notes-section,.notebook-events-section,.notebook-dossier-actions,.notebook-pin-limit-msg{position:static; width:auto; margin:10px 16px;}
-  .notebook-dossier-portrait-frame{width:140px; margin:10px auto;}
-  .notebook-judgment-row{display:flex;}
-  .notebook-notes-input{background:rgba(255,250,235,0.5); border:1px solid rgba(90,70,45,0.3); border-radius:6px; padding:8px; height:120px; line-height:1.5; font-size:14px;}
-  .notebook-pencil-deco{display:none;}
-  .notebook-events-section{max-height:none; overflow-y:visible;}
-  .notebook-pin-toggle{left:auto; right:-6px; top:-6px; width:34px;}
-}
 .avatar-badge-wrap{position:relative; display:inline-block;}
 .avatar-pencil-badge{position:absolute; bottom:-2px; right:-2px; font-size:11px; line-height:1; background:var(--gold-bright); color:#1a1410; border-radius:50%; width:14px; height:14px; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 3px rgba(0,0,0,0.5);}
 .avatar-pencil-badge img{width:9px; height:9px; object-fit:contain; display:block;}
@@ -2196,6 +2177,7 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
 }
 </style>
 <link rel="stylesheet" href="tutorial.css?v=1">
+<link rel="stylesheet" href="phone.css?v=1">
 </head>
 <body>
 <div id="boot-loading">
@@ -3282,6 +3264,9 @@ body.force-reduced-motion .ember{animation:none !important; display:none !import
 function updateCanvasScale(){
   var canvas = document.getElementById('design-canvas');
   if(!canvas) return;
+  if(window.PhoneMode && window.PhoneMode.active()){ window.PhoneMode.applyScale(canvas); return; }
+  if(canvas.style.clipPath) canvas.style.clipPath = '';
+  document.body.classList.remove('phone', 'phone-chrome');
   if(!canvas.classList.contains('game-mode')){ canvas.style.transform = 'none'; return; }
   var w = window.innerWidth, h = window.innerHeight;
   if(!w || !h) return; // viewport not ready yet (e.g. pane still hidden) - a later call fixes it
@@ -11942,6 +11927,7 @@ initGame();
   }).catch(function(){});
 })();
 </script>
+<script src="phone.js?v=1"></script>
 <script src="tutorial.js?v=1"></script>
 </body>
 </html>

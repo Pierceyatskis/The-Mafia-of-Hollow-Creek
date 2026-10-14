@@ -1,0 +1,151 @@
+/* Phone mode (see phone.js). Everything here is gated on body.phone so desktop is untouched. */
+#phone-topbar, #phone-tabbar, #phone-menu{display:none;}
+body.phone #phone-topbar{position:fixed; left:0; right:0; top:0; height:40px; z-index:260; align-items:center; justify-content:space-between; gap:8px; padding:0 8px; box-sizing:border-box; background:linear-gradient(#1b130c,#0d0805); border-bottom:1px solid #6b4a20; box-shadow:0 2px 8px rgba(0,0,0,0.6); font-family:var(--font-type); color:#e8d5a0;}
+body.phone #phone-topbar button{height:30px; min-width:34px; padding:0 10px; color:#f0d9a0; font-family:var(--font-ornate); font-weight:700; font-size:13px; letter-spacing:.4px; background:linear-gradient(#3a2a1a,#1f140b); border:1px solid #d9a441; border-radius:5px;}
+body.phone #phone-role{max-width:34%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+body.phone #phone-phase{flex:1; min-width:0; display:flex; align-items:center; justify-content:center; gap:8px; font-size:12px; letter-spacing:.8px; text-transform:uppercase; white-space:nowrap;}
+body.phone #phone-phase-a{overflow:hidden; text-overflow:ellipsis; color:#d9c9a0;}
+body.phone #phone-phase-t{font-weight:700; font-size:15px; color:#f3d98a;}
+body.phone #phone-phase-t.hot{color:#ff7a5c;}
+body.phone #phone-tabbar{position:fixed; left:0; right:0; bottom:0; height:60px; z-index:260; align-items:stretch; background:linear-gradient(#2a1d12,#120a05); border-top:2px solid #8a6a2a; box-shadow:0 -3px 10px rgba(0,0,0,0.7); padding-bottom:env(safe-area-inset-bottom);}
+body.phone #phone-tabbar button{position:relative; flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; padding:4px 0 2px; background:none; border:none; color:#a89878; font-family:var(--font-ornate); font-weight:700; font-size:10.5px; letter-spacing:.3px;}
+body.phone #phone-tabbar button i{display:block; width:22px; height:22px;}
+body.phone #phone-tabbar button svg{width:100%; height:100%; fill:currentColor;}
+body.phone #phone-tabbar button.on{color:#f3d98a; background:linear-gradient(rgba(138,28,20,0.55),rgba(138,28,20,0.1)); box-shadow:inset 0 2px 0 #d9a441;}
+body.phone #phone-tabbar .dot{display:none; position:absolute; top:6px; right:calc(50% - 20px); width:9px; height:9px; border-radius:50%; background:#e0402c; box-shadow:0 0 6px #e0402c;}
+body.phone #phone-menu{position:fixed; right:8px; top:44px; z-index:270; min-width:170px; padding:6px; background:#1b130c; border:1px solid #d9a441; border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,0.8); flex-direction:column; gap:4px; display:none;}
+body.phone #phone-menu.open{display:flex;}
+body.phone #phone-menu button{padding:12px 14px; text-align:left; font-family:var(--font-ornate); font-weight:700; font-size:15px; color:#f0d9a0; background:#2a1d12; border:1px solid #5a3b1a; border-radius:5px;}
+body.phone #phone-menu button.danger{color:#ff9a86; border-color:#8a1c14;}
+
+/* the desktop-only floating bits are replaced by the strip and bar */
+body.phone-chrome #global-home-btn, body.phone-chrome #role-badge, body.phone-chrome #case-log-badge, body.phone-chrome #notebook-badge, body.phone-chrome #ghost-chat-badge{display:none !important;}
+body.phone-chrome #canvas-outer.game-mode{top:0; bottom:0;}
+
+/* the night card, narrowed so a whole action fits the screen */
+body.phone #design-canvas.bg-night #game-folder{top:150px; transform:translateX(-50%); width:640px; max-width:none; max-height:none; overflow:visible; background:none;}
+body.phone #night-sleep-card, body.phone #night-actions-card{width:620px; min-height:0; max-width:none;}
+body.phone #night-sleep-card .nsc-title, body.phone #night-actions-card .nsc-title{font-size:40px;}
+body.phone #night-actions-card .na-cols{flex-direction:column; gap:20px;}
+body.phone #night-actions-card .na-col{max-width:none; padding:0 10px;}
+body.phone #night-actions-card .na-cols-2 .na-col + .na-col{border-left:none; border-top:1px solid rgba(58,36,18,0.55); padding-top:18px;}
+body.phone #night-actions-card .na-person img{width:104px; height:104px;}
+body.phone #night-actions-card .na-grid{gap:16px 18px;}
+body.phone #night-sleep-card .nsc-btns{gap:8px;}
+
+/* fields: 16px so mobile browsers never zoom the page on focus; roomier taps */
+body.phone input[type=text], body.phone input[type=search], body.phone input:not([type]), body.phone textarea, body.phone select{font-size:16px !important;}
+body.phone .btn{min-height:44px;}
+
+/* menus and lobby already reflow; give them the top/bottom breathing room they need */
+body.phone .poster-actions .btn{min-height:44px;}
+@media (orientation:portrait){
+  body.phone .poster-img{object-fit:contain; object-position:center 38%; background:#050302;}
+  body.phone .poster-actions{top:58%;}
+}
+
+/* the painted title + watch are replaced by the top strip */
+body.phone-chrome #daylayout-game-title, body.phone-chrome #daylayout-timer-bar, body.phone-chrome #daylayout-timer-day, body.phone-chrome #daylayout-timer-phase, body.phone-chrome #daylayout-timer-time{visibility:hidden;}
+
+/* ================= Notebook on a phone: a plain scrolling book instead of the painted two-page spread ================= */
+body.phone .notebook-overlay{padding:0; align-items:stretch; justify-content:stretch;}
+body.phone .notebook-book{width:100vw; height:100dvh; max-height:none; aspect-ratio:auto; margin:0; container-type:normal; background:#d8c08c linear-gradient(135deg,#e8d5a8,#cfb47e); }
+body.phone .notebook-view{position:absolute; inset:0; overflow-y:auto; overflow-x:hidden; background-image:none !important; background-color:transparent; padding:0 10px 90px; box-sizing:border-box; -webkit-overflow-scrolling:touch;}
+body.phone .notebook-close-btn{position:fixed; top:6px; right:6px; width:44px; height:44px; aspect-ratio:auto; z-index:20;}
+body.phone .notebook-return-btn{position:sticky; top:6px; left:auto; right:auto; width:110px; margin:6px 0 0; aspect-ratio:1408/419; z-index:12;}
+body.phone .notebook-dcover, body.phone .notebook-dir-title, body.phone .notebook-slot, body.phone .notebook-rpage-cover, body.phone .notebook-pencil-deco{display:none !important;}
+
+/* directory */
+body.phone .notebook-filter-bar{position:sticky; top:0; left:auto; right:auto; display:flex; flex-wrap:nowrap; gap:6px; overflow-x:auto; padding:8px 54px 8px 0; margin:0 -10px; padding-left:10px; background:linear-gradient(#e4cf9f,#dcc590); z-index:15; box-shadow:0 2px 6px rgba(60,40,10,0.35); scrollbar-width:none;}
+body.phone .notebook-filter-bar::-webkit-scrollbar{display:none;}
+body.phone .notebook-filter-tab{flex:0 0 auto; width:auto; aspect-ratio:auto; height:38px; padding:0 14px; font-size:13px; letter-spacing:.4px; color:#3a2412; background:linear-gradient(#f1e2b8,#dcc58f); background-image:none; border:1px solid #8a6a3a; border-radius:8px; white-space:nowrap; text-transform:uppercase; font-family:var(--font-ornate); font-weight:700;}
+body.phone .notebook-filter-tab.active{color:#f3e3b8; background:linear-gradient(#a8272a,#6e1214); border-color:#d9a441; filter:none;}
+body.phone .notebook-vote-banner{position:static; height:auto; margin:10px 0 0; flex-direction:column; gap:8px; pointer-events:auto;}
+body.phone .nvb-left, body.phone .nvb-right{width:100%; height:44px; justify-content:center;}
+body.phone .nvb-right{gap:8px;}
+body.phone #notebook-vote-day{font-size:20px; flex:0 0 52%;}
+body.phone .nvb-mode{font-size:12px; height:44px;}
+body.phone .notebook-vote-nav{width:48px !important; height:44px !important;}
+body.phone .notebook-vote-count{position:static; margin:8px 0 0; font-size:14px; letter-spacing:1px; color:#2a1708; justify-content:center;}
+body.phone .notebook-directory-grid{position:static; inset:auto; display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px; pointer-events:auto;}
+body.phone .notebook-card{position:static; width:auto; height:auto; min-height:92px; padding:6px; gap:8px; align-items:center; background:rgba(255,248,226,0.65); border:1px solid rgba(90,60,30,0.45); border-radius:8px; left:auto; top:auto;}
+body.phone .notebook-card-portrait-wrap{flex:0 0 64px; width:64px; height:78px;}
+body.phone .notebook-card-name{font-size:14px; white-space:normal; line-height:1.15; max-height:2.4em; overflow:hidden;}
+body.phone .notebook-card-status-row{font-size:12px; margin-top:3px;}
+body.phone .notebook-card-status-row img{width:14px; height:14px;}
+body.phone .notebook-card-vote-line{font-size:12px; margin-top:3px;}
+body.phone .notebook-card.notebook-voter, body.phone .notebook-card.notebook-target{width:auto;}
+
+/* player page: one column */
+body.phone .notebook-dossier-left, body.phone .notebook-dossier-right{position:static; display:block; width:auto; height:auto; padding:0;}
+body.phone .notebook-dossier-portrait-frame{position:relative; left:auto; top:auto; width:150px; height:190px; margin:10px auto 6px;}
+body.phone .notebook-dossier-name{position:static; width:auto; text-align:center; font-size:24px; margin:0;}
+body.phone .notebook-dossier-status{position:static; width:auto; text-align:center; font-size:13px; margin:2px 0 8px;}
+body.phone .notebook-judgment-row{position:static; width:auto; height:auto; gap:8px; margin:6px 0;}
+body.phone .notebook-judgment-btn{min-height:64px;}
+body.phone .notebook-vote-btn{position:static; width:100%; height:54px; font-size:17px; margin:8px 0;}
+body.phone .notebook-dossier-actions{position:static; width:auto; margin:4px 0 8px;}
+body.phone .notebook-pin-limit-msg{position:static; width:auto;}
+body.phone .notebook-dtabs{position:sticky; top:0; left:auto; width:auto; margin:8px -10px 0; padding:6px 10px; display:flex; gap:6px; overflow-x:auto; background:linear-gradient(#e4cf9f,#dcc590); z-index:12; scrollbar-width:none;}
+body.phone .notebook-dtab{flex:0 0 auto; height:42px; min-width:92px; padding:0 12px; font-size:13px; letter-spacing:.3px; margin-top:0; filter:none;}
+body.phone .notebook-dtab.active{height:42px; margin-top:0;}
+body.phone .notebook-pane{position:static; left:auto; top:auto; width:auto; height:auto; display:block; padding:6px 2px;}
+body.phone .notebook-pane[hidden]{display:none;}
+body.phone .notebook-notes-input{height:42vh; font-size:16px; line-height:34px; padding:2px 0 0; background-image:repeating-linear-gradient(to bottom, transparent 0, transparent 33px, rgba(58,36,18,0.35) 33px, rgba(58,36,18,0.35) 34px);}
+body.phone .notebook-events-section{overflow:visible;}
+body.phone .notebook-timeline{font-size:14px; line-height:1.6; padding-left:4px;}
+body.phone .notebook-pane-title{font-size:19px; margin-top:6px;}
+body.phone .notebook-pane-rule{margin:6px 8% 8px;}
+body.phone .notebook-pane-note{font-size:13px; margin-bottom:10px;}
+body.phone .notebook-scroll{overflow:visible; padding-left:20px; min-height:0;}
+body.phone .nvh-row{min-height:64px; flex-wrap:nowrap;}
+body.phone .nvh-row::before{left:-18px; width:11px; height:11px; margin-top:-6px;}
+body.phone .nvh-row::after{left:-13px;}
+body.phone .nvh-day{flex:0 0 22%; font-size:16px;}
+body.phone .nvh-vote{min-height:52px; padding-left:10px; gap:8px;}
+body.phone .nvh-lbl{font-size:11px;}
+body.phone .nvh-arrow{font-size:16px;}
+body.phone .nvh-vote img{width:44px; height:44px;}
+body.phone .nvh-name{font-size:14px;}
+body.phone .nvh-extra-head{font-size:14px;}
+body.phone .nvh-reminder{font-size:14px; padding:12px; gap:10px;}
+body.phone .nvh-reminder .plus{flex:0 0 30px; height:30px;}
+body.phone .nvh-reminder::after{flex:0 0 28px; height:28px;}
+body.phone .nvh-extra .nvq{padding:16px 16px 12px 44px; min-height:80px;}
+body.phone .nvq{padding:12px 14px 10px 36px; margin-bottom:10px;}
+body.phone .nvq::before{font-size:42px; left:8px; top:-6px;}
+body.phone .nvq-text{font-size:15px;}
+body.phone .nvq-meta{font-size:11px;}
+body.phone .notebook-empty-pane{font-size:15px; margin:18px 6px;}
+
+/* ================= Vote results ================= */
+body.phone #vote-reveal-modal{align-items:flex-start; overflow-y:auto; padding:50px 8px 80px; box-sizing:border-box;}
+body.phone #vote-reveal-card{width:100%; container-type:normal; background:linear-gradient(#4a321c,#2a1b0f); border:3px solid #8a6a3a; border-radius:10px; padding:12px 10px 14px; box-sizing:border-box; box-shadow:0 10px 30px rgba(0,0,0,0.7);}
+body.phone #vote-reveal-bg-img{display:none;}
+body.phone #vote-reveal-close-btn{position:fixed; top:6px; right:6px; width:44px; height:44px; aspect-ratio:auto; z-index:20;}
+body.phone #vote-reveal-title{position:static; width:auto; height:auto; margin:0 0 10px; font-size:17px; letter-spacing:1px; color:#f3e3b8;}
+body.phone #vote-reveal-top{position:static; width:auto; height:auto; padding:10px; flex-wrap:wrap; justify-content:center; gap:10px; background:linear-gradient(#f0e0b6,#dcc58f); border-radius:8px; border:2px solid #6b4a20;}
+body.phone .vote-reveal-portrait{width:104px;}
+body.phone .vote-reveal-portrait-name{font-size:10px;}
+body.phone #vote-reveal-center{order:-1; flex:1 0 100%; padding:0; gap:4px;}
+body.phone #vote-reveal-outcome{font-size:20px; white-space:normal; text-align:center;}
+body.phone #vote-reveal-outcome::before, body.phone #vote-reveal-outcome::after{display:none;}
+body.phone #vote-reveal-center-stamp{width:34px;}
+body.phone #vote-reveal-role-revealed{font-size:13px; gap:8px;}
+body.phone #vote-reveal-role-revealed::before, body.phone #vote-reveal-role-revealed::after{width:18px;}
+body.phone #vote-reveal-flavor{font-size:14px; max-width:100%;}
+body.phone #vote-reveal-groups{position:static; width:auto; max-height:none; margin-top:12px; display:grid; grid-template-columns:1fr 1fr; gap:8px; overflow:visible;}
+body.phone .vote-reveal-group{border:1px solid #8a6a3a !important; border-image:none !important; padding:10px 8px 8px; background:linear-gradient(#f3e5bf,#e2cd98); border-radius:6px; min-height:0 !important; position:relative;}
+body.phone .vote-reveal-group-wide{grid-column:span 2;}
+body.phone .vote-reveal-group-target{outline:2.5px solid #8B1414; outline-offset:0;}
+body.phone .vote-reveal-group-stamp{top:-8px; right:-6px; width:28px;}
+body.phone .vote-reveal-group-header{font-size:12px; margin-bottom:6px;}
+body.phone .vote-reveal-group-voters{gap:5px;}
+body.phone .vote-reveal-voter{gap:6px;}
+body.phone .vote-reveal-voter-icon{width:20px; height:20px;}
+body.phone .vote-reveal-voter-name{font-size:13px;}
+
+/* ================= Other popups ================= */
+body.phone .role-card-modal-content{max-width:94vw; max-height:84dvh; overflow-y:auto;}
+body.phone .case-log-modal-content{max-height:84dvh;}
+body.phone #canvas-outer.game-mode{background:#0d0805 radial-gradient(ellipse at 50% 40%, #2a1d12 0%, #0d0805 70%);}

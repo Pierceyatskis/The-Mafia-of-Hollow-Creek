@@ -70,3 +70,16 @@ body.tut-on .role-card-overlay{z-index:1000;}
 @keyframes tutNew{0%,100%{transform:scale(1);} 50%{transform:scale(1.12);}}
 body.force-reduced-motion #tut-layer *{animation:none !important;}
 @media (max-width:700px){ #tut-layer .tut-card{width:calc(100vw - 20px);} .tut-halves{flex-direction:column;} }
+
+/* short screens (a phone held sideways): a smaller card so it covers less of the thing it points at */
+@media (max-height:500px){
+  #tut-layer .tut-card, #tut-layer .tut-card.centered{width:min(330px, 46vw); padding:10px 12px 8px;}
+  .tut-bar{display:none;}
+  .tut-title, .tut-card.centered .tut-title{font-size:16px; margin-bottom:3px;}
+  .tut-text, .tut-card.centered .tut-text{font-size:12.5px; line-height:1.35;}
+  .tut-try{margin-top:6px; padding:4px 8px; font-size:12px;}
+  .tut-nav{margin-top:8px;}
+  .tut-next{padding:6px 16px; font-size:14px;}
+  .tut-count{font-size:10px;}
+  .tut-halves{margin:2px 0 6px;} .tut-halves > div{padding:6px; font-size:12px;} .tut-moon,.tut-sun{font-size:22px;}
+}
