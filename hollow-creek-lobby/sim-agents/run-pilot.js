@@ -68,7 +68,7 @@ IMPORTANT LIMITS
 - Vote history and older chat are NOT on your screen. Look them up with the tools below if you need them.
 - You are not an assistant. Do not mention being an AI. Only use the tools listed.
 
-THE TUTORIAL YOU WERE SHOWN (it describes the app's buttons and screens; your tools below are how you press them)
+THE TUTORIAL YOU WERE SHOWN (it describes the app's buttons and screens; your tools below are how you press them. Its practice round gave the demo player the Detective role and named a demo suspect, Dex - that was only for practice. YOUR real role and the real players are on your screen)
 ${TUTORIAL}
 
 YOUR TOOLS - reply with ONLY a JSON array of tool calls (no other text). Each call is an object with "tool", its arguments, and an optional short "why" (your private reasoning, never shown to others).
@@ -237,13 +237,13 @@ class Agent {
       case 'case_file': return { kind: 'look', text: 'CASE FILE\n' + (this.caseFile.length ? this.caseFile.join('\n') : '(nothing yet)') };
       case 'read_chat': { const back = Math.max(1, Math.min(60, Number(c.back) || 12)); const end = Math.max(0, this.chat.length - 12 + 0); const slice = this.chat.filter(x => x.text).slice(Math.max(0, this.chat.length - 12 - back), Math.max(0, this.chat.length - 12)); return { kind: 'look', text: slice.length ? 'OLDER CHAT\n' + slice.map(x => `  ${x.name}: ${x.text}`).join('\n') : 'Nothing older.' }; }
       case 'mark': { const p = this.byName(c.name); const mk = String(c.mark || '').toLowerCase(); if (!p || !['trusted', 'unknown', 'suspicious'].includes(mk)) return { kind: 'bad', text: 'Could not mark: pick a player and trusted / unknown / suspicious.' }; this.marks[p.id] = mk; this.myLog.push(`Marked ${p.name} ${mk}`); return { kind: 'act', text: `Marked ${p.name} ${mk}.` }; }
-      case 'note': { const p = this.byName(c.name); if (!p || !c.text) return { kind: 'bad', text: 'Could not write note: need a player and text.' }; this.notes[p.id] = (this.notes[p.id] ? this.notes[p.id] + '\n' : '') + `Day ${v.night}: ` + String(c.text).slice(0, 200); this.myLog.push(`Wrote a note on ${p.name}`); return { kind: 'act', text: 'Note saved.' }; }
+      case 'note': { const p = this.byName(c.name); if (!p || !c.text) return { kind: 'bad', text: 'Could not write note: need a player and text.' }; const body = String(c.text).replace(/^\s*day\s*\d+\s*[:.-]\s*/i, '').slice(0, 400); this.notes[p.id] = (this.notes[p.id] ? this.notes[p.id] + '\n' : '') + `Day ${v.night}: ` + body; this.myLog.push(`Wrote a note on ${p.name}: "${String(c.text).slice(0, 80)}"`); return { kind: 'act', text: 'Note saved.' }; }
       case 'say': {
         if (!me.alive) return { kind: 'bad', text: 'You are eliminated and cannot speak in town chat.' };
         if (me.silencedToday) return { kind: 'bad', text: 'You are silenced today.' };
         if (ph !== 'day-discuss' && ph !== 'day-vote') return { kind: 'bad', text: 'Town chat is only open during the day.' };
         const text = String(c.text || '').slice(0, 280); if (!text) return { kind: 'bad', text: 'Empty message.' };
-        this.send({ type: 'dayChat', text }); this.myLog.push(`Said: "${text.slice(0, 60)}"`); return { kind: 'act', text: 'Sent.' };
+        this.send({ type: 'dayChat', text }); this.myLog.push(`Said: "${text.slice(0, 160)}"`); return { kind: 'act', text: 'Sent.' };
       }
       case 'team_chat': if (v.myAlign !== 'mafia') return { kind: 'bad', text: 'You are not in the mafia.' }; this.send({ type: 'mafiaChat', text: String(c.text || '').slice(0, 280) }); return { kind: 'act', text: 'Sent to the family.' };
       case 'night_action': {
@@ -301,7 +301,7 @@ class Agent {
       if (this.turnsThisPhase < 6 && sinceLast > 14000 && this.chat.length > this.seenChatAtTurn && this.timeLeft() > 15) { this.seenChatAtTurn = this.chat.length; return this.turn('new chat'); }
     }
     if (v.phase === 'day-vote' && me.alive && this.turnsThisPhase === 0) return this.turn('vote');
-    if (!me.alive && v.phase === 'day-discuss' && this.turnsThisPhase === 0) { this.turnsThisPhase = 1; this.popups = []; }
+    if (!me.alive && v.phase === 'day-discuss' && this.turnsThisPhase === 0 && this.popups.length) { this.turnsThisPhase = 1; this.popups = []; }   // the dead still see their pop-ups (e.g. a Detective's last result)
   }
 }
 
