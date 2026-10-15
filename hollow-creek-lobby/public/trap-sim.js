@@ -8,7 +8,7 @@
   'use strict';
   var TILE = 16, VIEW_W = 400, VIEW_H = 225, ROWS = 14;       // levels are 14 tiles (224px) tall; the camera only scrolls sideways
   var DT = 1 / 60;
-  var P = { w: 10, h: 14, run: 82, accel: 760, fric: 980, airAccel: 520, grav: 800, jump: 244, maxFall: 330, coyote: 0.09, buffer: 0.10, cut: 0.42 };
+  var P = { w: 8, h: 12, run: 82, accel: 760, fric: 980, airAccel: 520, grav: 800, jump: 272, maxFall: 330, coyote: 0.09, buffer: 0.10, cut: 0.42 };
 
   // tile codes in the compiled grid
   var T = { EMPTY: 0, SOLID: 1, SPIKE: 2, LAVA: 3, FAKE: 4 };

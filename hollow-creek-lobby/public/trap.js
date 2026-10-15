@@ -124,7 +124,17 @@
   // ------------------------------------------------------------------ sprites
   var SKINS = ['#f4d0a8', '#e0aa7c', '#b9825a', '#8c5a3c', '#6a4028'];
   var HAIRS = ['#241812', '#4a2e1c', '#7a5a30', '#35353a', '#a8501f', '#c8b070'];
+  var SPRITE_SCALE = 0.62, sprBuf = null, sprCtx = null;
   function explorer(g, x, y, o){
+    if(!sprBuf){ sprBuf = document.createElement('canvas'); sprBuf.width = 64; sprBuf.height = 64; sprCtx = sprBuf.getContext('2d'); sprCtx.imageSmoothingEnabled = false; }
+    sprCtx.clearRect(0, 0, 64, 64);
+    var o2 = {}; for(var k in o) o2[k] = o[k]; o2.alpha = 1;
+    explorerRaw(sprCtx, 32, 44, o2);
+    g.save(); g.globalAlpha = o.alpha === undefined ? 1 : o.alpha; g.imageSmoothingEnabled = false;
+    g.drawImage(sprBuf, Math.round(x - 32 * SPRITE_SCALE), Math.round(y - 44 * SPRITE_SCALE), Math.round(64 * SPRITE_SCALE), Math.round(64 * SPRITE_SCALE));
+    g.restore();
+  }
+  function explorerRaw(g, x, y, o){
     // o: {id,color,face,anim,state:'idle'|'run'|'jump'|'dead'|'win',alpha,hat,t}
     var hs = hashStr(o.id || 'x'), skin = SKINS[hs % SKINS.length], hair = HAIRS[(hs >> 3) % HAIRS.length], hat = (hs >> 6) % 4;
     var col = o.color || '#c8873a', dk = shade(col, 0.68), lt = shade(col, 1.2);
@@ -387,7 +397,7 @@
       var gh = S.ghosts[id]; if(gh.lvl !== st.lvl || id === S.me) return;
       var info = S.roster[id] || { color: '#c8873a', name: '?', icon: null };
       explorer(g, gh.x, gh.y, { id: id, color: info.color, face: gh.f, anim: gh.a, state: gh.d ? 'dead' : (Math.abs(gh.vx) > 6 ? (gh.onAir ? 'jump' : 'run') : (gh.onAir ? 'jump' : 'idle')), alpha: 0.42, spin: gh.d ? 1.6 : 0 });
-      var nm = String(info.name || '?').slice(0, 9); drawTextC(g, nm, Math.round(gh.x), Math.round(gh.y) - 36, 'rgba(255,255,255,0.8)', 1, 'rgba(0,0,0,0.55)');
+      var nm = String(info.name || '?').slice(0, 9); drawTextC(g, nm, Math.round(gh.x), Math.round(gh.y) - 25, 'rgba(255,255,255,0.8)', 1, 'rgba(0,0,0,0.55)');
     });
     // the player
     var state = st.dead ? 'dead' : st.done ? 'win' : (!st.onGround ? 'jump' : (Math.abs(st.vx) > 8 ? 'run' : 'idle'));
@@ -395,7 +405,7 @@
     var blink = (Math.floor(S.time * 1.4) % 6 === 0) && ((S.time * 8) % 1 < 0.4);
     var py = st.py; if(st.dead){ py = st.py; }
     explorer(g, st.px, py, { id: S.me || 'me', color: info2.color, face: st.face, anim: st.anim, state: state, blink: blink, spin: st.dead ? st.deadT * 9 * st.face : 0 });
-    if(!st.dead){ var nm2 = String(info2.name || 'YOU').slice(0, 9); drawTextC(g, nm2, Math.round(st.px), Math.round(py) - 36, '#ffe9a0', 1, OUT); }
+    if(!st.dead){ var nm2 = String(info2.name || 'YOU').slice(0, 9); drawTextC(g, nm2, Math.round(st.px), Math.round(py) - 25, '#ffe9a0', 1, OUT); }
     // particles
     S.effects.forEach(function(e){ rect(g, Math.round(e.x), Math.round(e.y), 2, 2, e.color); });
     g.restore();

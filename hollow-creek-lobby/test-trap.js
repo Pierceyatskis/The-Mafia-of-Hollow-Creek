@@ -16,7 +16,7 @@ function at(li, tileX, row) { const st = S.createRun(li); st.px = tileX * S.TILE
   const j = at(0, 5); run(j, 3, {}); run(j, 10, { j: 1 });
   assert(j.py < 192 - 8 && !j.onGround, 'Physics: jumping leaves the ground');
   let peak = 192; for (let i = 0; i < 80; i++) { S.step(j, { j: 1 }); peak = Math.min(peak, j.py); }
-  assert(192 - peak > 30 && 192 - peak < 45, 'Physics: a full jump clears two tiles but not three');
+  assert(192 - peak > 40 && 192 - peak < 56, 'Physics: a full jump clears about three tiles');
   const s = at(0, 5); run(s, 3, {}); run(s, 4, { j: 1 }); let peak2 = 192; for (let i = 0; i < 80; i++) { S.step(s, {}); peak2 = Math.min(peak2, s.py); }
   assert(192 - peak2 < 25, 'Physics: letting go early gives a short hop');
 }
