@@ -57,8 +57,12 @@ function at(li, tileX, row) { const st = S.createRun(li); st.px = tileX * S.TILE
 {
   // screen 2: the boulder
   const mk = () => { const st = S.createRun(1); st.px = 8 * 16; st.py = 240; st.onGround = true; st.traps[0].s = 1; st.traps[0].x = 8 * 16 + 30 + 90; return st; };
-  const still = mk(); run(still, 400, {});
+  const still = mk(); for (let i = 0; i < 600 && still.traps[0].s !== 4; i++) run(still, 1, {});
   assert(!still.dead && still.traps[0].s === 4 && still.traps[0].broke, 'Screen 2: stand still and the boulder stops, rolls back and knocks the wall open');
+  const keep = mk(); for (let i = 0; i < 600 && keep.traps[0].s !== 4; i++) run(keep, 1, {}); run(keep, 120, {});
+  assert(keep.dead && keep.deadKind === 'rock', 'Screen 2: and if you keep standing there once it opens, a rock drops on you');
+  const go = mk(); for (let i = 0; i < 600 && go.traps[0].s !== 4; i++) run(go, 1, {}); run(go, 25, { r: 1 });
+  assert(!go.dead, 'Screen 2: moving as soon as the wall opens is fine');
   const run1 = mk(); run(run1, 400, { r: 1 });
   assert(run1.dead && run1.deadKind === 'boulder', 'Screen 2: walking into the boulder crushes you');
   const back = mk(); run(back, 20, { l: 1 }); run(back, 300, {});
@@ -80,13 +84,19 @@ function at(li, tileX, row) { const st = S.createRun(li); st.px = tileX * S.TILE
   assert(!anyJumpSurvives, 'Screen 3: jump that last gap and the floor (and the far platform) are gone');
   const slow = S.createRun(2); slow.px = 12 * 16; slow.py = 13 * 16; slow.onGround = true; run(slow, 60 * 3, {});
   assert(slow.dead && slow.deadKind === 'pit', 'Screen 3: wait too long on the last platform and it falls');
+  const endT = S.createRun(2); endT.px = 21.5 * 16; endT.py = 13 * 16; endT.onGround = true; endT.traps[2].s = 3; run(endT, 8, { r: 1 }); run(endT, 90, {});
+  assert(endT.dead && endT.deadKind === 'pit', 'Screen 3: and the last tiles before the door give way if you stop on them');
+  const endR = S.createRun(2); endR.px = 21.5 * 16; endR.py = 13 * 16; endR.onGround = true; endR.traps[2].s = 3; run(endR, 90, { r: 1 });
+  assert(endR.done, 'Screen 3: but running straight on gets you to the door');
 }
 {
   // screen 4: pillars slide away if you linger
-  const st = S.createRun(3); st.px = 6 * 16; st.py = 13 * 16; st.onGround = true; st.traps[3].s = 3; run(st, 60 * 2.2, {});
+  const st = S.createRun(3); st.px = 6 * 16; st.py = 13 * 16; st.onGround = true; st.traps[4].s = 3; st.traps[5].s = 3; st.traps[6].s = 3; run(st, 60 * 2.2, {});
   assert(st.dead && st.deadKind === 'pit', 'Screen 4: linger on a pillar and it slides off into the abyss');
   const rk = S.createRun(3); rk.px = 5.6 * 16; rk.py = 13 * 16; rk.onGround = true; rk.vx = 60; run(rk, 2, { r: 1 }); run(rk, 90, { r: 1 });
   assert(rk.dead && rk.deadKind === 'rock', 'Screen 4: and a rock lands on the spot you were about to step to');
+  const fin = S.createRun(3); fin.px = 21 * 16; fin.py = 13 * 16; fin.onGround = true; fin.traps[4].s = 3; fin.traps[5].s = 3; fin.traps[6].s = 3; run(fin, 60 * 2.6, {});
+  assert(fin.dead && fin.deadKind === 'pit', 'Screen 4: even the last platform slides away if you stand around on it');
 }
 {
   // screen 5: the home stretch

@@ -84,6 +84,7 @@
       b.fill(21, 13, 22, 14, '.');                         // (the chunk itself is dynamic, see the trap)
       b.trap({ k: 'boulder', x: 19.2, row: 15, delay: 1.0, speed: 52, rev: 150, R: 30, wallX: 21, chunk: { x0: 21, y0: 13, x1: 22, y1: 14 }, hold: 1.3 });
       b.trap({ k: 'pop', x: 13, y: 14, n: 1, reach: 30, trig: { x0: 10.8, x1: 12.4 }, after: 0 });
+      b.trap({ k: 'rock', mode: 'still', when: 0, still: 0.5, delay: 0.5, row: 15 });      // you learned to stand still. The wall opens. Keep standing there.
       b.goal(23.4, 15);
       L.push(b.build());
     })();
@@ -95,8 +96,9 @@
       b.plat(0, 13, 3, 1);                                  // A
       b.plat(5, 13, 4, 1);                                  // B  (gap of two tiles)
       b.trap({ k: 'collapse', x: 11, y: 13, w: 4, delay: 2.2 });                           // C  (gap of two tiles); too slow and it gives way
-      b.trap({ k: 'void', bridge: { x0: 15, x1: 17, row: 13 }, far: { x0: 18, x1: 24, row: 13 }, zone: { x0: 13.2, x1: 15.6 } });   // the far platform and the floor you cannot see
+      b.trap({ k: 'void', bridge: { x0: 15, x1: 17, row: 13 }, far: { x0: 18, x1: 21, row: 13 }, zone: { x0: 13.2, x1: 15.6 } });   // the far platform and the floor you cannot see
       b.trap({ k: 'rock', mode: 'lead', trig: { x0: 19.2, x1: 21.6, row: 13 }, lead: 0.5, row: 13 });
+      b.trap({ k: 'collapse', x: 22, y: 13, w: 3, delay: 0.3 });                           // you made it. The last three tiles disagree
       b.goal(23.5, 13);
       L.push(b.build());
     })();
@@ -109,10 +111,10 @@
       b.trap({ k: 'slide', x: 5, y: 13, w: 3, delay: 1.5, dir: -1 });
       b.trap({ k: 'slide', x: 10, y: 13, w: 3, delay: 1.6, dir: 1 });
       b.trap({ k: 'slide', x: 15, y: 13, w: 3, delay: 0.35, dir: -1 });
-      b.plat(20, 13, 5, 1);
+      b.trap({ k: 'slide', x: 20, y: 13, w: 5, delay: 1.1, dir: 1 });                     // even the finish line does not want you to get comfortable
       b.trap({ k: 'rock', mode: 'lead', trig: { x0: 5.0, x1: 7.6, row: 13 }, lead: 0.5, row: 13 });
       b.trap({ k: 'rock', mode: 'lead', trig: { x0: 10.0, x1: 12.6, row: 13 }, lead: 0.5, row: 13 });
-      b.trap({ k: 'rock', mode: 'after', when: 4, delay: 0.7, row: 13 });
+      b.trap({ k: 'rock', mode: 'after', when: 5, delay: 0.7, row: 13 });
       b.goal(23, 13);
       L.push(b.build());
     })();
@@ -311,6 +313,7 @@
             var trigNow = false, atX = 0;
             if(d.mode === 'lead' && onSurface(st, d.trig.row, d.trig.x0, d.trig.x1)){ trigNow = true; atX = st.px + predVx * d.lead; }
             else if(d.mode === 'after' && traps[d.when].s >= 2){ t.t += DT; if(t.t >= d.delay){ trigNow = true; atX = st.px; } }
+            else if(d.mode === 'still' && traps[d.when].s === 4){ if(st.onGround && st.still >= d.still) t.t += DT; else t.t = 0; if(t.t >= d.delay){ trigNow = true; atX = st.px; } }
             else if(d.mode === 'exact' && t.fire){ trigNow = true; atX = d.x * TILE; }
             if(trigNow){ t.s = 1; t.rx = Math.max(24, Math.min(VIEW_W - 24, atX)); t.y = 2 * TILE; t.vy = 0; t.landY = d.row * TILE - TILE; }
           }
