@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "node test-scoring.js && node test-yard.js && node test-game.js && node test-server.js && node test-chat-classifier.js && node test-browser.js"
+    "test": "node test-scoring.js && node test-trap.js && node test-game.js && node test-server.js && node test-chat-classifier.js && node test-browser.js"
   },
   "keywords": [],
   "author": "",

@@ -923,40 +923,40 @@ async function testStartCountdown() {
   players.forEach(p => { try { p.ws.close(); } catch (e) {} });
 }
 
-async function testYard() {
-  const host = await createRoom('Y1');
-  const g = await joinRoom(host.roomCode, 'Y2');
-  const joinedMsg = once(host.ws, m => m.type === 'yardJoined', 2000);
-  send(host.ws, { type: 'yardJoin' });
-  const jm = await joinedMsg;
-  assert(jm.you === host.playerId && jm.world.w > 0 && jm.world.ring && typeof jm.world.ring.x === 'number', 'Yard: joining the lobby yard gives the world layout');
-  const snapP = once(host.ws, m => m.type === 'yardSnap' && m.players.some(p => p.i === host.playerId), 2000);
-  const before = (await snapP).players.find(p => p.i === host.playerId).x;
-  send(host.ws, { type: 'yardInput', mx: 1, act: 0, jump: 0 });
-  const moved = await once(host.ws, m => m.type === 'yardSnap' && m.players.find(p => p.i === host.playerId).x > before + 5, 3000);
-  assert(!!moved, 'Yard: held-right input moves the player in the shared snapshots');
-  // the guest has not joined the yard, so should not receive snapshots
-  let guestSnaps = 0; g.ws.on('message', raw => { if (JSON.parse(raw).type === 'yardSnap') guestSnaps++; });
-  await new Promise(r => setTimeout(r, 400));
-  assert(guestSnaps === 0, 'Yard: players who have not entered the yard are not sent yard traffic');
-  // a non-host cannot switch the yard off
-  send(g.ws, { type: 'yardToggle', enabled: false });
+async function testTrap() {
+  const host = await createRoom('T1');
+  const g = await joinRoom(host.roomCode, 'T2');
+  const j1 = once(host.ws, m => m.type === 'trapJoined', 2000);
+  send(host.ws, { type: 'trapJoin' });
+  const jm = await j1;
+  assert(jm.you === host.playerId && jm.levels === 5, 'Trap Run: joining tells you how many levels there are');
+  const j2 = once(g.ws, m => m.type === 'trapJoined', 2000); send(g.ws, { type: 'trapJoin' }); await j2;
+  const ghost = once(host.ws, m => m.type === 'trapSnap' && m.players.some(p => p.i === g.playerId && p.x === 123.5), 3000);
+  send(g.ws, { type: 'trapPos', lvl: 1, x: 123.5, y: 192, f: 1, a: 3, d: false });
+  const gm = await ghost;
+  const gp = gm.players.find(p => p.i === g.playerId);
+  assert(gp.l === 1 && gp.y === 192, 'Trap Run: your position reaches the other players as a ghost');
+  const ev = once(host.ws, m => m.type === 'trapEvent' && m.e === 'die' && m.id === g.playerId, 2000);
+  const board = once(host.ws, m => m.type === 'trapBoard' && m.rows.some(r => r.id === g.playerId && r.deaths === 1), 2000);
+  send(g.ws, { type: 'trapDie', msg: 'The ceiling had other plans.', x: 120, y: 192 });
+  assert((await ev).msg.includes('ceiling'), 'Trap Run: everyone hears about a death (with its joke)');
+  assert(!!(await board), 'Trap Run: the board counts deaths');
+  send(g.ws, { type: 'trapPos', lvl: 99, x: -5, y: 9999, f: 1, a: 0, d: false });
   await new Promise(r => setTimeout(r, 200));
-  const stillThere = once(host.ws, m => m.type === 'yardSnap', 1500);
-  assert(!!(await stillThere), 'Yard: only the host can turn the yard off');
-  const ended = once(host.ws, m => m.type === 'yardEnded', 2000);
-  send(host.ws, { type: 'yardToggle', enabled: false });
-  assert(!!(await ended), 'Yard: the host turning it off ends it for everyone inside');
-  send(host.ws, { type: 'yardToggle', enabled: true });
-  await new Promise(r => setTimeout(r, 150));
-  // starting a game ends the yard
-  const again = once(host.ws, m => m.type === 'yardJoined', 2000);
-  send(host.ws, { type: 'yardJoin' }); await again;
-  const gone = once(host.ws, m => m.type === 'yardEnded', 4000);
-  for (let i = 3; i <= 6; i++) await joinRoom(host.roomCode, 'Y' + i);
+  assert(host.ws.readyState === 1, 'Trap Run: out-of-range positions are clamped, not trusted');
+  send(g.ws, { type: 'trapToggle', enabled: false }); await new Promise(r => setTimeout(r, 150));
+  const stillOn = once(host.ws, m => m.type === 'trapSnap' || m.type === 'trapBoard' || m.type === 'trapEvent', 800).then(() => true, () => false);
+  send(g.ws, { type: 'trapPos', lvl: 0, x: 50, y: 192, f: 1, a: 0, d: false });
+  assert(await stillOn, 'Trap Run: only the host can switch it off');
+  const ended = once(host.ws, m => m.type === 'trapEnded', 2000); send(host.ws, { type: 'trapToggle', enabled: false });
+  assert(!!(await ended), 'Trap Run: the host switching it off ends it for everyone');
+  send(host.ws, { type: 'trapToggle', enabled: true }); await new Promise(r => setTimeout(r, 150));
+  const again = once(host.ws, m => m.type === 'trapJoined', 2000); send(host.ws, { type: 'trapJoin' }); await again;
+  const gone = once(host.ws, m => m.type === 'trapEnded', 4000);
+  for (let i = 3; i <= 6; i++) await joinRoom(host.roomCode, 'T' + i);
   const roles = Object.assign({}, require('./game.js').DEFAULT_ROLES_CONFIG, { Godfather: false, DoubleAgent: false, Detective: false, Doctor: false, Miller: false, BountyHunter: false, CrazyGranny: false });
   send(host.ws, { type: 'start', playerCount: 6, mafiaCount: 1, roles });
-  assert(!!(await gone), 'Yard: the yard closes when the game starts');
+  assert(!!(await gone), 'Trap Run: it closes when the game starts');
   try { host.ws.close(); g.ws.close(); } catch (e) {}
 }
 
@@ -1033,7 +1033,7 @@ async function main() {
   await testLobbyChatIsPerRoom();
   await testPingPong();
   await testStartCountdown();
-  await testYard();
+  await testTrap();
   await testFamilyPicks();
 
   console.log('\n' + (failures === 0 ? 'All server.js integration checks passed.' : failures + ' CHECK(S) FAILED.'));

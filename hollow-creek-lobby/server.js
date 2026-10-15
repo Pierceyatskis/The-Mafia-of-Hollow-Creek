@@ -10,7 +10,7 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const G = require('./game.js');
-const Yard = require('./yard.js');
+const TrapSim = require('./public/trap-sim.js');
 const Scoring = require('./scoring.js');
 
 const PORT = process.env.PORT || 8080;
@@ -244,7 +244,7 @@ function createRoom(socket, name, isPublic, avatarKey, color, initialVoiceEnable
   // preference couldn't match into it until the host's client sent its own
   // first real edit.
   rooms[code] = {
-    yard: null, yardTimer: null, yardEnabled: true,
+    trap: null, trapTimer: null, trapEnabled: true,
     players: [{ id, name, socket, avatarKey, color, gameIconKey }], hostId: id, started: false, state: null, timer: null,
     phaseEndsAt: null, isPublic: !!isPublic, ownerIds: new Set(), shame: new Map(), lobbyChat: [],
     draftConfig: typeof initialVoiceEnabled === 'boolean' ? { voiceEnabled: initialVoiceEnabled } : null
@@ -285,39 +285,44 @@ function joinRoom(socket, code, name, avatarKey, color, gameIconKey) {
 }
 
 
-// ---- Lobby Yard (pixel mini-game for the waiting lobby; see yard.js) ----
-const YARD_TICK_MS = 33;           // ~30 simulation steps a second
-function yardSend(room, ids, obj) {
+
+// ---- Trap Run (troll-platformer mini game for the waiting lobby) ----
+// Every player runs the levels on their own machine (the simulation is deterministic, see public/trap-sim.js); the server only relays
+// positions so people see each other as ghosts, and keeps a small deaths / progress board.
+const TRAP_SNAP_MS = 100;
+function trapSend(room, obj, exceptId) {
   const m = JSON.stringify(obj);
-  room.players.forEach(rp => { if (ids.has(rp.id) && rp.socket.readyState === WebSocket.OPEN) rp.socket.send(m); });
+  room.players.forEach(rp => { if (room.trap && room.trap.has(rp.id) && rp.id !== exceptId && rp.socket.readyState === WebSocket.OPEN) rp.socket.send(m); });
 }
-function yardAudience(room) { return room.yard ? new Set(room.yard.players.keys()) : new Set(); }
-function yardSendRoster(room) { if (room.yard) yardSend(room, yardAudience(room), { type: 'yardRoster', players: Yard.roster(room.yard) }); }
-function stopYard(room, notify) {
-  if (room.yardTimer) { clearInterval(room.yardTimer); room.yardTimer = null; }
-  if (room.yard && notify) yardSend(room, yardAudience(room), { type: 'yardEnded' });
-  room.yard = null;
+function trapBoard(room) {
+  if (!room.trap) return [];
+  const rows = [];
+  room.trap.forEach((t, id) => { const rp = room.players.find(p => p.id === id); rows.push({ id, name: rp ? rp.name : '?', color: rp ? rp.color : '#c8873a', g: rp ? G.GAME_ICON_GENDER_OF ? 0 : 0 : 0, lvl: t.lvl, best: t.best, deaths: t.deaths, clears: t.clears }); });
+  rows.sort((a, b) => (b.best - a.best) || (a.deaths - b.deaths));
+  return rows;
 }
-function startYardTimer(room) {
-  if (room.yardTimer) return;
-  let tick = 0;
-  room.yardTimer = setInterval(() => {
-    if (!room.yard || room.yard.players.size === 0 || room.started) { stopYard(room, false); return; }
-    Yard.step(room.yard, YARD_TICK_MS / 1000);
-    const events = Yard.takeEvents(room.yard);
-    tick++;
-    if (tick % 2 === 0 || events.length) {
-      const snap = Yard.snapshot(room.yard);
-      if (events.length) snap.events = events;
-      yardSend(room, yardAudience(room), snap);
-    }
-  }, YARD_TICK_MS);
+function trapSendBoard(room) { if (room.trap) trapSend(room, { type: 'trapBoard', rows: trapBoard(room) }); }
+function stopTrap(room, notify) {
+  if (room.trapTimer) { clearInterval(room.trapTimer); room.trapTimer = null; }
+  if (room.trap && notify) trapSend(room, { type: 'trapEnded' });
+  room.trap = null;
 }
-function yardLeave(room, id) {
-  if (!room.yard) return;
-  Yard.leave(room.yard, id);
-  if (room.yard.players.size === 0) stopYard(room, false); else yardSendRoster(room);
+function startTrapTimer(room) {
+  if (room.trapTimer) return;
+  room.trapTimer = setInterval(() => {
+    if (!room.trap || room.trap.size === 0 || room.started) { stopTrap(room, false); return; }
+    const players = [];
+    room.trap.forEach((t, id) => { if (t.dirty) { players.push({ i: id, l: t.lvl, x: t.x, y: t.y, f: t.f, a: t.a, d: t.d ? 1 : 0 }); t.dirty = false; } });
+    if (players.length) trapSend(room, { type: 'trapSnap', players });
+  }, TRAP_SNAP_MS);
 }
+function trapLeave(room, id) {
+  if (!room.trap || !room.trap.has(id)) return;
+  room.trap.delete(id);
+  if (room.trap.size === 0) stopTrap(room, false);
+  else { trapSend(room, { type: 'trapGone', id }); trapSendBoard(room); }
+}
+const num = (v, lo, hi, dflt) => { v = Number(v); return Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : dflt; };
 
 // One JSON message to everyone in the room with an open socket.
 function cancelStartCountdown(room, notify) {
@@ -346,7 +351,7 @@ function broadcastRoster(code) {
   const room = rooms[code];
   if (!room) return;
   const roster = room.players.map(p => ({ id: p.id, name: p.name, isHost: p.id === room.hostId, isOwner: room.ownerIds.has(p.id), shame: shameLabel(room, p.id), avatarKey: p.avatarKey || null, color: p.color || null }));
-  const msg = JSON.stringify({ type: 'roster', roomCode: code, players: roster, started: room.started, isPublic: !!room.isPublic, yardEnabled: room.yardEnabled !== false, ownerPowers: !!process.env.OWNER_KEY });
+  const msg = JSON.stringify({ type: 'roster', roomCode: code, players: roster, started: room.started, isPublic: !!room.isPublic, trapEnabled: room.trapEnabled !== false, ownerPowers: !!process.env.OWNER_KEY });
   room.players.forEach(p => {
     if (p.socket.readyState === WebSocket.OPEN) p.socket.send(msg);
   });
@@ -361,7 +366,7 @@ function removePlayer(socket) {
   const wasHost = room.players[idx].id === room.hostId;
   const playerId = room.players[idx].id;
   room.players.splice(idx, 1);
-  yardLeave(room, playerId);
+  trapLeave(room, playerId);
 
   // A disconnected human keeps their seat in the game - see the 'rejoin'
   // handler, which finds this same seat by id and marks it connected again -
@@ -390,7 +395,7 @@ function removePlayer(socket) {
     if (!room.started) {
       clearPhaseTimer(room);
       cancelStartCountdown(room, false);
-      stopYard(room, false);
+      stopTrap(room, false);
       delete rooms[code];
       console.log(`Room ${code} closed (empty)`);
     }
@@ -1275,7 +1280,7 @@ wss.on('connection', (socket) => {
           return;
         }
 
-        stopYard(room, true);
+        stopTrap(room, true);
         room.started = true;
         room.scoreRounds = []; room.allCum = {}; room.lastSummary = null;
         room.lobbyChat = [];   // the lobby chat belongs to that waiting period only - never carries into a game or the next lobby
@@ -1289,35 +1294,59 @@ wss.on('connection', (socket) => {
       }, START_COUNTDOWN_MS);
     }
 
-    else if (msg.type === 'yardJoin') {
+    else if (msg.type === 'trapJoin') {
       const { room, player } = getRoomAndPlayer(socket);
-      if (!room || !player || room.started || room.yardEnabled === false) return;
-      if (!room.yard) room.yard = Yard.createYard();
-      const p = Yard.join(room.yard, player.id, { name: player.name, color: player.color, gameIconKey: player.gameIconKey });
-      if (!p) { socket.send(JSON.stringify({ type: 'error', message: 'The yard is full right now.' })); return; }
-      socket.send(JSON.stringify({ type: 'yardJoined', you: player.id, world: { w: Yard.W, h: Yard.H, ring: Yard.RING, bounds: Yard.BOUNDS } }));
-      yardSendRoster(room);
-      startYardTimer(room);
+      if (!room || !player || room.started || room.trapEnabled === false) return;
+      if (!room.trap) room.trap = new Map();
+      if (!room.trap.has(player.id)) room.trap.set(player.id, { lvl: 0, x: 0, y: 0, f: 1, a: 0, d: false, deaths: 0, clears: 0, best: 1, dirty: false, last: 0 });
+      socket.send(JSON.stringify({ type: 'trapJoined', you: player.id, levels: TrapSim.LEVELS.length }));
+      trapSend(room, { type: 'trapRoster', players: [...room.trap.keys()].map(id => { const rp = room.players.find(p => p.id === id); return { id, name: rp ? rp.name : '?', color: rp ? rp.color : '#c8873a', icon: rp ? rp.gameIconKey || null : null }; }) });
+      trapSendBoard(room);
+      startTrapTimer(room);
     }
 
-    else if (msg.type === 'yardLeave') {
+    else if (msg.type === 'trapLeave') {
       const { room, player } = getRoomAndPlayer(socket);
       if (!room || !player) return;
-      yardLeave(room, player.id);
-      socket.send(JSON.stringify({ type: 'yardEnded' }));
+      trapLeave(room, player.id);
+      socket.send(JSON.stringify({ type: 'trapEnded' }));
     }
 
-    else if (msg.type === 'yardInput') {
+    else if (msg.type === 'trapPos') {
       const { room, player } = getRoomAndPlayer(socket);
-      if (!room || !player || !room.yard) return;
-      Yard.setInput(room.yard, player.id, msg);
+      if (!room || !player || !room.trap) return;
+      const t = room.trap.get(player.id); if (!t) return;
+      const now = Date.now(); if (now - t.last < 50) return; t.last = now;
+      t.lvl = Math.round(num(msg.lvl, 0, TrapSim.LEVELS.length - 1, 0));
+      const lv = TrapSim.LEVELS[t.lvl];
+      t.x = Math.round(num(msg.x, 0, lv.w * TrapSim.TILE, 0) * 10) / 10; t.y = Math.round(num(msg.y, -200, 400, 0) * 10) / 10;
+      t.f = Number(msg.f) < 0 ? -1 : 1; t.a = Math.round(num(msg.a, 0, 1000, 0) * 10) / 10; t.d = !!msg.d; t.dirty = true;
     }
 
-    else if (msg.type === 'yardToggle') {
+    else if (msg.type === 'trapDie') {
+      const { room, player } = getRoomAndPlayer(socket);
+      if (!room || !player || !room.trap) return;
+      const t = room.trap.get(player.id); if (!t) return;
+      t.deaths++;
+      trapSend(room, { type: 'trapEvent', e: 'die', id: player.id, lvl: t.lvl, x: num(msg.x, 0, 99999, t.x), y: num(msg.y, -200, 400, t.y), msg: String(msg.msg || '').slice(0, 90) });
+      trapSendBoard(room);
+    }
+
+    else if (msg.type === 'trapFinish') {
+      const { room, player } = getRoomAndPlayer(socket);
+      if (!room || !player || !room.trap) return;
+      const t = room.trap.get(player.id); if (!t) return;
+      const lvl = Math.round(num(msg.lvl, 0, TrapSim.LEVELS.length - 1, 0));
+      t.clears++; t.best = Math.max(t.best, Math.min(TrapSim.LEVELS.length, lvl + 2));
+      trapSend(room, { type: 'trapEvent', e: 'finish', id: player.id, lvl, final: lvl === TrapSim.LEVELS.length - 1 });
+      trapSendBoard(room);
+    }
+
+    else if (msg.type === 'trapToggle') {
       const { room, player } = getRoomAndPlayer(socket);
       if (!room || !player || player.id !== room.hostId || room.started) return;
-      room.yardEnabled = !!msg.enabled;
-      if (!room.yardEnabled) stopYard(room, true);
+      room.trapEnabled = !!msg.enabled;
+      if (!room.trapEnabled) stopTrap(room, true);
       broadcastRoster(socket.roomCode);
     }
 
