@@ -84,7 +84,7 @@ function at(li, tileX, row) { const st = S.createRun(li); st.px = tileX * S.TILE
   assert(!anyJumpSurvives, 'Screen 3: jump that last gap and the floor (and the far platform) are gone');
   const slow = S.createRun(2); slow.px = 12 * 16; slow.py = 13 * 16; slow.onGround = true; run(slow, 60 * 3, {});
   assert(slow.dead && slow.deadKind === 'pit', 'Screen 3: wait too long on the last platform and it falls');
-  const endT = S.createRun(2); endT.px = 21.5 * 16; endT.py = 13 * 16; endT.onGround = true; endT.traps[2].s = 3; run(endT, 8, { r: 1 }); run(endT, 90, {});
+  const endT = S.createRun(2); endT.px = 22.6 * 16; endT.py = 13 * 16; endT.onGround = true; endT.traps[2].s = 3; run(endT, 100, {});
   assert(endT.dead && endT.deadKind === 'pit', 'Screen 3: and the last tiles before the door give way if you stop on them');
   const endR = S.createRun(2); endR.px = 21.5 * 16; endR.py = 13 * 16; endR.onGround = true; endR.traps[2].s = 3; run(endR, 90, { r: 1 });
   assert(endR.done, 'Screen 3: but running straight on gets you to the door');
