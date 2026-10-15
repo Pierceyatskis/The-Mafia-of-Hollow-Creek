@@ -10,6 +10,7 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const G = require('./game.js');
+const Profanity = require('./profanity.js');
 const Scoring = require('./scoring.js');
 
 const PORT = process.env.PORT || 8080;
@@ -91,7 +92,7 @@ const server = http.createServer((req, res) => {
   });
 });
 
-const wss = new WebSocket.Server({ server });
+const wss = new WebSocket.Server({ server, maxPayload: 64 * 1024 });      // nothing legitimate is bigger than a few KB; the library default is 100 MB
 
 // In-memory room store. Resets if the server restarts - that's a deliberate,
 // documented decision for now (real persistence is a later step).
@@ -139,6 +140,7 @@ function isConfusingName(name) {
 // request. Every reason shows the same word - UNAPPROVED - the key just records why.
 const SHAME_LABELS = {
   confusing: 'Unapproved',  // tried a pronoun / stand-in name (You, me, he, No One...)
+  offensive: 'Unapproved', // tried a name with language that is not allowed
   poser: 'Unapproved',     // tried to dress their name up as Host/Owner/Admin
   impostor: 'Unapproved',  // tried to be the owner without the code
   owner: 'Unapproved'       // applied by the owner
@@ -155,6 +157,7 @@ function checkName(raw, ownerKey) {
   name = stripped;
   if (!name) return { name: 'Player ' + (100 + Math.floor(Math.random() * 900)), shame: triedBadge ? 'poser' : null };
   if (isConfusingName(name)) return { name: 'Player ' + (100 + Math.floor(Math.random() * 900)), shame: 'confusing' };
+  if (!Profanity.isClean(name)) return { name: 'Player ' + (100 + Math.floor(Math.random() * 900)), shame: 'offensive' };
   // With OWNER_KEY configured the owner's name is reserved: anyone typing it
   // without the matching code gets a visibly different name instead of a
   // lookalike of the real one - and the Tag of Shame.
@@ -218,7 +221,8 @@ function sanitizeModerationReason(raw) {
   return Object.prototype.hasOwnProperty.call(MODERATION_REASON_LABELS, s) ? s : null;
 }
 function sanitizeModerationNote(raw) {
-  return String(raw || '').trim().slice(0, 200);
+  const note = String(raw || '').trim().slice(0, 200);
+  return Profanity.isClean(note) ? note : '';
 }
 
 function sanitizeRolesConfig(raw) {
@@ -811,15 +815,58 @@ const heartbeat = setInterval(() => {
 if (heartbeat.unref) heartbeat.unref();
 wss.on('close', () => clearInterval(heartbeat));
 
+// ---- message rate limits and the language filter ----
+// Every socket gets a generous overall budget (enough for voice-chat setup chatter, far too small for a flood) and a much smaller one for
+// anything that puts words in front of other players. Messages over budget are dropped; a socket that keeps hammering is disconnected.
+const TEXT_TYPES = new Set(['dayChat', 'lobbyChat', 'mafiaChat', 'cultChat', 'ghostChat', 'whisper', 'poll']);
+function takeToken(bucket, capacity, perSecond, now) {
+  bucket.tokens = Math.min(capacity, (bucket.tokens === undefined ? capacity : bucket.tokens) + ((now - (bucket.at || now)) / 1000) * perSecond);
+  bucket.at = now;
+  if (bucket.tokens < 1) return false;
+  bucket.tokens -= 1;
+  return true;
+}
+function tellBlocked(socket, message) { try { socket.send(JSON.stringify({ type: 'chatBlocked', message })); } catch (e) {} }
+// true = let the message through
+function rateOk(socket, msg) {
+  const now = Date.now();
+  socket.rate = socket.rate || { all: {}, text: {}, drops: 0 };
+  if (!takeToken(socket.rate.all, 400, 80, now)) {
+    if (++socket.rate.drops > 600) { try { socket.close(1008, 'Too many messages'); } catch (e) {} }
+    return false;
+  }
+  if (TEXT_TYPES.has(msg.type)) {
+    if (!takeToken(socket.rate.text, 5, 0.7, now)) { tellBlocked(socket, "You're sending messages too fast. Give it a few seconds."); return false; }
+    const body = String(msg.text || msg.question || '').trim().toLowerCase();
+    if (body && body === socket.rate.lastBody && now - socket.rate.lastBodyAt < 6000) { tellBlocked(socket, 'You just said that. Try something different.'); return false; }
+    socket.rate.lastBody = body; socket.rate.lastBodyAt = now;
+  }
+  return true;
+}
+// true = the text is fine; false = it was blocked and the sender has been told
+function cleanOrBlock(socket, ...texts) {
+  for (const t of texts) {
+    if (t && !Profanity.isClean(t)) {
+      socket.strikes = (socket.strikes || 0) + 1;
+      tellBlocked(socket, "That message has language that isn't allowed here, so it wasn't sent.");
+      return false;
+    }
+  }
+  return true;
+}
+
 wss.on('connection', (socket) => {
   socket.isAlive = true;
+  socket.on('error', () => {});     // an oversized or malformed frame must close that one connection, never take the server down
   socket.on('pong', () => { socket.isAlive = true; });
   socket.on('message', (raw) => {
     socket.isAlive = true;
     let msg;
     try { msg = JSON.parse(raw); } catch (e) { return; }
     // Client-side liveness probe after a tab comes back from the background.
+    if (!msg || typeof msg !== 'object') return;
     if (msg.type === 'ping') { try { socket.send(JSON.stringify({ type: 'pong' })); } catch (e) {} return; }
+    if (!rateOk(socket, msg)) return;
 
     // A socket asking to create/join/quick-match while still seated in a
     // previous room (the client should always send 'leave' first, but never
@@ -1336,6 +1383,7 @@ wss.on('connection', (socket) => {
       if (!sp || !sp.alive || sp.silencedToday) return;
       const text = String(msg.text || '').trim().slice(0, 300);
       if (!text) return;
+      if (!cleanOrBlock(socket, text)) return;
       // Purely mechanical accusation tag: the sender optionally marks the
       // message as directed at another living player. No judgment of the
       // message content - just "who tagged whom, and when" for scoring.js.
@@ -1346,7 +1394,7 @@ wss.on('connection', (socket) => {
       // sender hit "Reply" on an earlier line - not a reference/lookup, so
       // there's nothing to validate against except shape and length.
       const rawReply = msg.replyTo;
-      const replyTo = (rawReply && typeof rawReply === 'object' && typeof rawReply.name === 'string' && typeof rawReply.text === 'string')
+      const replyTo = (rawReply && typeof rawReply === 'object' && typeof rawReply.name === 'string' && typeof rawReply.text === 'string' && Profanity.isClean(rawReply.name) && Profanity.isClean(rawReply.text))
         ? { name: String(rawReply.name).slice(0, 40), text: String(rawReply.text).slice(0, 120) }
         : null;
       // Simple rule-based content classification (accusation/defense/
@@ -1418,6 +1466,7 @@ wss.on('connection', (socket) => {
       if (!room || !player || room.started) return;
       const text = String(msg.text || '').trim().slice(0, 140);
       if (!text) return;
+      if (!cleanOrBlock(socket, text)) return;
       const now = Date.now();
       if (socket.lastLobbyChatAt && now - socket.lastLobbyChatAt < 300) return; // flood guard
       socket.lastLobbyChatAt = now;
@@ -1435,6 +1484,7 @@ wss.on('connection', (socket) => {
       const question = String(msg.question || '').trim().slice(0, 120);
       if (!question) return;
       let options = Array.isArray(msg.options) ? msg.options.map(o => String(o || '').trim().slice(0, 40)).filter(Boolean).slice(0, 4) : [];
+      if (!cleanOrBlock(socket, question, ...options)) return;
       if (options.length < 2) options = ['Yes', 'No'];
       let name, log, night = 0;
       if (!room.started) {
@@ -1504,6 +1554,7 @@ wss.on('connection', (socket) => {
       if (!sp || !sp.alive || sp.align !== 'mafia' || sp.role === 'Hitman') return;
       const text = String(msg.text || '').trim().slice(0, 300);
       if (!text) return;
+      if (!cleanOrBlock(socket, text)) return;
       const entry = { playerId: player.id, name: sp.name, text, ts: Date.now() };
       room.state.mafiaChatLog.push(entry);
       // Scoped strictly to players whose CURRENT align is 'mafia' - never to
@@ -1528,6 +1579,7 @@ wss.on('connection', (socket) => {
       if (!sp || !sp.alive || sp.align !== 'cult') return;
       const text = String(msg.text || '').trim().slice(0, 300);
       if (!text) return;
+      if (!cleanOrBlock(socket, text)) return;
       const entry = { playerId: player.id, name: sp.name, text, ts: Date.now() };
       room.state.cultChatLog.push(entry);
       room.players.forEach(rp => {
@@ -1549,6 +1601,7 @@ wss.on('connection', (socket) => {
       if (!sp || sp.alive) return;
       const text = String(msg.text || '').trim().slice(0, 300);
       if (!text) return;
+      if (!cleanOrBlock(socket, text)) return;
       const entry = { playerId: player.id, name: sp.name, text, ts: Date.now() };
       room.state.ghostChatLog.push(entry);
       // Scoped strictly to players whose CURRENT alive status is false -
@@ -1615,6 +1668,7 @@ wss.on('connection', (socket) => {
       }
       const text = String(msg.text || '').trim().slice(0, 140);
       if (!text) return;
+      if (!cleanOrBlock(socket, text)) return;
       const entry = { fromId: player.id, toId: targetSp.id, text, ts: Date.now() };
       room.state.whisperLog.push(entry);
       // The full whisper thread is still delivered privately - only the

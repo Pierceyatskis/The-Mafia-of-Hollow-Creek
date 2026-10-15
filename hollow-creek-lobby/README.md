@@ -37,12 +37,25 @@ won't work over the internet yet - that's a later step (real hosting).
 role assignment, redaction, night/day resolution, and win conditions without
 starting the server at all.
 
+## Moderation and safety
+
+- **Language filter** (`profanity.js`): swearing, slurs, sexual language, hate speech and telling someone to hurt themselves are blocked
+  everywhere players can type (Town Talk, whispers, mafia/cult/ghost chat, lobby chat, polls) and in player names. It sees through the usual
+  disguises (`@ss`, `sh1t`, `f*ck`, `f u c k`, `fuuuck`, accents, look-alike letters) without blocking innocent words like "class",
+  "assassin" or "Scunthorpe". A blocked message is not delivered and its sender gets a short notice; a name with language that is not
+  allowed is replaced with "Player ###" and tagged UNAPPROVED. Add or remove words in the lists at the top of `profanity.js`
+  (mild words like "damn" and "hell" are allowed on purpose, there is an empty `mild` list to fill in). Run `node test-profanity.js`.
+- **Flood limits** (`server.js`, `rateOk`): a few chat messages in a burst, then about one every 1.5 seconds; the same line twice in a
+  row is refused; a socket that hammers the server is disconnected; any single message over 64 KB closes that connection.
+- **Host tools**: the host can mute or kick a player from the room (with a fixed set of reasons), and the verified owner can hang the
+  Tag of Shame on a name.
+
 ## What this does NOT do yet
 
-- No AI-driven placeholders - their fallback behavior is simple and random
-- No reconnect handling - if your tab closes mid-game, your seat just stops
-  submitting actions and the round resolves without you at the phase timeout
+- Placeholder townspeople have simple, mostly random fallback behavior (no AI)
+- Reconnect works (rejoin a game in progress from the same browser), but only while the server is running
 - No real internet hosting configured - this runs on your own machine for now
 - No persistence - if the server restarts, all rooms and in-progress games
   are gone (that's a deliberate, documented decision for now)
-- No report/flag or host-kick UI yet
+- No player-to-player report button yet (the host can kick or mute)
+- Achievements and the Leaderboard are not built yet, so their buttons are hidden on the home screen

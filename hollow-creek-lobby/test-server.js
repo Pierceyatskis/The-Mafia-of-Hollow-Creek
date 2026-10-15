@@ -923,6 +923,56 @@ async function testStartCountdown() {
   players.forEach(p => { try { p.ws.close(); } catch (e) {} });
 }
 
+async function testLanguageAndFlooding() {
+  // names with language that is not allowed are replaced and tagged
+  async function nameAs(raw) { const ws = await connect(); send(ws, { type: 'create', name: raw }); const r = await once(ws, m => m.type === 'roster'); ws.close(); await new Promise(x => setTimeout(x, 30)); return r.players[0]; }
+  const bad = await nameAs('xXfuckXx');
+  assert(/^Player \d{3}$/.test(bad.name) && bad.shame === 'Unapproved', 'Language: a name with swearing is replaced and earns the UNAPPROVED tag');
+  assert(/^Player \d{3}$/.test((await nameAs('@ssh0le')).name), 'Language: a disguised swear in a name (@ssh0le) is replaced too');
+  assert((await nameAs('Cassandra')).name === 'Cassandra', 'Language: an innocent name that merely contains letters of a bad word is untouched');
+
+  const host = await createRoom('LangHost');
+  const guest = await joinRoom(host.roomCode, 'LangGuest');
+  // a dirty lobby message is not delivered, and the sender is told
+  let leaked = false;
+  guest.ws.on('message', raw => { const m = JSON.parse(raw); if (m.type === 'lobbyChatMsg' && /fuck|a\$\$/i.test(m.text)) leaked = true; });
+  const told = once(host.ws, m => m.type === 'chatBlocked', 1500);
+  send(host.ws, { type: 'lobbyChat', text: 'what the f u c k' });
+  assert(/language/i.test((await told).message), 'Language: the sender of a swearing message is told it was not sent');
+  send(host.ws, { type: 'lobbyChat', text: 'you a$$' });
+  await new Promise(r => setTimeout(r, 400));
+  assert(!leaked, 'Language: nobody else ever receives a swearing message, however it is disguised');
+  const ok = once(guest.ws, m => m.type === 'lobbyChatMsg' && m.text === 'hello class', 1500);
+  send(host.ws, { type: 'lobbyChat', text: 'hello class' });
+  assert(!!(await ok), 'Language: an ordinary message (even one containing "ass" inside a word) goes through');
+  // polls are checked too
+  const pollTold = once(host.ws, m => m.type === 'chatBlocked', 1500);
+  send(host.ws, { type: 'poll', question: 'Who is the bitch?', options: ['A', 'B'] });
+  assert(!!(await pollTold), 'Language: a poll question with swearing is rejected');
+
+  // flooding: a burst of different messages gets cut off
+  const spammer = await joinRoom(host.roomCode, 'Spammer');
+  let delivered = 0, slowed = 0;
+  host.ws.on('message', raw => { const m = JSON.parse(raw); if (m.type === 'lobbyChatMsg' && /^spam /.test(m.text)) delivered++; });
+  spammer.ws.on('message', raw => { const m = JSON.parse(raw); if (m.type === 'chatBlocked' && /too fast/i.test(m.message)) slowed++; });
+  for (let i = 0; i < 20; i++) { send(spammer.ws, { type: 'lobbyChat', text: 'spam ' + i }); await new Promise(r => setTimeout(r, 15)); }
+  await new Promise(r => setTimeout(r, 400));
+  assert(delivered > 0 && delivered < 12 && slowed > 0, 'Flooding: a burst of 20 messages in a second is cut off after a handful (' + delivered + ' delivered) and the sender is told to slow down');
+  // the same line over and over
+  const dupTold = once(host.ws, m => m.type === 'chatBlocked' && /just said that/i.test(m.message), 4000);
+  await new Promise(r => setTimeout(r, 2500));
+  send(host.ws, { type: 'lobbyChat', text: 'same line' });
+  await new Promise(r => setTimeout(r, 400));
+  send(host.ws, { type: 'lobbyChat', text: 'same line' });
+  assert(!!(await dupTold), 'Flooding: sending the exact same message twice in a row is refused');
+  // an oversized message is refused by the socket itself
+  const big = await connect(); big.on('error', () => {});
+  const closed = new Promise(res => big.on('close', c => res(c)));
+  big.send('x'.repeat(200 * 1024));
+  assert((await Promise.race([closed, new Promise(r => setTimeout(() => r('open'), 2000))])) !== 'open', 'Flooding: a 200 KB message makes the server drop the connection');
+  [host, guest, spammer].forEach(p => { try { p.ws.close(); } catch (e) {} });
+}
+
 async function testPingPong() {
   const ws = await connect();
   const pPong = once(ws, m => m.type === 'pong', 2000);
@@ -995,6 +1045,7 @@ async function main() {
   await testDayChatInferredAccusationAndAgreement();
   await testLobbyChatIsPerRoom();
   await testPingPong();
+  await testLanguageAndFlooding();
   await testStartCountdown();
   await testFamilyPicks();
 

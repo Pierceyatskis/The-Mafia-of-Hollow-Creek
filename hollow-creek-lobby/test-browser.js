@@ -68,8 +68,12 @@ async function playOne(browser, label, ctxOpts, phone) {
   await pg.evaluate(() => sendWS({ type: 'start', playerCount: 6, mafiaCount: 1, roles: { Godfather: false, DoubleAgent: false, Detective: true, Doctor: false, Miller: false, BountyHunter: false, CrazyGranny: false, Coward: false, Farmer: false, NavySeal: false } }));
 
   const reached = {};
+  // phases are recorded as the server announces them, so a short phase that comes and goes between two of our polls still counts as reached
+  await pg.evaluate(() => { window.__phases = {}; const orig = window.handleServerMessage; window.handleServerMessage = function(m){ try { if (m && m.type === 'gameState' && m.view && m.view.phase) window.__phases[m.view.phase] = true; } catch (e) {} return orig.apply(this, arguments); }; });
   for (let i = 0; i < 160 && !(reached.night && reached.day && reached.vote && reached.results); i++) {
     await pg.waitForTimeout(500);
+    const seenPhases = await pg.evaluate(() => window.__phases || {});
+    if (seenPhases['night']) reached.night = true;
     const st = await pg.evaluate(() => {
       const shown = id => { const e = document.getElementById(id); return !!e && getComputedStyle(e).display !== 'none'; };
       return { ph: latestView && latestView.phase, reveal: shown('role-reveal-screen'), det: shown('detective-reveal-modal'), nk: shown('nightkill-screen'),
@@ -96,6 +100,8 @@ async function playOne(browser, label, ctxOpts, phone) {
     if (st.ph === 'day-vote') reached.vote = true;
     if (st.ph === 'day-reveal' || st.over) reached.results = true;
   }
+  const phasesSeen = await pg.evaluate(() => Object.keys(window.__phases || {}));
+  check(phasesSeen.includes('night') && phasesSeen.includes('day-discuss'), label + ': the page was told about the night and day phases (' + phasesSeen.join(',') + ')');
   check(reached.reveal, label + ': saw the role reveal'); check(reached.night, label + ': reached the night screen');
   check(reached.day, label + ': reached the day'); check(reached.vote, label + ': reached the vote'); check(reached.results, label + ': vote results appeared');
   check(errors.length === 0, label + ': no uncaught page errors' + (errors.length ? ' - ' + errors[0] : ''));
