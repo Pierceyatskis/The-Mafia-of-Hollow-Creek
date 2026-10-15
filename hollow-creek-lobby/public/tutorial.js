@@ -273,7 +273,7 @@
       enter:function(){ enterNight(); },
       text:'Every game opens with this beat. Next, the town deals you your secret role.',
       until:function(){ return shown('role-reveal-screen'); }, auto:300 });
-    add({ q:1, title:'Your secret role', target:'#role-reveal-card|#role-reveal-continue-btn', pad:14, place:'r', noBack:true, noForward:true,
+    add({ q:1, title:'Your secret role', target:'#role-reveal-card|#role-reveal-name|#role-reveal-flavor|#role-reveal-continue-btn', pad:14, place:'r', noBack:true, noForward:true,
       text:'You are <b>the Detective</b>. Each night you investigate one player and learn whether they look <b class="tut-red">guilty</b> or <b class="tut-green">innocent</b>.<br><br>Keep your role close: the mafia would love to kill a Detective.',
       hint:'Press <b>Begin the night</b>.', until:function(){ return shown('panel-night'); }, auto:400 });
     add({ title:'Your night action', target:'#night-action', place:'r', noBack:true, noForward:true,
@@ -374,9 +374,20 @@
   }
 
   // ---------------------------------------------------------------- lifecycle
+  // The practice round runs on the real screens, so the real client state (who the Detective picked, notebook marks, the last view...) would
+  // otherwise survive it and pre-fill the next run (the quick start was leaving its picks behind for the full tutorial). Wipe it before and after.
+  function resetClientState(){
+    try{ nightUI = { night:null, sel:{}, done:{}, picking:null, armed:null, submitting:false }; }catch(e){}
+    try{ notebookMarks = {}; notebookNotes = {}; notebookPinned = []; notebookEvents = []; notebookHasUnseen = false; notebookOpen = false; }catch(e){}
+    try{ notebookFilter = 'all'; notebookVoteInspectId = null; notebookOpenPlayerId = null; notebookDossierTab = 'notes'; notebookVoteRound = null; notebookVoteMode = 'for'; notebookPrevCardPos = {}; }catch(e){}
+    try{ latestView = null; previousView = null; phaseEndsAt = null; deadNoticeDismissed = false; pendingReplyTo = null; activeWhisperTargetId = null; }catch(e){}
+    try{ if(typeof renderLynchReveal === 'function') renderLynchReveal._key = null; }catch(e){}
+    chatNow = [];
+  }
   function start(onFinish, opts){
     if(T.active) return;
     if(typeof myRoomCode !== 'undefined' && myRoomCode){ if(typeof showComingSoonToast === 'function'){ /* reuse toast style */ } alert('Leave your current room before starting the tutorial.'); return; }
+    resetClientState();
     T.active = true; T.idx = 0; T.flags = {}; T.onTimers = []; T.onFinish = onFinish || null; T.quick = !!(opts && opts.quick); T.steps = buildSteps().filter(function(st){ return !T.quick || st.q; });
     T.origSendWS = window.sendWS;
     window.sendWS = onSend;
@@ -408,9 +419,10 @@
     try{ localStorage.setItem(DONE_KEY, completed ? 'done' : 'seen'); }catch(e){}
     var tb = document.getElementById('tutorial-btn'); if(tb) tb.classList.remove('is-new');
     // close anything the practice round opened, then go back to a clean home screen
-    ['notebook-modal', 'detective-reveal-modal', 'role-reveal-screen', 'phase-transition-screen', 'nightkill-screen', 'case-log-modal'].forEach(function(id){ var n = document.getElementById(id); if(n) n.style.display = 'none'; });
+    ['notebook-modal', 'detective-reveal-modal', 'consigliere-reveal-modal', 'mortician-reveal-modal', 'role-reveal-screen', 'phase-transition-screen', 'nightkill-screen', 'case-log-modal'].forEach(function(id){ var n = document.getElementById(id); if(n) n.style.display = 'none'; });
     try{ if(typeof notebookOpen !== 'undefined') notebookOpen = false; }catch(e){}
     try{ if(typeof stopNightKillTimer === 'function') stopNightKillTimer(); }catch(e){}
+    resetClientState();
     window.myPlayerId = null; window.myRoomCode = null;
     try{ if(typeof goToHome === 'function') goToHome(); else switchPanel('home'); }catch(e){ try{ switchPanel('home'); }catch(e2){} }
     var cb = T.onFinish; T.onFinish = null;
