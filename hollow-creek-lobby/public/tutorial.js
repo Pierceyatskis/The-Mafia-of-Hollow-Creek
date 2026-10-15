@@ -126,6 +126,14 @@
     el.text = root.querySelector('.tut-text'); el.try_ = root.querySelector('.tut-try'); el.back = root.querySelector('.tut-back');
     el.next = root.querySelector('.tut-next'); el.skipstep = root.querySelector('.tut-skipstep');
     root.querySelector('.tut-skip').addEventListener('click', function(){ confirmSkip(); });
+    (function(){   // grab the top strip to move the card out of the way; it stays put for the rest of that step
+      var top = root.querySelector('.tut-top'), drag = null;
+      top.style.cursor = 'grab'; top.style.touchAction = 'none';
+      top.addEventListener('pointerdown', function(e){ if(e.target.closest('button')) return; var r = el.card.getBoundingClientRect(); drag = { dx:e.clientX - r.left, dy:e.clientY - r.top }; top.setPointerCapture(e.pointerId); top.style.cursor = 'grabbing'; e.preventDefault(); });
+      top.addEventListener('pointermove', function(e){ if(!drag) return; var p = clampXY(el.card, e.clientX - drag.dx, e.clientY - drag.dy); el.card.classList.remove('arrow-l', 'arrow-r', 'arrow-t', 'arrow-b'); el.card.style.left = p[0] + 'px'; el.card.style.top = p[1] + 'px'; var s = T.steps[T.idx]; if(s) s.userPos = p; });
+      top.addEventListener('pointerup', function(){ drag = null; top.style.cursor = 'grab'; });
+      top.addEventListener('pointercancel', function(){ drag = null; top.style.cursor = 'grab'; });
+    })();
     el.next.addEventListener('click', function(){ if(!el.next.disabled) next(); });
     el.back.addEventListener('click', function(){ back(); });
     el.skipstep.addEventListener('click', function(e){ if(e.target.tagName === 'BUTTON') forceStep(); });
@@ -167,10 +175,46 @@
   }
   function set(b, x, y, w, h){ b.style.cssText = 'display:' + (w > 0 && h > 0 ? 'block' : 'none') + ';left:' + x + 'px;top:' + y + 'px;width:' + w + 'px;height:' + h + 'px;'; }
   function hideBlocks(){ for(var k in el.blocks) el.blocks[k].style.display = 'none'; }
+  // How much of the game's own clickable stuff would a card at (x, y) hide? (only things the player can actually reach right now)
+  function coverCost(x, y, cw, ch, only){
+    var cost = 0, nodes = document.querySelectorAll('button,input,textarea,select,a[href],[role=button]');
+    for(var i = 0; i < nodes.length; i++){
+      var n = nodes[i]; if(n.closest('#tut-layer')) continue;
+      var r = n.getBoundingClientRect(); if(r.width < 4 || r.height < 4) continue;
+      if(r.left >= x + cw || r.right <= x || r.top >= y + ch || r.bottom <= y) continue;
+      if(only){ var cxm = (r.left + r.right) / 2, cym = (r.top + r.bottom) / 2; if(cxm < only.l || cxm > only.r || cym < only.t || cym > only.b) continue; }   // dimmed screen: only what is inside the spotlight can be pressed
+      var cs = getComputedStyle(n); if(cs.visibility === 'hidden' || cs.display === 'none' || cs.pointerEvents === 'none') continue;
+      var mx = Math.min(innerWidth - 1, Math.max(0, (r.left + r.right) / 2)), my = Math.min(innerHeight - 1, Math.max(0, (r.top + r.bottom) / 2));
+      var top = document.elementFromPoint(mx, my); if(!top || !(top === n || n.contains(top) || top.contains(n))) continue;   // already hidden by something else
+      cost += (n.closest('.role-card-overlay,#role-reveal-screen,#nightkill-screen,#phase-transition-screen') ? 40 : 6);
+    }
+    return cost;
+  }
+  function overlapArea(ax, ay, aw, ah, bx, by, bw, bh){ var w = Math.min(ax + aw, bx + bw) - Math.max(ax, bx), h = Math.min(ay + ah, by + bh) - Math.max(ay, by); return w > 0 && h > 0 ? w * h : 0; }
+  function clampXY(c, x, y){ var W = window.innerWidth, H = window.innerHeight; return [Math.max(10, Math.min(W - c.offsetWidth - 10, x)), Math.max(10, Math.min(H - c.offsetHeight - 10, y))]; }
+  // pick the best of: beside the target (with an arrow), or one of the screen's edges/corners - least overlap with the target, then with the game's buttons
+  function bestSpot(cands, ring, useCover, only){
+    var c = el.card, cw = c.offsetWidth, ch = c.offsetHeight, best = null;
+    cands.forEach(function(k, idx){
+      var p = clampXY(c, k.x, k.y);
+      var cost = (ring ? overlapArea(p[0], p[1], cw, ch, ring.l, ring.t, ring.r - ring.l, ring.b - ring.t) * 3 : 0) + (useCover ? coverCost(p[0], p[1], cw, ch, only) * 400 : 0) + idx;
+      if(!best || cost < best.cost) best = { cost:cost, x:p[0], y:p[1], arrow:k.arrow };
+    });
+    return best;
+  }
+  function edgeCands(){
+    var W = window.innerWidth, H = window.innerHeight, c = el.card, cw = c.offsetWidth, ch = c.offsetHeight, g = 16;
+    return [{ x:(W - cw) / 2, y:H - ch - 22 }, { x:(W - cw) / 2, y:g }, { x:g, y:H - ch - g }, { x:W - cw - g, y:H - ch - g }, { x:g, y:g }, { x:W - cw - g, y:g },
+      { x:g, y:(H - ch) / 2 }, { x:W - cw - g, y:(H - ch) / 2 }];
+  }
+  function applySpot(s){
+    var c = el.card; c.classList.remove('centered', 'arrow-l', 'arrow-r', 'arrow-t', 'arrow-b'); if(s.arrow) c.classList.add(s.arrow);
+    c.style.left = s.x + 'px'; c.style.top = s.y + 'px';
+  }
   function dock(){
-    var c = el.card; c.classList.remove('centered', 'arrow-l', 'arrow-r', 'arrow-t', 'arrow-b');
-    c.style.left = Math.max(10, (window.innerWidth - c.offsetWidth) / 2) + 'px';
-    c.style.top = Math.max(10, window.innerHeight - c.offsetHeight - 22) + 'px';
+    var s = T.steps[T.idx];
+    if(s && s.userPos){ applySpot({ x:s.userPos[0], y:s.userPos[1] }); return; }
+    applySpot(bestSpot(edgeCands(), null, true));      // a passive card must not cover the game's own popups and buttons
   }
   function center(){
     var c = el.card; c.classList.add('centered'); c.classList.remove('arrow-l', 'arrow-r', 'arrow-t', 'arrow-b');
@@ -178,26 +222,24 @@
     c.style.top = Math.max(12, (window.innerHeight - c.offsetHeight) / 2) + 'px';
   }
   function place(hl, ht, hr, hb, pref){
+    var s = T.steps[T.idx];
     var c = el.card; c.classList.remove('centered', 'arrow-l', 'arrow-r', 'arrow-t', 'arrow-b');
+    if(s && s.userPos){ applySpot({ x:s.userPos[0], y:s.userPos[1] }); return; }      // the player dragged it somewhere: leave it there
     var W = window.innerWidth, H = window.innerHeight, cw = c.offsetWidth, ch = c.offsetHeight, g = 18;
-    var space = { r:W - hr, l:hl, b:H - hb, t:ht };
-    var order = pref ? [pref, 'r', 'l', 'b', 't'] : ['r', 'l', 'b', 't'];
-    var side = null;
-    for(var i = 0; i < order.length; i++){
-      var sd = order[i];
-      var need = (sd === 'r' || sd === 'l') ? cw + g : ch + g;
-      if(space[sd] >= need){ side = sd; break; }
-    }
-    var x, y;
-    if(side === 'r'){ x = hr + g; y = ht + (hb - ht) / 2 - ch / 2; c.classList.add('arrow-l'); }
-    else if(side === 'l'){ x = hl - g - cw; y = ht + (hb - ht) / 2 - ch / 2; c.classList.add('arrow-r'); }
-    else if(side === 'b'){ x = hl + (hr - hl) / 2 - cw / 2; y = hb + g; c.classList.add('arrow-t'); }
-    else if(side === 't'){ x = hl + (hr - hl) / 2 - cw / 2; y = ht - g - ch; c.classList.add('arrow-b'); }
-    else { // nowhere fits beside it: dock the card to the corner away from the target
-      x = (hl + hr) / 2 < W / 2 ? W - cw - 16 : 16; y = (ht + hb) / 2 < H / 2 ? H - ch - 16 : 16;
-    }
-    c.style.left = Math.max(10, Math.min(W - cw - 10, x)) + 'px';
-    c.style.top = Math.max(10, Math.min(H - ch - 10, y)) + 'px';
+    var order = pref ? [pref, 'r', 'l', 'b', 't'] : ['r', 'l', 'b', 't'], seen = {}, cands = [];
+    order.forEach(function(sd){
+      if(seen[sd]) return; seen[sd] = 1;
+      if(sd === 'r') cands.push({ x:hr + g, y:ht + (hb - ht) / 2 - ch / 2, arrow:'arrow-l' });
+      else if(sd === 'l') cands.push({ x:hl - g - cw, y:ht + (hb - ht) / 2 - ch / 2, arrow:'arrow-r' });
+      else if(sd === 'b') cands.push({ x:hl + (hr - hl) / 2 - cw / 2, y:hb + g, arrow:'arrow-t' });
+      else cands.push({ x:hl + (hr - hl) / 2 - cw / 2, y:ht - g - ch, arrow:'arrow-b' });
+    });
+    var all = cands.concat(edgeCands());
+    // a side only keeps its arrow if the card really fits there without being squeezed back over the target
+    var ring = { l:hl, t:ht, r:hr, b:hb };
+    var best = bestSpot(all, ring, true, (s && s.block === false) ? null : ring);
+    if(best.arrow){ var okx = best.x >= 10 && best.x + cw <= W - 10 && best.y >= 10 && best.y + ch <= H - 10; var hit = overlapArea(best.x, best.y, cw, ch, hl, ht, hr - hl, hb - ht); if(!okx || hit) best.arrow = null; }
+    applySpot(best);
   }
 
   // ---------------------------------------------------------------- stepping
@@ -211,7 +253,7 @@
     if(i >= T.steps.length){ finish(); return; }
     if(i < 0) i = 0;
     T.idx = i;
-    var s = T.steps[i];
+    var s = T.steps[i]; s.userPos = null;
     if(s.enter) try{ s.enter(); }catch(e){ console.warn('[tutorial] enter failed', e); }
     el.count.textContent = s.kind === 'intro' ? 'Welcome' : 'Step ' + (i + 1) + ' of ' + T.steps.length;
     el.bar.style.width = Math.round(i / (T.steps.length - 1) * 100) + '%';
@@ -281,12 +323,12 @@
     add({ q:1, title:'Choose a player', target:'#night-action .na-select', place:'r', noForward:true,
       text:'Every night action works the same way: pick a player, then confirm.',
       hint:'Click <b>Choose a player</b>.', until:function(){ return typeof nightUI !== 'undefined' && !!nightUI.picking; },
-      force:function(){ var b = document.querySelector('#night-action .na-select'); if(b) b.click(); } });
-    add({ q:1, title:'Who do you suspect?', target:'#night-action', place:'r', noForward:true,
+      force:function(){ var b = document.querySelector('#night-action .na-select'); if(b) b.click(); }, auto:500 });
+    add({ q:1, title:'Who do you suspect?', target:'#night-action .na-person', pad:12, place:'b', noForward:true,
       enter:function(){ pulsePick(true); }, exit:function(){ pulsePick(false); },
       text:'Everyone in town is shown the same way. For this demo, <b>Dex Marlowe</b> has been acting strange. Pick him (or anyone you like).',
       hint:'Click a player\'s portrait.', until:function(){ return typeof nightUI !== 'undefined' && !nightUI.picking && nightUI.sel && !!nightUI.sel.inv; },
-      force:function(){ var b = document.querySelector('#night-action .na-person[data-id="tut-dex"]') || document.querySelector('#night-action .na-person'); if(b) b.click(); } });
+      force:function(){ var b = document.querySelector('#night-action .na-person[data-id="tut-dex"]') || document.querySelector('#night-action .na-person'); if(b) b.click(); }, auto:600 });
     add({ q:1, title:'Lock it in', target:'#night-action .na-confirm', place:'r', noForward:true,
       text:'The Confirm button turns red once you have chosen someone. You can still change your mind (click it again) until every action is confirmed.',
       hint:'Press the red <b>Confirm</b> button.', until:function(){ return !!T.flags.nightSent; },
@@ -307,13 +349,13 @@
     add({ title:'Open a player\'s page', target:'#daylayout-roster-grid', place:'r', noForward:true,
       text:'Each player has a private page in your notebook.',
       hint:'Click <b>Dex Marlowe</b>\'s card.', until:function(){ return typeof notebookOpen !== 'undefined' && notebookOpen; },
-      force:function(){ if(typeof openNotebookModalToPlayer === 'function') openNotebookModalToPlayer('tut-dex'); } });
+      force:function(){ if(typeof openNotebookModalToPlayer === 'function') openNotebookModalToPlayer('tut-dex'); }, auto:500 });
     add({ title:'Your private dossier', target:'#notebook-dossier-view .notebook-dossier-left', place:'r', noForward:true,
       text:'This page is yours alone. The portrait, status, and below it, a quick verdict you can give each player: <b class="tut-green">Trusted</b>, <b>Unknown</b> or <b class="tut-red">Suspicious</b>.' });
     add({ title:'Mark your suspicion', target:'#notebook-dossier-view .notebook-judgment-row', place:'r', noForward:true,
       hint:'Mark Dex as <b>Suspicious</b>.', text:'Marks only help you keep track. Nobody else sees them, and the directory can filter by them later.',
       until:function(){ return typeof notebookMarks !== 'undefined' && notebookMarks['tut-dex'] === 'suspicious'; },
-      force:function(){ if(typeof notebookMarks !== 'undefined'){ notebookMarks['tut-dex'] = 'suspicious'; if(typeof renderNotebookDossier === 'function') renderNotebookDossier('tut-dex'); } } });
+      force:function(){ if(typeof notebookMarks !== 'undefined'){ notebookMarks['tut-dex'] = 'suspicious'; if(typeof renderNotebookDossier === 'function') renderNotebookDossier('tut-dex'); } }, auto:700 });
     add({ title:'Four tabs of information', target:'#notebook-dtabs', place:'b', noForward:true,
       text:'<b>Private Notes</b>: write anything. <b>Vote History</b>: who they voted for each day. <b>Known Events</b>: everything public (and private to you) about them. <b>Saved Quotes</b>: what they have said in the main chat.<br><br>The <b>directory</b> (back arrow) lists everyone, and <i>Vote Lookup</i> shows who voted for whom.' });
     add({ title:'Close the notebook', target:'#notebook-close-btn', pad:10, place:'l', noForward:true,
@@ -324,7 +366,7 @@
       skipIf:function(){ return !visibleRect('#daylayout-stage-request-btn'); },
       text:'When the host turns it on, <b>the Stage</b> is where players speak out loud, one at a time. Others queue up to take a turn.',
       hint:'Press <b>Request to Speak</b>.', until:function(){ return !!T.flags.joined; }, noForward:true,
-      force:function(){ onSend({ type:'joinQueue' }); } });
+      force:function(){ onSend({ type:'joinQueue' }); }, auto:600 });
     add({ title:'You have the stage', target:'#daylayout-stage-header|#daylayout-stage-mute-btn|#daylayout-stage-request-btn|#daylayout-stage-give-time-btn|#daylayout-stage-kick-btn', place:'l', noForward:true,
       skipIf:function(){ return !T.flags.joined; },
       enter:function(){ later(function(){ stageMsg(null); }, 9000); },
@@ -332,7 +374,7 @@
     add({ q:1, title:'Town Talk', target:'#daylayout-chat-frame', pad:0, place:'r', noForward:true,
       text:'The main chat. Everyone sees it. Use it to <b>accuse</b> ("I accuse Dex"), <b>defend</b>, ask questions and trade information. The quick buttons under the chat give you starters.<br><br>Careful: accusations and your words are tracked and feed the Town Heat.',
       hint:'Type <i>I accuse Dex</i> and press <b>Send</b>.', until:function(){ return !!T.flags.chatted; },
-      force:function(){ onSend({ type:'dayChat', text:'I accuse Dex' }); }, auto:2200 });
+      force:function(){ onSend({ type:'dayChat', text:'I accuse Dex' }); }, auto:1800 });
     add({ title:'Your Town Heat', target:'#daylayout-heat', pad:6, place:'t', noForward:true,
       enter:function(){
         T.flags.heat = heatObj(3, 0.42, { accusedToday:['Cora Vance', 'Finn Calder'], rawScore:0.42, hottest:true });
@@ -350,7 +392,7 @@
     add({ q:1, title:'Cast your vote', target:'#day-quick-vote-btn|#daylayout-roster-grid|#daylayout-roster-nav', pad:6, place:'r', noBack:true, noForward:true,
       text:'Press <b>Vote for&hellip;</b> and then click a player, or open a player\'s notebook page and press <b>Vote for</b> there. You can change your vote until the timer ends. For this demo, vote for <b>Dex</b>.',
       hint:'Pick a player to vote for.', until:function(){ return !!T.flags.voted; },
-      force:function(){ if(typeof selectVoteTarget === 'function') selectVoteTarget('tut-dex'); else onSend({ type:'dayVote', targetId:'tut-dex' }); }, auto:1700 });
+      force:function(){ if(typeof selectVoteTarget === 'function') selectVoteTarget('tut-dex'); else onSend({ type:'dayVote', targetId:'tut-dex' }); }, auto:900 });
     add({ title:'Your ballot is in', target:'.voting-box-col|.vote-confirmed-card|.voting-your-vote', pad:10, place:'t', noBack:true, noForward:true,
       text:'Your ballot slips into the box. Votes stay secret until the reveal, and you can still change yours before time is up by picking someone else.' });
     add({ q:1, title:'The votes are counted', noBack:true, noForward:true, nextLabel:'See the result',
