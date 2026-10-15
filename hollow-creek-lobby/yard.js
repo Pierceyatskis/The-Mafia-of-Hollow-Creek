@@ -14,7 +14,7 @@ const BOUNDS = { x0: 14, x1: 386 };
 const RING = { x: 236, w: 118 };               // the ring covers x in [RING.x, RING.x + RING.w] on the ground
 const SPAWN_X = 70;
 const SPEED = 74, CARRY_SPEED = 48, JUMP_V = 150, GRAVITY = 430;
-const PUNCH_REACH = 21, PUNCH_HEIGHT = 15, PUNCH_COOLDOWN = 0.38, HITS_TO_KO = 3, KNOCKBACK = 60;
+const PUNCH_REACH = 21, PUNCH_HEIGHT = 15, PUNCH_COOLDOWN = 0.38, HITS_TO_KO = 3, KNOCKBACK = 40;
 const KO_SECONDS = 4.2, HOLD_SECONDS = 5, GRAB_REACH = 19;
 const THROW_VX = 125, THROW_VY = 150;           // a lob: about 100px across, easily over the ropes
 const OUT_SECONDS = 1.6, STREAK_LAPSE_SECONDS = 12;
