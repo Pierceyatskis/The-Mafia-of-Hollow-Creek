@@ -2452,6 +2452,19 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
 .daylayout-roster-tile.is-dead .daylayout-roster-tile-avatar{filter:grayscale(0.85) brightness(0.8);}
 .daylayout-roster-tile.is-dead .daylayout-roster-tile-frame{filter:grayscale(0.55) brightness(0.8);}
 .daylayout-roster-tile-name{display:flex; align-items:center; justify-content:center; text-align:center; left:17%; top:73.6%; width:66%; height:9.4%; line-height:1; font-size:12px; letter-spacing:0; padding:0; white-space:nowrap; overflow:hidden;}
+/* every remaining plain .btn gets the asset look too (the old orange plate and black plate are gone): primary / danger = red, ghost = charcoal.
+   This sits BEFORE the per-button rules below so those (same nine-slice, different slice sizes) still win where they exist. */
+.btn, .btn.danger{
+  background:none; border-style:solid; border-width:0; border-image:url('assets/ui/hc-button-primary-wide-red.webp') 38% 7% fill / 14px 11px stretch;
+  color:#f6e2b0; text-shadow:0 1px 2px rgba(0,0,0,0.8); border-radius:0;
+}
+.btn.ghost{
+  background:none; border-style:solid; border-width:0; border-image:url('assets/ui/hc-button-secondary-wide-charcoal.webp') 38% 7% fill / 14px 11px stretch;
+  color:#d8ccb0; text-shadow:0 1px 2px rgba(0,0,0,0.8); border-radius:0;
+}
+.btn.danger, .btn.danger:hover, .btn.danger:active{filter:none;}
+.btn.danger:hover{filter:drop-shadow(0 3px 6px rgba(0,0,0,0.4)) brightness(1.12);}
+.btn.danger:active{filter:brightness(0.95);}
 /* wide buttons: nine-slice so corners and trim never stretch. Primary = red, secondary = quieter charcoal. Labels stay live text. */
 #create-game-btn, #mpentry-create-btn, #mpentry-quick-match-btn, #mpentry-join-btn, #setup-start-btn, #profile-save-btn,
 #chat-send-btn, #ghost-inline-send, #ghost-chat-send-btn, #lobby-chat-send, #mafia-chat-send-btn, #cult-chat-send-btn, #player-action-whisper-send-btn,
