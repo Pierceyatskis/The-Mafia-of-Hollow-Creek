@@ -923,6 +923,43 @@ async function testStartCountdown() {
   players.forEach(p => { try { p.ws.close(); } catch (e) {} });
 }
 
+async function testYard() {
+  const host = await createRoom('Y1');
+  const g = await joinRoom(host.roomCode, 'Y2');
+  const joinedMsg = once(host.ws, m => m.type === 'yardJoined', 2000);
+  send(host.ws, { type: 'yardJoin' });
+  const jm = await joinedMsg;
+  assert(jm.you === host.playerId && jm.world.w > 0 && jm.world.ring && typeof jm.world.ring.x === 'number', 'Yard: joining the lobby yard gives the world layout');
+  const snapP = once(host.ws, m => m.type === 'yardSnap' && m.players.some(p => p.i === host.playerId), 2000);
+  const before = (await snapP).players.find(p => p.i === host.playerId).x;
+  send(host.ws, { type: 'yardInput', mx: 1, act: 0, jump: 0 });
+  const moved = await once(host.ws, m => m.type === 'yardSnap' && m.players.find(p => p.i === host.playerId).x > before + 5, 3000);
+  assert(!!moved, 'Yard: held-right input moves the player in the shared snapshots');
+  // the guest has not joined the yard, so should not receive snapshots
+  let guestSnaps = 0; g.ws.on('message', raw => { if (JSON.parse(raw).type === 'yardSnap') guestSnaps++; });
+  await new Promise(r => setTimeout(r, 400));
+  assert(guestSnaps === 0, 'Yard: players who have not entered the yard are not sent yard traffic');
+  // a non-host cannot switch the yard off
+  send(g.ws, { type: 'yardToggle', enabled: false });
+  await new Promise(r => setTimeout(r, 200));
+  const stillThere = once(host.ws, m => m.type === 'yardSnap', 1500);
+  assert(!!(await stillThere), 'Yard: only the host can turn the yard off');
+  const ended = once(host.ws, m => m.type === 'yardEnded', 2000);
+  send(host.ws, { type: 'yardToggle', enabled: false });
+  assert(!!(await ended), 'Yard: the host turning it off ends it for everyone inside');
+  send(host.ws, { type: 'yardToggle', enabled: true });
+  await new Promise(r => setTimeout(r, 150));
+  // starting a game ends the yard
+  const again = once(host.ws, m => m.type === 'yardJoined', 2000);
+  send(host.ws, { type: 'yardJoin' }); await again;
+  const gone = once(host.ws, m => m.type === 'yardEnded', 4000);
+  for (let i = 3; i <= 6; i++) await joinRoom(host.roomCode, 'Y' + i);
+  const roles = Object.assign({}, require('./game.js').DEFAULT_ROLES_CONFIG, { Godfather: false, DoubleAgent: false, Detective: false, Doctor: false, Miller: false, BountyHunter: false, CrazyGranny: false });
+  send(host.ws, { type: 'start', playerCount: 6, mafiaCount: 1, roles });
+  assert(!!(await gone), 'Yard: the yard closes when the game starts');
+  try { host.ws.close(); g.ws.close(); } catch (e) {}
+}
+
 async function testPingPong() {
   const ws = await connect();
   const pPong = once(ws, m => m.type === 'pong', 2000);
@@ -996,6 +1033,7 @@ async function main() {
   await testLobbyChatIsPerRoom();
   await testPingPong();
   await testStartCountdown();
+  await testYard();
   await testFamilyPicks();
 
   console.log('\n' + (failures === 0 ? 'All server.js integration checks passed.' : failures + ' CHECK(S) FAILED.'));

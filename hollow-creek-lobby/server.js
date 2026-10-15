@@ -10,6 +10,7 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const G = require('./game.js');
+const Yard = require('./yard.js');
 const Scoring = require('./scoring.js');
 
 const PORT = process.env.PORT || 8080;
@@ -243,6 +244,7 @@ function createRoom(socket, name, isPublic, avatarKey, color, initialVoiceEnable
   // preference couldn't match into it until the host's client sent its own
   // first real edit.
   rooms[code] = {
+    yard: null, yardTimer: null, yardEnabled: true,
     players: [{ id, name, socket, avatarKey, color, gameIconKey }], hostId: id, started: false, state: null, timer: null,
     phaseEndsAt: null, isPublic: !!isPublic, ownerIds: new Set(), shame: new Map(), lobbyChat: [],
     draftConfig: typeof initialVoiceEnabled === 'boolean' ? { voiceEnabled: initialVoiceEnabled } : null
@@ -282,6 +284,41 @@ function joinRoom(socket, code, name, avatarKey, color, gameIconKey) {
   broadcastRoster(code);
 }
 
+
+// ---- Lobby Yard (pixel mini-game for the waiting lobby; see yard.js) ----
+const YARD_TICK_MS = 33;           // ~30 simulation steps a second
+function yardSend(room, ids, obj) {
+  const m = JSON.stringify(obj);
+  room.players.forEach(rp => { if (ids.has(rp.id) && rp.socket.readyState === WebSocket.OPEN) rp.socket.send(m); });
+}
+function yardAudience(room) { return room.yard ? new Set(room.yard.players.keys()) : new Set(); }
+function yardSendRoster(room) { if (room.yard) yardSend(room, yardAudience(room), { type: 'yardRoster', players: Yard.roster(room.yard) }); }
+function stopYard(room, notify) {
+  if (room.yardTimer) { clearInterval(room.yardTimer); room.yardTimer = null; }
+  if (room.yard && notify) yardSend(room, yardAudience(room), { type: 'yardEnded' });
+  room.yard = null;
+}
+function startYardTimer(room) {
+  if (room.yardTimer) return;
+  let tick = 0;
+  room.yardTimer = setInterval(() => {
+    if (!room.yard || room.yard.players.size === 0 || room.started) { stopYard(room, false); return; }
+    Yard.step(room.yard, YARD_TICK_MS / 1000);
+    const events = Yard.takeEvents(room.yard);
+    tick++;
+    if (tick % 2 === 0 || events.length) {
+      const snap = Yard.snapshot(room.yard);
+      if (events.length) snap.events = events;
+      yardSend(room, yardAudience(room), snap);
+    }
+  }, YARD_TICK_MS);
+}
+function yardLeave(room, id) {
+  if (!room.yard) return;
+  Yard.leave(room.yard, id);
+  if (room.yard.players.size === 0) stopYard(room, false); else yardSendRoster(room);
+}
+
 // One JSON message to everyone in the room with an open socket.
 function cancelStartCountdown(room, notify) {
   if (!room.startTimer) return;
@@ -309,7 +346,7 @@ function broadcastRoster(code) {
   const room = rooms[code];
   if (!room) return;
   const roster = room.players.map(p => ({ id: p.id, name: p.name, isHost: p.id === room.hostId, isOwner: room.ownerIds.has(p.id), shame: shameLabel(room, p.id), avatarKey: p.avatarKey || null, color: p.color || null }));
-  const msg = JSON.stringify({ type: 'roster', roomCode: code, players: roster, started: room.started, isPublic: !!room.isPublic, ownerPowers: !!process.env.OWNER_KEY });
+  const msg = JSON.stringify({ type: 'roster', roomCode: code, players: roster, started: room.started, isPublic: !!room.isPublic, yardEnabled: room.yardEnabled !== false, ownerPowers: !!process.env.OWNER_KEY });
   room.players.forEach(p => {
     if (p.socket.readyState === WebSocket.OPEN) p.socket.send(msg);
   });
@@ -324,6 +361,7 @@ function removePlayer(socket) {
   const wasHost = room.players[idx].id === room.hostId;
   const playerId = room.players[idx].id;
   room.players.splice(idx, 1);
+  yardLeave(room, playerId);
 
   // A disconnected human keeps their seat in the game - see the 'rejoin'
   // handler, which finds this same seat by id and marks it connected again -
@@ -352,6 +390,7 @@ function removePlayer(socket) {
     if (!room.started) {
       clearPhaseTimer(room);
       cancelStartCountdown(room, false);
+      stopYard(room, false);
       delete rooms[code];
       console.log(`Room ${code} closed (empty)`);
     }
@@ -1236,6 +1275,7 @@ wss.on('connection', (socket) => {
           return;
         }
 
+        stopYard(room, true);
         room.started = true;
         room.scoreRounds = []; room.allCum = {}; room.lastSummary = null;
         room.lobbyChat = [];   // the lobby chat belongs to that waiting period only - never carries into a game or the next lobby
@@ -1247,6 +1287,38 @@ wss.on('connection', (socket) => {
         console.log(`Room ${socket.roomCode} started with ${seats.length} real player(s), ${room.state.players.length} total seats`);
         beginNightPhase(room);
       }, START_COUNTDOWN_MS);
+    }
+
+    else if (msg.type === 'yardJoin') {
+      const { room, player } = getRoomAndPlayer(socket);
+      if (!room || !player || room.started || room.yardEnabled === false) return;
+      if (!room.yard) room.yard = Yard.createYard();
+      const p = Yard.join(room.yard, player.id, { name: player.name, color: player.color, gameIconKey: player.gameIconKey });
+      if (!p) { socket.send(JSON.stringify({ type: 'error', message: 'The yard is full right now.' })); return; }
+      socket.send(JSON.stringify({ type: 'yardJoined', you: player.id, world: { w: Yard.W, h: Yard.H, ring: Yard.RING, bounds: Yard.BOUNDS } }));
+      yardSendRoster(room);
+      startYardTimer(room);
+    }
+
+    else if (msg.type === 'yardLeave') {
+      const { room, player } = getRoomAndPlayer(socket);
+      if (!room || !player) return;
+      yardLeave(room, player.id);
+      socket.send(JSON.stringify({ type: 'yardEnded' }));
+    }
+
+    else if (msg.type === 'yardInput') {
+      const { room, player } = getRoomAndPlayer(socket);
+      if (!room || !player || !room.yard) return;
+      Yard.setInput(room.yard, player.id, msg);
+    }
+
+    else if (msg.type === 'yardToggle') {
+      const { room, player } = getRoomAndPlayer(socket);
+      if (!room || !player || player.id !== room.hostId || room.started) return;
+      room.yardEnabled = !!msg.enabled;
+      if (!room.yardEnabled) stopYard(room, true);
+      broadcastRoster(socket.roomCode);
     }
 
     else if (msg.type === 'playAgain') {

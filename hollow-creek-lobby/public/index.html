@@ -2515,6 +2515,26 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
   background:none; border-style:solid; border-width:0; border-image:url('assets/ui/hc-button-secondary-wide-charcoal.webp') 38% 7% fill / 11px 9px stretch;
   color:#d8ccb0; text-shadow:0 1px 2px rgba(0,0,0,0.8); border-radius:0;
 }
+
+/* Lobby Yard card */
+.yard-card{margin-top:18px; padding:14px 16px 16px; border:1px solid #7a5a2c; border-radius:6px; background:linear-gradient(180deg, rgba(74,54,32,0.45), rgba(24,17,10,0.6));}
+.yard-head{display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px;}
+.yard-sub{flex:1 1 260px; font-size:12.5px; color:var(--parchment-dim);}
+.yard-head-btns{display:flex; gap:8px; flex-wrap:wrap;}
+.yard-host-toggle{display:flex; align-items:center; gap:8px; margin:8px 0 0; font-size:12.5px; color:var(--parchment-dim); cursor:pointer;}
+.yard-off-note{margin:8px 0 0; font-size:13px; color:var(--parchment-dim);}
+.yard-stage{margin-top:12px; text-align:center;}
+#yard-canvas{display:block; margin:0 auto; image-rendering:pixelated; image-rendering:crisp-edges; border:3px solid #1a1410; border-radius:3px; box-shadow:0 0 0 1px #7a5a2c, 0 6px 18px rgba(0,0,0,0.6); background:#1a1410; touch-action:none;}
+.yard-help{margin:8px auto 0; max-width:800px; font-size:12px; line-height:1.5; color:var(--parchment-dim); text-align:left;}
+.yard-help b{color:var(--gold-bright); font-weight:600;}
+.yard-controls{display:flex; margin-top:10px; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; user-select:none; -webkit-user-select:none;}
+.yard-pad{display:flex; gap:8px;}
+.yard-pad button, .yard-emotes button{min-width:56px; height:48px; padding:0 14px; border:1px solid #9a7436; border-radius:6px; background:linear-gradient(180deg,#5a4125,#2c1e10); color:#f1e2bd; font-family:var(--font-ornate); font-size:15px; font-weight:700; cursor:pointer; touch-action:none; box-shadow:inset 0 1px 0 rgba(255,225,150,0.28), 0 1px 3px rgba(0,0,0,0.5);}
+.yard-pad button.is-down, .yard-emotes button:active{filter:brightness(1.4); transform:translateY(1px);}
+.yard-pad .yard-act{background:linear-gradient(180deg,#8a2a1c,#4a120c); border-color:#d9b25a; min-width:84px;}
+.yard-emotes{display:flex; gap:6px;}
+.yard-emotes button{min-width:44px; height:40px; padding:0 8px; font-size:14px;}
+@media (min-width:900px){ .yard-controls{justify-content:center; gap:26px;} }
 </style>
 <link rel="stylesheet" href="tutorial.css?v=1">
 <link rel="stylesheet" href="phone.css?v=2">
@@ -3418,6 +3438,29 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
         <div class="lobby-notice" id="lobby-notice" style="display:none;"></div>
         <p class="lobby-seats" id="lobby-seats-line"></p>
         <div id="mp-roster"></div>
+    <div id="yard-card" class="yard-card" style="display:none;">
+      <div class="yard-head">
+        <h2 class="sec" style="margin:0;">Lobby Yard</h2>
+        <span class="yard-sub">A little pixel yard to mess around in while the room fills up. It has nothing to do with the game.</span>
+        <span class="yard-head-btns">
+          <button class="btn" id="yard-join-btn" type="button">Enter the yard</button>
+          <button class="btn ghost" id="yard-music-btn" type="button" style="display:none;">Music: on</button>
+          <button class="btn ghost" id="yard-leave-btn" type="button" style="display:none;">Leave the yard</button>
+        </span>
+      </div>
+      <label id="yard-host-toggle-wrap" class="yard-host-toggle" style="display:none;"><input type="checkbox" id="yard-host-toggle" checked> Let the room use the yard (host)</label>
+      <p id="yard-off-note" class="yard-off-note" style="display:none;">The host has turned the yard off for this room.</p>
+      <div id="yard-stage" class="yard-stage" style="display:none;">
+        <canvas id="yard-canvas" width="400" height="225" aria-label="Lobby yard mini-game"></canvas>
+        <p class="yard-help"><b>Move</b> arrow keys or A / D &nbsp; <b>Jump</b> up, W or space &nbsp; <b>Action</b> J, Z or Enter (punch, kick the ball, pick up, throw) &nbsp; <b>Emotes</b> 1-5.
+        Punching only works inside the ring: knock someone out, pick them up and throw them out over the ropes to take the crown.</p>
+      </div>
+      <div id="yard-controls" class="yard-controls" style="display:none;">
+        <div class="yard-pad"><button type="button" id="yard-btn-left" aria-label="Move left">&#9664;</button><button type="button" id="yard-btn-right" aria-label="Move right">&#9654;</button></div>
+        <div class="yard-emotes"><button type="button" class="yard-emote-btn" data-emote="wave" aria-label="Wave">Hi</button><button type="button" class="yard-emote-btn" data-emote="heart" aria-label="Heart">&#10084;</button><button type="button" class="yard-emote-btn" data-emote="laugh" aria-label="Laugh">Ha</button><button type="button" class="yard-emote-btn" data-emote="bang" aria-label="Surprised">!</button><button type="button" class="yard-emote-btn" data-emote="zzz" aria-label="Sleepy">Zzz</button></div>
+        <div class="yard-pad"><button type="button" id="yard-btn-jump" aria-label="Jump">Jump</button><button type="button" id="yard-btn-act" class="yard-act" aria-label="Action">Action</button></div>
+      </div>
+    </div>
     <div id="lobby-chat" style="margin-top:18px;">
       <h2 class="sec" style="margin-bottom:8px;">Lobby Chat</h2>
       <div class="lobby-chat-log" id="lobby-chat-log"><p class="chat-empty">Nobody has said anything yet.</p></div>
@@ -4236,6 +4279,7 @@ function keepLiveEntry(listName, msg){
   list.push(msg);
 }
 function handleServerMessage(msg){
+  if(msg && typeof msg.type === 'string' && msg.type.indexOf('yard') === 0 && window.HCYard){ HCYard.onMessage(msg); return; }
   if(pendingRejoinResolve && (msg.type==='rejoined' || msg.type==='joined' || msg.type==='rejoinFailed' || msg.type==='error')){
     var resolveRejoinWait = pendingRejoinResolve; pendingRejoinResolve = null; resolveRejoinWait();
   }
@@ -4278,11 +4322,13 @@ function handleServerMessage(msg){
     var mpErrEl = document.getElementById('mpentry-error');
     if(mpErrEl){ mpErrEl.textContent = msg.message || "Couldn't rejoin that game."; mpErrEl.style.display = 'block'; }
   } else if(msg.type==='startCountdown'){
+    if(window.HCYard) HCYard.stop();
     showStartCountdown(msg.endsAt);
   } else if(msg.type==='startCancelled'){
     hideStartCountdown(true);
   } else if(msg.type==='roster'){
     ownerPowers = !!msg.ownerPowers;
+    if(window.HCYard) HCYard.setLobby(msg.yardEnabled, !!(msg.players.find(function(p){ return p.id === myPlayerId; }) || {}).isHost);
     renderMpRoster(msg.players);
   } else if(msg.type==='configUpdate'){
     // The host's own setup-screen choices, live - only meaningful for a
@@ -4313,6 +4359,7 @@ function handleServerMessage(msg){
     switchPanel('lobby');
   } else if(msg.type==='gameState'){
     hideStartCountdown(false);
+    if(window.HCYard) HCYard.stop();
     if(msg.view && msg.view.familyPicks){ latestFamilyPicks = msg.view.familyPicks; } else if(msg.view && msg.view.phase !== 'night'){ latestFamilyPicks = []; }
     phaseEndsAt = msg.phaseEndsAt;
     ownerPowers = !!msg.ownerPowers;
@@ -10971,6 +11018,7 @@ function rejoinLastGame(){
   });
 }
 function leaveCurrentRoom(){
+  if(window.HCYard) HCYard.stop();
   if(myRoomCode && myPlayerId && latestView && !latestView.gameOver) saveLastGame({roomCode: myRoomCode, playerId: myPlayerId, at: Date.now()});
   stopReconnecting();
   sendWS({type:'leave'});
@@ -12765,5 +12813,7 @@ initGame();
 </script>
 <script src="phone.js?v=5"></script>
 <script src="tutorial.js?v=1"></script>
+<script src="yard.js?v=1"></script>
+<script>if(window.HCYard) HCYard.init();</script>
 </body>
 </html>
