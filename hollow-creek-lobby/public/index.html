@@ -2518,7 +2518,8 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
 
 
 /* Trap Run card */
-.trap-card{margin-top:18px; padding:14px 16px 16px; border:1px solid #7a5a2c; border-radius:6px; background:linear-gradient(180deg, rgba(74,54,32,0.45), rgba(24,17,10,0.6));}
+.trap-modal-content{width:min(96vw, 1000px); max-width:1000px; max-height:94vh; overflow:auto; padding:18px 18px 14px;}
+.trap-card{margin-top:0; padding:14px 16px 16px; border:1px solid #7a5a2c; border-radius:6px; background:linear-gradient(180deg, rgba(74,54,32,0.45), rgba(24,17,10,0.6));}
 .trap-head{display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px;}
 .trap-sub{flex:1 1 300px; font-size:12.5px; color:var(--parchment-dim);}
 .trap-head-btns{display:flex; gap:8px; flex-wrap:wrap;}
@@ -3003,6 +3004,11 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
         <button class="btn ghost" id="settings-defaults-btn" type="button">Restore default settings</button>
       </div>
 
+      <h3 class="set-h">Extras</h3>
+      <div class="set-buttons">
+        <button class="btn ghost" id="settings-trap-btn" type="button">Trap Run (work in progress)</button>
+      </div>
+
       <h3 class="set-h">Your data</h3>
       <div>
         <p style="font-size:13px; color:var(--parchment-dim); margin:0 0 8px;">Your profile, streak, and score history are stored only in this browser.</p>
@@ -3013,6 +3019,30 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
           <button class="btn ghost" id="settings-reset-cancel-btn">Cancel</button>
         </div>
         <p class="msg ok" id="settings-reset-done" style="display:none; margin-top:8px;">Done — your local data has been cleared.</p>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="trap-modal" class="role-card-overlay" style="display:none;">
+  <div class="role-card-modal-content trap-modal-content">
+    <button class="role-card-close" id="trap-close-btn" aria-label="Close">&times;</button>
+    <div id="trap-card" class="trap-card">
+      <div class="trap-head">
+        <h2 class="sec" style="margin:0;">Trap Run</h2>
+        <span class="trap-sub">Work in progress, just for you. Reach the exit. Nothing is what it looks like.</span>
+        <span class="trap-head-btns">
+          <button class="btn" id="trap-join-btn" type="button" style="display:none;">Play Trap Run</button>
+          <button class="btn ghost" id="trap-music-btn" type="button" style="display:none;">Music: on</button>
+          <button class="btn ghost" id="trap-leave-btn" type="button" style="display:none;">Stop playing</button>
+        </span>
+      </div>
+      <div id="trap-stage" class="trap-stage" style="display:none;">
+        <canvas id="trap-canvas" width="400" height="272" aria-label="Trap Run mini game"></canvas>
+        <p class="trap-help"><b>Move</b> arrow keys or A / D &nbsp; <b>Jump</b> up, W, Z or space (hold to jump higher) &nbsp; <b>Duck</b> down or S &nbsp; <b>Retry</b> R (costs a life). You have 15 lives. Clearing a screen is your checkpoint.</p>
+      </div>
+      <div id="trap-controls" class="trap-controls" style="display:none;">
+        <div class="trap-pad"><button type="button" id="trap-btn-left" aria-label="Move left">&#9664;</button><button type="button" id="trap-btn-right" aria-label="Move right">&#9654;</button></div>
+        <div class="trap-pad"><button type="button" id="trap-btn-retry" aria-label="Retry">Retry</button><button type="button" id="trap-btn-down" aria-label="Duck">Duck</button><button type="button" id="trap-btn-jump" class="trap-jump" aria-label="Jump">Jump</button></div>
       </div>
     </div>
   </div>
@@ -3444,28 +3474,6 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
         <div class="lobby-notice" id="lobby-notice" style="display:none;"></div>
         <p class="lobby-seats" id="lobby-seats-line"></p>
         <div id="mp-roster"></div>
-    <div id="trap-card" class="trap-card" style="display:none;">
-      <div class="trap-head">
-        <h2 class="sec" style="margin:0;">Trap Run</h2>
-        <span class="trap-sub">A tiny troll platformer to kill time while the room fills up. Reach the exit. Nothing is what it looks like. Everyone runs the same levels and you can see each other as ghosts.</span>
-        <span class="trap-head-btns">
-          <button class="btn" id="trap-join-btn" type="button">Play Trap Run</button>
-          <button class="btn ghost" id="trap-music-btn" type="button" style="display:none;">Music: on</button>
-          <button class="btn ghost" id="trap-leave-btn" type="button" style="display:none;">Stop playing</button>
-        </span>
-      </div>
-      <label id="trap-host-toggle-wrap" class="trap-host-toggle" style="display:none;"><input type="checkbox" id="trap-host-toggle" checked> Let the room play Trap Run (host)</label>
-      <p id="trap-off-note" class="trap-off-note" style="display:none;">The host has turned Trap Run off for this room.</p>
-      <div id="trap-stage" class="trap-stage" style="display:none;">
-        <canvas id="trap-canvas" width="400" height="272" aria-label="Trap Run mini game"></canvas>
-        <p class="trap-help"><b>Move</b> arrow keys or A / D &nbsp; <b>Jump</b> up, W, Z or space (hold to jump higher) &nbsp; <b>Duck</b> down or S &nbsp; <b>Retry</b> R (costs a life). You have 15 lives. Clearing a screen is your checkpoint.</p>
-        <div id="trap-board" class="trap-board"></div>
-      </div>
-      <div id="trap-controls" class="trap-controls" style="display:none;">
-        <div class="trap-pad"><button type="button" id="trap-btn-left" aria-label="Move left">&#9664;</button><button type="button" id="trap-btn-right" aria-label="Move right">&#9654;</button></div>
-        <div class="trap-pad"><button type="button" id="trap-btn-retry" aria-label="Retry">Retry</button><button type="button" id="trap-btn-down" aria-label="Duck">Duck</button><button type="button" id="trap-btn-jump" class="trap-jump" aria-label="Jump">Jump</button></div>
-      </div>
-    </div>
     <div id="lobby-chat" style="margin-top:18px;">
       <h2 class="sec" style="margin-bottom:8px;">Lobby Chat</h2>
       <div class="lobby-chat-log" id="lobby-chat-log"><p class="chat-empty">Nobody has said anything yet.</p></div>
@@ -7811,6 +7819,8 @@ function closeSettingsModal(){
   document.getElementById('settings-modal').style.display = 'none';
 }
 document.getElementById('settings-close-btn').addEventListener('click', closeSettingsModal);
+document.getElementById('settings-trap-btn').addEventListener('click', function(){ closeSettingsModal(); if(window.HCTrap) HCTrap.openSolo(); });
+document.getElementById('trap-close-btn').addEventListener('click', function(){ if(window.HCTrap) HCTrap.stop(); });
 document.getElementById('settings-colorblind-check').addEventListener('change', function(e){
   CURRENT_SETTINGS.colorblind = e.target.checked;
   saveSettings(CURRENT_SETTINGS);

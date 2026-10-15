@@ -259,7 +259,7 @@
   var el = {}, ctx2d = null, raf = 0, lastFrame = 0, acc = 0;
   var input = { left: false, right: false, jump: false, down: false, touchL: false, touchR: false, touchJ: false, touchD: false };
 
-  function sendWS2(o){ try{ if(window.sendWS) window.sendWS(o); }catch(e){} }
+  function sendWS2(o){ if(S.solo) return; try{ if(window.sendWS) window.sendWS(o); }catch(e){} }
   function toast(text, color){ S.toasts.push({ text: text, life: 4, color: color || '#f4efe0' }); if(S.toasts.length > 4) S.toasts.shift(); }
   function puff(x, y, n, color, spread){ for(var i = 0; i < n; i++) S.effects.push({ x: x, y: y, vx: (Math.random() - 0.5) * (spread || 90), vy: -20 - Math.random() * 80, life: 0.5 + Math.random() * 0.3, color: color || '#f4e8c0' }); }
 
@@ -534,7 +534,7 @@
       lastFrame = performance.now(); raf = requestAnimationFrame(frame);
     },
     onMessage: function(msg){
-      if(!el.card) return;
+      if(!el.card || S.solo) return;
       if(msg.type === 'trapJoined'){ S.joined = true; S.me = msg.you; S.ghosts = {}; S.effects = []; S.toasts = []; acc = 0; setJoinedUI(true); sfx('join'); startMusic(); newGame(); }
       else if(msg.type === 'trapRoster'){ S.roster = {}; msg.players.forEach(function(p){ S.roster[p.id] = p; }); }
       else if(msg.type === 'trapBoard'){ S.board = msg.rows || []; renderBoard(); }
@@ -548,18 +548,17 @@
       }
       else if(msg.type === 'trapEnded'){ HCTrap.stop(); }
     },
-    setLobby: function(enabled, isHost){
+    setLobby: function(){},       // Trap Run is not shown in lobbies for now: it lives in Settings, single player
+    openSolo: function(){
       if(!el.card) return;
-      el.card.style.display = '';
-      if(el.toggleWrap) el.toggleWrap.style.display = isHost ? '' : 'none';
-      if(el.toggle) el.toggle.checked = enabled !== false;
-      var off = document.getElementById('trap-off-note'); if(off) off.style.display = enabled === false ? '' : 'none';
-      if(el.joinBtn) el.joinBtn.disabled = enabled === false;
-      if(enabled === false && S.joined) HCTrap.stop();
+      var m = document.getElementById('trap-modal'); if(m) m.style.display = 'flex';
+      S.solo = true; S.joined = true; S.me = 'me'; S.roster = { me: { id: 'me', name: 'YOU', color: '#d8573a' } }; S.ghosts = {}; S.effects = []; S.toasts = []; S.board = []; acc = 0;
+      setJoinedUI(true); ensureAudio(); newGame();
     },
     stop: function(){
       if(!el.card) return;
-      S.joined = false; S.run = null; S.ghosts = {}; S.effects = []; S.board = [];
+      S.joined = false; S.solo = false; S.run = null; S.ghosts = {}; S.effects = []; S.board = [];
+      var m = document.getElementById('trap-modal'); if(m) m.style.display = 'none';
       input.left = input.right = input.jump = input.down = input.touchL = input.touchR = input.touchJ = input.touchD = false;
       stopMusic(); setJoinedUI(false);
     },
