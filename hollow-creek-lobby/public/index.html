@@ -626,7 +626,8 @@ body.force-reduced-motion .daylayout-roster-tile.qv-target{animation:none; box-s
 .eg-chip i{width:12px; height:12px; border-radius:50%; display:block;}
 .eg-awards-grid .eg-award{width:230px; padding:16px 14px; text-align:center; background:linear-gradient(160deg, rgba(60,42,22,0.85), rgba(25,18,10,0.9)); border:1px solid rgba(227,177,85,0.4); border-radius:12px; opacity:0; transform:translateY(20px) scale(0.92); transition:opacity .6s ease, transform .6s cubic-bezier(.3,1.4,.5,1);}
 .eg-award.eg-in{opacity:1; transform:none;}
-.eg-award-icon{font-size:38px; line-height:1;}
+.eg-award-icon{font-size:38px; line-height:1; height:96px; display:flex; align-items:center; justify-content:center;}
+.eg-award-icon img{max-height:96px; max-width:96px; width:auto; height:auto; filter:drop-shadow(0 3px 5px rgba(0,0,0,0.55));}
 .eg-award-title{font-family:var(--font-type); letter-spacing:2px; text-transform:uppercase; font-size:12px; color:var(--parchment-dim); margin:8px 0 4px;}
 .eg-award-name{font-family:var(--font-display); font-size:22px; color:var(--gold-bright);}
 .eg-award-blurb{font-size:12.5px; color:var(--parchment); margin-top:5px; line-height:1.35;}
@@ -8803,7 +8804,7 @@ var latestSummary = null, egView = null, egBuiltKey = null, egDismissedKey = nul
 var egTimers = [], egFollow = true, egParticleRAF = null;
 var EG_PALETTE = ['#e3b155','#5aa0ff','#e07a6e','#4cb3a5','#c79bff','#ee8a2b','#86d98f','#f2c566','#ff8fb1','#8fd3ff','#b0a588','#d9362b','#74b0ff','#a6efdf','#f0d79b','#cba3ff'];
 var EG_ALIGN_COLOR = {town:'#5aa0ff', mafia:'#d9362b', cult:'#e3c23a', neutral:'#c79bff'};
-var EG_AWARD_ICON = {mvp:'\uD83C\uDFC6', mostAccused:'\uD83C\uDFAF', mostVoted:'\u2696\uFE0F', prosecutor:'\uD83D\uDD0D', chatterbox:'\uD83D\uDCAC', defender:'\uD83D\uDEE1\uFE0F'};
+var EG_AWARD_KEYS = ['mvp','mostAccused','mostVoted','prosecutor','chatterbox','defender'];   // each has assets/ui/hc-award-<key>.webp
 function egAt(ms, fn){ egTimers.push(setTimeout(fn, ms)); }
 function egClearTimers(){ egTimers.forEach(clearTimeout); egTimers = []; }
 function hideEndgame(){
@@ -8981,7 +8982,7 @@ function buildEndgame(summary){
 
   // ---- awards, stats, story ----
   document.getElementById('eg-awards-grid').innerHTML = (summary.awards || []).map(function(a){
-    return '<div class="eg-award"><div class="eg-award-icon">'+(EG_AWARD_ICON[a.key] || '\u2605')+'</div><div class="eg-award-title">'+escapeHtmlMp(a.title)+'</div><div class="eg-award-name">'+escapeHtmlMp(a.name)+'</div><div class="eg-award-blurb">'+escapeHtmlMp(a.blurb)+'</div></div>';
+    return '<div class="eg-award"><div class="eg-award-icon">'+(EG_AWARD_KEYS.indexOf(a.key) >= 0 ? '<img src="assets/ui/hc-award-'+a.key+'.webp" alt="" draggable="false">' : '\u2605')+'</div><div class="eg-award-title">'+escapeHtmlMp(a.title)+'</div><div class="eg-award-name">'+escapeHtmlMp(a.name)+'</div><div class="eg-award-blurb">'+escapeHtmlMp(a.blurb)+'</div></div>';
   }).join('');
   document.getElementById('eg-awards').style.display = (summary.awards || []).length ? '' : 'none';
   var st = summary.stats || {};
