@@ -2517,31 +2517,6 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
 }
 
 
-/* Trap Run card */
-.trap-modal-content{width:min(96vw, 1000px); max-width:1000px; max-height:94vh; overflow:auto; padding:18px 18px 14px;}
-.trap-card{margin-top:0; padding:14px 16px 16px; border:1px solid #7a5a2c; border-radius:6px; background:linear-gradient(180deg, rgba(74,54,32,0.45), rgba(24,17,10,0.6));}
-.trap-head{display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px;}
-.trap-sub{flex:1 1 300px; font-size:12.5px; color:var(--parchment-dim);}
-.trap-head-btns{display:flex; gap:8px; flex-wrap:wrap;}
-.trap-host-toggle{display:flex; align-items:center; gap:8px; margin:8px 0 0; font-size:12.5px; color:var(--parchment-dim); cursor:pointer;}
-.trap-off-note{margin:8px 0 0; font-size:13px; color:var(--parchment-dim);}
-.trap-stage{margin-top:12px; text-align:center;}
-#trap-canvas{display:block; margin:0 auto; image-rendering:pixelated; image-rendering:crisp-edges; border:3px solid #1a1410; border-radius:3px; box-shadow:0 0 0 1px #7a5a2c, 0 6px 18px rgba(0,0,0,0.6); background:#1a1410; touch-action:none;}
-.trap-help{margin:8px auto 0; max-width:800px; font-size:12px; line-height:1.5; color:var(--parchment-dim); text-align:left;}
-.trap-help b{color:var(--gold-bright); font-weight:600;}
-.trap-board{max-width:800px; margin:10px auto 0; text-align:left; display:flex; flex-direction:column; gap:3px;}
-.trap-board-row{display:flex; align-items:center; gap:10px; padding:4px 10px; border:1px solid #5a4222; border-radius:4px; background:rgba(0,0,0,0.25); font-size:13px;}
-.trap-board-row.me{border-color:#d9b25a; background:rgba(217,178,90,0.10);}
-.trap-b-rank{width:18px; color:var(--gold-bright); font-family:var(--font-type);}
-.trap-b-dot{width:10px; height:10px; border-radius:50%; border:1px solid rgba(0,0,0,0.6);}
-.trap-b-name{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--parchment);}
-.trap-b-lv{color:var(--parchment-dim);} .trap-b-d{color:#ff9a8a; min-width:78px; text-align:right;}
-.trap-controls{display:flex; margin-top:10px; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; user-select:none; -webkit-user-select:none;}
-.trap-pad{display:flex; gap:8px;}
-.trap-pad button{min-width:64px; height:52px; padding:0 16px; border:1px solid #9a7436; border-radius:6px; background:linear-gradient(180deg,#5a4125,#2c1e10); color:#f1e2bd; font-family:var(--font-ornate); font-size:16px; font-weight:700; cursor:pointer; touch-action:none; box-shadow:inset 0 1px 0 rgba(255,225,150,0.28), 0 1px 3px rgba(0,0,0,0.5);}
-.trap-pad button.is-down{filter:brightness(1.4); transform:translateY(1px);}
-.trap-pad .trap-jump{background:linear-gradient(180deg,#8a2a1c,#4a120c); border-color:#d9b25a; min-width:96px;}
-@media (min-width:900px){ .trap-controls{justify-content:center; gap:40px;} }
 </style>
 <link rel="stylesheet" href="tutorial.css?v=1">
 <link rel="stylesheet" href="phone.css?v=2">
@@ -3004,11 +2979,6 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
         <button class="btn ghost" id="settings-defaults-btn" type="button">Restore default settings</button>
       </div>
 
-      <h3 class="set-h">Extras</h3>
-      <div class="set-buttons">
-        <button class="btn ghost" id="settings-trap-btn" type="button">Trap Run (work in progress)</button>
-      </div>
-
       <h3 class="set-h">Your data</h3>
       <div>
         <p style="font-size:13px; color:var(--parchment-dim); margin:0 0 8px;">Your profile, streak, and score history are stored only in this browser.</p>
@@ -3019,30 +2989,6 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
           <button class="btn ghost" id="settings-reset-cancel-btn">Cancel</button>
         </div>
         <p class="msg ok" id="settings-reset-done" style="display:none; margin-top:8px;">Done — your local data has been cleared.</p>
-      </div>
-    </div>
-  </div>
-</div>
-<div id="trap-modal" class="role-card-overlay" style="display:none;">
-  <div class="role-card-modal-content trap-modal-content">
-    <button class="role-card-close" id="trap-close-btn" aria-label="Close">&times;</button>
-    <div id="trap-card" class="trap-card">
-      <div class="trap-head">
-        <h2 class="sec" style="margin:0;">Trap Run</h2>
-        <span class="trap-sub">Work in progress, just for you. Reach the exit. Nothing is what it looks like.</span>
-        <span class="trap-head-btns">
-          <button class="btn" id="trap-join-btn" type="button" style="display:none;">Play Trap Run</button>
-          <button class="btn ghost" id="trap-music-btn" type="button" style="display:none;">Music: on</button>
-          <button class="btn ghost" id="trap-leave-btn" type="button" style="display:none;">Stop playing</button>
-        </span>
-      </div>
-      <div id="trap-stage" class="trap-stage" style="display:none;">
-        <canvas id="trap-canvas" width="400" height="272" aria-label="Trap Run mini game"></canvas>
-        <p class="trap-help"><b>Move</b> arrow keys or A / D &nbsp; <b>Jump</b> up, W, Z or space (hold to jump higher) &nbsp; <b>Duck</b> down or S &nbsp; <b>Retry</b> R (costs a life). You have 15 lives. Clearing a screen is your checkpoint.</p>
-      </div>
-      <div id="trap-controls" class="trap-controls" style="display:none;">
-        <div class="trap-pad"><button type="button" id="trap-btn-left" aria-label="Move left">&#9664;</button><button type="button" id="trap-btn-right" aria-label="Move right">&#9654;</button></div>
-        <div class="trap-pad"><button type="button" id="trap-btn-retry" aria-label="Retry">Retry</button><button type="button" id="trap-btn-down" aria-label="Duck">Duck</button><button type="button" id="trap-btn-jump" class="trap-jump" aria-label="Jump">Jump</button></div>
       </div>
     </div>
   </div>
@@ -4292,7 +4238,6 @@ function keepLiveEntry(listName, msg){
   list.push(msg);
 }
 function handleServerMessage(msg){
-  if(msg && typeof msg.type === 'string' && msg.type.indexOf('trap') === 0 && window.HCTrap){ HCTrap.onMessage(msg); return; }
   if(pendingRejoinResolve && (msg.type==='rejoined' || msg.type==='joined' || msg.type==='rejoinFailed' || msg.type==='error')){
     var resolveRejoinWait = pendingRejoinResolve; pendingRejoinResolve = null; resolveRejoinWait();
   }
@@ -4335,13 +4280,11 @@ function handleServerMessage(msg){
     var mpErrEl = document.getElementById('mpentry-error');
     if(mpErrEl){ mpErrEl.textContent = msg.message || "Couldn't rejoin that game."; mpErrEl.style.display = 'block'; }
   } else if(msg.type==='startCountdown'){
-    if(window.HCTrap) HCTrap.stop();
     showStartCountdown(msg.endsAt);
   } else if(msg.type==='startCancelled'){
     hideStartCountdown(true);
   } else if(msg.type==='roster'){
     ownerPowers = !!msg.ownerPowers;
-    if(window.HCTrap) HCTrap.setLobby(msg.trapEnabled, !!(msg.players.find(function(p){ return p.id === myPlayerId; }) || {}).isHost);
     renderMpRoster(msg.players);
   } else if(msg.type==='configUpdate'){
     // The host's own setup-screen choices, live - only meaningful for a
@@ -4372,7 +4315,6 @@ function handleServerMessage(msg){
     switchPanel('lobby');
   } else if(msg.type==='gameState'){
     hideStartCountdown(false);
-    if(window.HCTrap) HCTrap.stop();
     if(msg.view && msg.view.familyPicks){ latestFamilyPicks = msg.view.familyPicks; } else if(msg.view && msg.view.phase !== 'night'){ latestFamilyPicks = []; }
     phaseEndsAt = msg.phaseEndsAt;
     ownerPowers = !!msg.ownerPowers;
@@ -7819,8 +7761,6 @@ function closeSettingsModal(){
   document.getElementById('settings-modal').style.display = 'none';
 }
 document.getElementById('settings-close-btn').addEventListener('click', closeSettingsModal);
-document.getElementById('settings-trap-btn').addEventListener('click', function(){ closeSettingsModal(); if(window.HCTrap) HCTrap.openSolo(); });
-document.getElementById('trap-close-btn').addEventListener('click', function(){ if(window.HCTrap) HCTrap.stop(); });
 document.getElementById('settings-colorblind-check').addEventListener('change', function(e){
   CURRENT_SETTINGS.colorblind = e.target.checked;
   saveSettings(CURRENT_SETTINGS);
@@ -11033,7 +10973,6 @@ function rejoinLastGame(){
   });
 }
 function leaveCurrentRoom(){
-  if(window.HCTrap) HCTrap.stop();
   if(myRoomCode && myPlayerId && latestView && !latestView.gameOver) saveLastGame({roomCode: myRoomCode, playerId: myPlayerId, at: Date.now()});
   stopReconnecting();
   sendWS({type:'leave'});
@@ -12828,8 +12767,5 @@ initGame();
 </script>
 <script src="phone.js?v=5"></script>
 <script src="tutorial.js?v=1"></script>
-<script src="trap-sim.js?v=1"></script>
-<script src="trap.js?v=1"></script>
-<script>if(window.HCTrap) HCTrap.init();</script>
 </body>
 </html>
