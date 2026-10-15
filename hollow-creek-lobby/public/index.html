@@ -3457,13 +3457,13 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
       <label id="trap-host-toggle-wrap" class="trap-host-toggle" style="display:none;"><input type="checkbox" id="trap-host-toggle" checked> Let the room play Trap Run (host)</label>
       <p id="trap-off-note" class="trap-off-note" style="display:none;">The host has turned Trap Run off for this room.</p>
       <div id="trap-stage" class="trap-stage" style="display:none;">
-        <canvas id="trap-canvas" width="400" height="225" aria-label="Trap Run mini game"></canvas>
-        <p class="trap-help"><b>Move</b> arrow keys or A / D &nbsp; <b>Jump</b> up, W, Z or space (hold to jump higher) &nbsp; <b>Retry</b> R. Dying is part of it: you restart at the last checkpoint and the traps reset.</p>
+        <canvas id="trap-canvas" width="400" height="272" aria-label="Trap Run mini game"></canvas>
+        <p class="trap-help"><b>Move</b> arrow keys or A / D &nbsp; <b>Jump</b> up, W, Z or space (hold to jump higher) &nbsp; <b>Duck</b> down or S &nbsp; <b>Retry</b> R (costs a life). You have 15 lives. Clearing a screen is your checkpoint.</p>
         <div id="trap-board" class="trap-board"></div>
       </div>
       <div id="trap-controls" class="trap-controls" style="display:none;">
         <div class="trap-pad"><button type="button" id="trap-btn-left" aria-label="Move left">&#9664;</button><button type="button" id="trap-btn-right" aria-label="Move right">&#9654;</button></div>
-        <div class="trap-pad"><button type="button" id="trap-btn-retry" aria-label="Retry">Retry</button><button type="button" id="trap-btn-jump" class="trap-jump" aria-label="Jump">Jump</button></div>
+        <div class="trap-pad"><button type="button" id="trap-btn-retry" aria-label="Retry">Retry</button><button type="button" id="trap-btn-down" aria-label="Duck">Duck</button><button type="button" id="trap-btn-jump" class="trap-jump" aria-label="Jump">Jump</button></div>
       </div>
     </div>
     <div id="lobby-chat" style="margin-top:18px;">

@@ -312,7 +312,7 @@ function startTrapTimer(room) {
   room.trapTimer = setInterval(() => {
     if (!room.trap || room.trap.size === 0 || room.started) { stopTrap(room, false); return; }
     const players = [];
-    room.trap.forEach((t, id) => { if (t.dirty) { players.push({ i: id, l: t.lvl, x: t.x, y: t.y, f: t.f, a: t.a, d: t.d ? 1 : 0 }); t.dirty = false; } });
+    room.trap.forEach((t, id) => { if (t.dirty) { players.push({ i: id, l: t.lvl, x: t.x, y: t.y, f: t.f, a: t.a, d: t.d ? 1 : 0, u: t.u ? 1 : 0 }); t.dirty = false; } });
     if (players.length) trapSend(room, { type: 'trapSnap', players });
   }, TRAP_SNAP_MS);
 }
@@ -1320,7 +1320,7 @@ wss.on('connection', (socket) => {
       t.lvl = Math.round(num(msg.lvl, 0, TrapSim.LEVELS.length - 1, 0));
       const lv = TrapSim.LEVELS[t.lvl];
       t.x = Math.round(num(msg.x, 0, lv.w * TrapSim.TILE, 0) * 10) / 10; t.y = Math.round(num(msg.y, -200, 400, 0) * 10) / 10;
-      t.f = Number(msg.f) < 0 ? -1 : 1; t.a = Math.round(num(msg.a, 0, 1000, 0) * 10) / 10; t.d = !!msg.d; t.dirty = true;
+      t.f = Number(msg.f) < 0 ? -1 : 1; t.a = Math.round(num(msg.a, 0, 1000, 0) * 10) / 10; t.d = !!msg.d; t.u = !!msg.u; t.dirty = true;
     }
 
     else if (msg.type === 'trapDie') {
