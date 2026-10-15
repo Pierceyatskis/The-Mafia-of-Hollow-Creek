@@ -23,28 +23,36 @@ function at(li, tileX, row) { const st = S.createRun(li); st.px = tileX * S.TILE
   assert(dj.onGround, 'Ducking: you cannot jump while crouched');
 }
 {
-  // screen 1: ledges, a spike in the gap, a spike that goes where you are about to be (duck!), a spike from the ceiling for jumpers, an invisible wall, a block, a ledge that gives way
-  const spikeHit = S.createRun(0); spikeHit.px = 11.5 * 16; spikeHit.py = 158; spikeHit.onGround = false; run(spikeHit, 2, {});
+  // screen 1: ledges, a spike in the gap, a spike that turns and goes where you are about to be (duck!), a spike from the ceiling for jumpers, an invisible wall, a block,
+  // a ledge that gives way, a tiny spike and its friend on the other side
+  const spikeHit = S.createRun(0); spikeHit.px = 10.5 * 16; spikeHit.py = 156; spikeHit.onGround = false; run(spikeHit, 2, {});
   assert(spikeHit.dead && spikeHit.deadKind === 'fling', 'Screen 1: the spike hanging in the gap is not decoration');
-  const land = () => { const st = at(0, 14.2, 11); st.vx = 60; run(st, 2, { r: 1 }); return st; };
+  const land = () => { const st = at(0, 12.4, 11); st.vx = 60; run(st, 2, { r: 1 }); return st; };
   const stand = land(); run(stand, 80, {});
   assert(stand.dead && stand.deadKind === 'fling', 'Screen 1: standing where you landed gets you speared at head height');
   const duck = land(); run(duck, 70, { d: 1 });
   assert(!duck.dead && duck.duck, 'Screen 1: ducking lets it pass over your head');
+  const fl = duck.traps[0];
+  assert(fl.s === 1 && fl.ph === 2 && fl.vy !== 0 || fl.s === 2, 'Screen 1: after missing, the spike falls under gravity');
+  const gone = land(); run(gone, 60, { d: 1 }); run(gone, 200, {});
+  assert(!gone.dead && gone.traps[0].s === 2, 'Screen 1: the spike skips along the floor and off into the abyss');
   const walk = land(); run(walk, 100, { r: 1 });
   assert(walk.dead && walk.deadKind === 'fling', 'Screen 1: running on straight into it does not work either');
   const jump = land(); run(jump, 12, { r: 1 }); run(jump, 60, { r: 1, j: 1 });
   assert(jump.dead && jump.deadKind === 'ceil', 'Screen 1: jumping over it gets you a spike from the ceiling');
   const jump2 = land(); run(jump2, 70, { j: 1 });
   assert(jump2.dead && jump2.deadKind === 'ceil', 'Screen 1: jumping on the spot does not help');
-  const wall = at(0, 18.1, 11); wall.vx = 82; run(wall, 120, { r: 1, j: 1 });
+  const wall = at(0, 17.1, 11); wall.vx = 82; run(wall, 120, { r: 1, j: 1 });
   assert(wall.dead && wall.deadKind === 'pit' && !wall.done, 'Screen 1: jumping for the far ledge bonks your head on the invisible wall and you fall');
-  const drop = S.createRun(0); drop.traps[0].s = 2; drop.traps[0].cs = 3; drop.px = 17.6 * 16; drop.py = 176; drop.onGround = true; run(drop, 4, {}); for (let i = 0; i < 60 && !(drop.onGround && drop.py > 200); i++) run(drop, 1, { r: 1 });
+  const drop = S.createRun(0); drop.traps[0].s = 2; drop.traps[0].cs = 3; drop.px = 16.6 * 16; drop.py = 176; drop.onGround = true; run(drop, 4, {}); for (let i = 0; i < 60 && !(drop.onGround && drop.py > 200); i++) run(drop, 1, { r: 1 });
   assert(!drop.dead && drop.onGround && drop.py === 14 * 16, 'Screen 1: stepping off the platform lands you on the small block');
-  const sliver = at(0, 22.5, 13); run(sliver, 40, {});
+  const sliver = at(0, 21.5, 13); run(sliver, 40, {});
   assert(!sliver.dead && sliver.traps.find(t => t.d.k === 'pop').h > 0, 'Screen 1: on the far ledge a spike comes up beside you');
   run(sliver, 100, {});
   assert(sliver.dead && sliver.deadKind === 'pit', 'Screen 1: and the ledge you are on gives way if you stay');
+  const endJump = (hold) => { const st = at(0, 21.2, 13); run(st, 3, {}); run(st, 6, { r: 1 }); run(st, hold, { r: 1, j: 1 }); run(st, 80, { r: 1 }); return st; };
+  const big = endJump(40); assert(big.done, 'Screen 1: one big jump over the tiny spike and its friend reaches the door');
+  const small = endJump(6); assert(small.dead && small.deadKind === 'pop', 'Screen 1: a small hop over the tiny spike lands you on the one on the other side');
 }
 {
   // screen 2: the boulder

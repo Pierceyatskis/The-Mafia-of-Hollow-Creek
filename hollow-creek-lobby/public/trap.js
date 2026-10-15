@@ -70,6 +70,14 @@
       rect(g, sx, y + 12, 5, 4, '#4a4e5c'); rect(g, sx + 1, y + 8, 3, 4, '#a8aebd'); rect(g, sx + 2, y + 5, 1, 3, '#e6eaf2'); rect(g, sx + 1, y + 8, 1, 4, '#d0d5e2'); rect(g, sx + 3, y + 9, 1, 3, '#7a8090');
     }
   }
+  var spikeSpr = null;
+  function flingSprite(){
+    if(spikeSpr) return spikeSpr;
+    var c = document.createElement('canvas'); c.width = 20; c.height = 12; var q = c.getContext('2d'); q.imageSmoothingEnabled = false;
+    rect(q, 2, 2, 16, 8, OUT); rect(q, 3, 3, 5, 6, '#6a6f80');                                       // shaft
+    rect(q, 8, 3, 4, 6, '#aab0c0'); rect(q, 12, 4, 4, 4, '#d4d9e6'); rect(q, 15, 5, 3, 2, '#f2f5fa'); rect(q, 3, 3, 14, 1, '#8a90a2');
+    spikeSpr = c; return c;
+  }
   var art = null;
   function buildArt(li){
     if(art && art.li === li) return art;
@@ -319,11 +327,13 @@
         case 'fling': {
           if(tr.cs === 1){ var cx = Math.round(tr.cx), cy = Math.round(tr.cy);          // the ceiling spike: same brick as the ceiling, tip showing only as it falls
             rect(g, cx - 3, 2 * TILE, 6, cy - 2 * TILE, '#4a4d62'); rect(g, cx - 3, 2 * TILE, 1, cy - 2 * TILE, '#30323f'); rect(g, cx - 3, cy - 2, 6, 3, '#4a4e5c'); rect(g, cx - 2, cy + 1, 4, 8, '#a8aebd'); rect(g, cx - 1, cy + 8, 2, 6, '#e6eaf2'); }
-          if(tr.s === 0){ drawSpike(g, Math.round(d.hx * TILE - 8), Math.round(d.hy * TILE - 5.2 - 6)); break; }        // hangs there looking like any other spike
           if(tr.s >= 2) break;
-          g.save(); g.translate(Math.round(tr.x), Math.round(tr.y));
-          rect(g, -8, -4, 16, 8, OUT); rect(g, -7, -3, 5, 6, '#6a6f80');                          // shaft
-          rect(g, -2, -3, 4, 6, '#aab0c0'); rect(g, 2, -2, 4, 4, '#d4d9e6'); rect(g, 5, -1, 3, 2, '#f2f5fa'); rect(g, -7, -3, 14, 1, '#8a90a2');
+          // one spike sprite. Standing still it is axis-aligned and as crisp as everything else; the moment it turns it is drawn smoothly at a real angle,
+          // which breaks the pixel-art illusion (on purpose: that is the joke)
+          var crisp = tr.s === 0 && !(tr.arm > 0), spr = flingSprite();
+          g.save(); g.imageSmoothingEnabled = !crisp;
+          if(crisp) g.translate(Math.round(tr.x), Math.round(tr.y)); else g.translate(tr.x + (tr.s === 0 ? (Math.random() - 0.5) * 0.6 : 0), tr.y);
+          g.rotate(tr.ang === undefined ? 0 : tr.ang); g.drawImage(spr, -10, -6);
           g.restore(); break; }
         case 'boulder': {
           if(tr.s === 4) break;
