@@ -23,15 +23,28 @@ function at(li, tileX, row) { const st = S.createRun(li); st.px = tileX * S.TILE
   assert(dj.onGround, 'Ducking: you cannot jump while crouched');
 }
 {
-  // screen 1: the spike in the gap, then it goes where you are about to be
-  const spikeHit = S.createRun(0); spikeHit.px = 6.4 * 16; spikeHit.py = 192 - 4; spikeHit.onGround = false; run(spikeHit, 2, {});
+  // screen 1: ledges, a spike in the gap, a spike that goes where you are about to be (duck!), a spike from the ceiling for jumpers, an invisible wall, a block, a ledge that gives way
+  const spikeHit = S.createRun(0); spikeHit.px = 11.5 * 16; spikeHit.py = 158; spikeHit.onGround = false; run(spikeHit, 2, {});
   assert(spikeHit.dead && spikeHit.deadKind === 'fling', 'Screen 1: the spike hanging in the gap is not decoration');
-  const stand = at(0, 8.6, 12); stand.vx = 60; run(stand, 3, { r: 1 }); run(stand, 80, {});
+  const land = () => { const st = at(0, 14.2, 11); st.vx = 60; run(st, 2, { r: 1 }); return st; };
+  const stand = land(); run(stand, 80, {});
   assert(stand.dead && stand.deadKind === 'fling', 'Screen 1: standing where you landed gets you speared at head height');
-  const duck = at(0, 8.6, 12); duck.vx = 60; run(duck, 3, { r: 1 }); run(duck, 80, { d: 1 });
-  assert(!duck.dead, 'Screen 1: ducking lets it pass over your head');
-  const walk = at(0, 8.6, 12); walk.vx = 60; run(walk, 3, { r: 1 }); run(walk, 100, { r: 1 });
-  assert(walk.dead, 'Screen 1: running on straight into it does not work either');
+  const duck = land(); run(duck, 70, { d: 1 });
+  assert(!duck.dead && duck.duck, 'Screen 1: ducking lets it pass over your head');
+  const walk = land(); run(walk, 100, { r: 1 });
+  assert(walk.dead && walk.deadKind === 'fling', 'Screen 1: running on straight into it does not work either');
+  const jump = land(); run(jump, 12, { r: 1 }); run(jump, 60, { r: 1, j: 1 });
+  assert(jump.dead && jump.deadKind === 'ceil', 'Screen 1: jumping over it gets you a spike from the ceiling');
+  const jump2 = land(); run(jump2, 70, { j: 1 });
+  assert(jump2.dead && jump2.deadKind === 'ceil', 'Screen 1: jumping on the spot does not help');
+  const wall = at(0, 18.1, 11); wall.vx = 82; run(wall, 120, { r: 1, j: 1 });
+  assert(wall.dead && wall.deadKind === 'pit' && !wall.done, 'Screen 1: jumping for the far ledge bonks your head on the invisible wall and you fall');
+  const drop = S.createRun(0); drop.traps[0].s = 2; drop.traps[0].cs = 3; drop.px = 17.6 * 16; drop.py = 176; drop.onGround = true; run(drop, 4, {}); for (let i = 0; i < 60 && !(drop.onGround && drop.py > 200); i++) run(drop, 1, { r: 1 });
+  assert(!drop.dead && drop.onGround && drop.py === 14 * 16, 'Screen 1: stepping off the platform lands you on the small block');
+  const sliver = at(0, 22.5, 13); run(sliver, 40, {});
+  assert(!sliver.dead && sliver.traps.find(t => t.d.k === 'pop').h > 0, 'Screen 1: on the far ledge a spike comes up beside you');
+  run(sliver, 100, {});
+  assert(sliver.dead && sliver.deadKind === 'pit', 'Screen 1: and the ledge you are on gives way if you stay');
 }
 {
   // screen 2: the boulder

@@ -312,14 +312,16 @@
     var shk = S.shake > 0 ? Math.round((Math.random() - 0.5) * 4) : 0; if(shk) g.translate(0, shk);
     g.drawImage(a.canvas, 0, 0);
     // the exit
-    if(level.exit) drawExitDoor(g, level.exit.x * TILE + 8, level.exit.y * TILE, t);
+    if(level.exit) drawExitDoor(g, Math.min(VW - 14, level.exit.x * TILE + 8), level.exit.y * TILE, t);
     st.traps.forEach(function(tr){
       var d = tr.d;
       switch(d.k){
         case 'fling': {
+          if(tr.cs === 1){ var cx = Math.round(tr.cx), cy = Math.round(tr.cy);          // the ceiling spike: same brick as the ceiling, tip showing only as it falls
+            rect(g, cx - 3, 2 * TILE, 6, cy - 2 * TILE, '#4a4d62'); rect(g, cx - 3, 2 * TILE, 1, cy - 2 * TILE, '#30323f'); rect(g, cx - 3, cy - 2, 6, 3, '#4a4e5c'); rect(g, cx - 2, cy + 1, 4, 8, '#a8aebd'); rect(g, cx - 1, cy + 8, 2, 6, '#e6eaf2'); }
+          if(tr.s === 0){ drawSpike(g, Math.round(d.hx * TILE - 8), Math.round(d.hy * TILE - 5.2 - 6)); break; }        // hangs there looking like any other spike
           if(tr.s >= 2) break;
-          var ang = tr.s === 1 ? Math.atan2(tr.vy, tr.vx) : 0;
-          g.save(); g.translate(Math.round(tr.x), Math.round(tr.y)); g.rotate(ang);
+          g.save(); g.translate(Math.round(tr.x), Math.round(tr.y));
           rect(g, -8, -4, 16, 8, OUT); rect(g, -7, -3, 5, 6, '#6a6f80');                          // shaft
           rect(g, -2, -3, 4, 6, '#aab0c0'); rect(g, 2, -2, 4, 4, '#d4d9e6'); rect(g, 5, -1, 3, 2, '#f2f5fa'); rect(g, -7, -3, 14, 1, '#8a90a2');
           g.restore(); break; }
@@ -336,8 +338,8 @@
           if(tr.h > 0){ for(var i = 0; i < d.n * 3; i++){ var sx = d.x * TILE + 1 + i * 5, hh = Math.round(tr.h), base = (d.y + 1) * TILE; rect(g, sx, base - hh, 5, hh, '#4a4e5c'); rect(g, sx + 1, base - hh, 3, Math.max(1, hh - 4), '#a8aebd'); rect(g, sx + 2, base - hh - 2, 1, 3, '#e6eaf2'); } }
           break;
         case 'collapse': case 'slide': {
-          if(!tr.gone){ var wob = (tr.s === 1 && tr.t > d.delay - 0.3 && d.k === 'slide') ? Math.round(Math.sin(t * 50)) : 0; for(var ix = 0; ix < d.w; ix++) brickAt(g, d.x * TILE + ix * TILE + wob, d.y * TILE, false); }
-          else if(tr.off < 1.2){ var dx = d.k === 'slide' ? (d.dir || 1) * tr.off * tr.off * 360 : 0, dy = d.k === 'collapse' ? tr.off * tr.off * 420 : 0; g.globalAlpha = Math.max(0, 1 - tr.off); for(var jx = 0; jx < d.w; jx++) brickAt(g, d.x * TILE + jx * TILE + dx, d.y * TILE + dy, false); g.globalAlpha = 1; }
+          if(!tr.gone){ var wob = (tr.s === 1 && tr.t > d.delay - 0.3 && d.k === 'slide') ? Math.round(Math.sin(t * 50)) : 0; for(var ix = 0; ix < d.w; ix++) for(var iy2 = 0; iy2 < (d.h || 1); iy2++) brickAt(g, d.x * TILE + ix * TILE + wob, d.y * TILE + iy2 * TILE, false); }
+          else if(tr.off < 1.2){ var dx = d.k === 'slide' ? (d.dir || 1) * tr.off * tr.off * 360 : 0, dy = d.k === 'collapse' ? tr.off * tr.off * 420 : 0; g.globalAlpha = Math.max(0, 1 - tr.off); for(var jx = 0; jx < d.w; jx++) for(var jy = 0; jy < (d.h || 1); jy++) brickAt(g, d.x * TILE + jx * TILE + dx, d.y * TILE + jy * TILE + dy, false); g.globalAlpha = 1; }
           break; }
         case 'void': {
           // the far platform (it falls out of the picture if you jump); the bridge is deliberately invisible

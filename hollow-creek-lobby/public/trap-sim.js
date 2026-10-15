@@ -39,6 +39,7 @@
   };
 
   var DEATH_LINES = {
+    ceil: ['You dodged one spike. Another was waiting.', 'Jumping was a bold choice.', 'The ceiling had a spike. Of course it did.'],
     fling: ['The spike had been practising.', 'It aimed where you were going. Rude.', 'Right between the eyes. Mostly.'],
     boulder: ['You were rolled over.', 'It was a very round problem.', 'Patience was the answer. It always is.'],
     pop: ['The floor grew a point.', 'Short hops are for short people.', 'You needed more air.'],
@@ -53,14 +54,23 @@
   function buildLevels(){
     var L = [];
 
-    // ---- 1. Welcome, Adventurer. A spike hangs in the gap. Clear it, land, and it comes at the spot you were about to be at, at head height.
+    // ---- 1. Welcome, Adventurer. Hop up the ledges, clear the spike hanging in the gap, land, and it comes at the spot you were about to be at, at head height.
+    //         Jump to dodge it and a spike drops from the ceiling. Duck. Then: an invisible wall, a drop onto a little block, and a ledge that gives way under a rising spike.
     (function(){
       var b = new Builder('Welcome, Adventurer', 'Nothing to see here. Please jump the spike.');
-      b.ceiling(); b.start = { x: 2.5, y: 12 };
-      b.plat(1, 12, 4, 1);                                  // platform one (top at y = 192)
-      b.plat(8, 12, 16, 1);                                 // platform two
-      b.trap({ k: 'fling', hx: 6.4, hy: 11.0, row: 12, trig: { x0: 8.0, x1: 12 }, T: 0.62, head: 12 });
-      b.goal(22, 12);
+      b.ceiling(); b.start = { x: 2, y: 12 };
+      b.plat(0, 12, 4, 2);                                  // start
+      b.plat(5, 11, 2, 1);                                  // ledge
+      b.plat(8, 10, 2, 1);                                  // ledge
+      b.plat(11, 10, 1, 1);                                 // the little plate the spike sits on
+      b.plat(13, 11, 5, 1);                                 // landing platform (right edge at x = 18)
+      b.plat(18, 14, 2, 1);                                 // the small block, well below
+      b.plat(23, 13, 2, 2);                                 // the far end, with the door (the tile beside it is the sliver that gives way)
+      b.trap({ k: 'fling', hx: 11.5, hy: 9.7, row: 11, trig: { x0: 13.0, x1: 18.0 }, wait: 0.2, T: 0.4, head: 12, drop: 0.2, ceil: true, cl: 0.3 });
+      b.trap({ k: 'iwall', rect: [336, 32, 16, 128] });      // an invisible wall: a jump from the landing platform bonks your head on it
+      b.trap({ k: 'collapse', x: 22, y: 13, w: 1, h: 2, delay: 1.25 });     // the sliver of ledge that gives way
+      b.trap({ k: 'pop', x: 23, y: 12, n: 1, reach: 16, trig: { x0: 21.9, x1: 25 } });
+      b.goal(24, 13);
       L.push(b.build());
     })();
 
@@ -129,7 +139,7 @@
     return level.traps.map(function(d, i){
       var t = { id: i, d: d, s: 0, t: 0, x: 0, y: 0, vx: 0, vy: 0 };
       switch(d.k){
-        case 'fling': t.x = d.hx * TILE; t.y = d.hy * TILE; break;
+        case 'fling': t.x = d.hx * TILE; t.y = d.hy * TILE; t.cs = 0; t.arm = 0; break;
         case 'boulder': t.x = d.x * TILE; t.rot = 0; break;
         case 'pop': t.h = 0; break;
         case 'collapse': case 'slide': t.gone = false; t.off = 0; break;
@@ -168,7 +178,8 @@
     for(var i = 0; i < traps.length; i++){
       var t = traps[i], d = t.d;
       switch(d.k){
-        case 'collapse': if(!t.gone) out.push([d.x * TILE, d.y * TILE, d.w * TILE, TILE]); break;
+        case 'collapse': if(!t.gone) out.push([d.x * TILE, d.y * TILE, d.w * TILE, (d.h || 1) * TILE]); break;
+        case 'iwall': out.push(d.rect); break;
         case 'slide': if(!t.gone) out.push([d.x * TILE, d.y * TILE, d.w * TILE, TILE]); break;
         case 'void':
           if(t.bridge) out.push(rectOf(d.bridge.x0, d.bridge.row, d.bridge.x1, d.bridge.row));
@@ -220,12 +231,25 @@
       var t = traps[i], d = t.d;
       switch(d.k){
         case 'fling':
-          if(t.s === 0 && onSurface(st, d.row, d.trig.x0, d.trig.x1)){
-            // aim at the spot the player is heading to next, arriving at head height; the spike keeps going afterwards
-            var tx = st.px + predVx * d.T * 0.9, ty = d.row * TILE - d.head;
-            t.vx = (tx - t.x) / d.T; t.vy = (ty - t.y) / d.T; t.s = 1;
+          if(!t.armed && onSurface(st, d.row, d.trig.x0, d.trig.x1)) t.armed = true;
+          if(t.armed && t.s === 0){ t.arm += DT; }
+          if(t.armed && t.s === 0 && t.arm >= d.wait){
+            // aim at the spot the player is heading to next; it drops to head height, then flies level (and keeps going)
+            var tx = st.px + predVx * d.T * 0.9;
+            t.ty = d.row * TILE - d.head; t.y0 = t.y; t.ft = 0; t.vx = (tx - t.x) / d.T; t.s = 1;
           }
-          if(t.s === 1){ t.x += t.vx * DT; t.y += t.vy * DT; if(t.x > VIEW_W + 30 || t.x < -30) t.s = 2; }
+          if(t.s === 1){
+            t.ft += DT; t.x += t.vx * DT; var kk = Math.max(0, 1 - t.ft / d.drop); t.y = t.ty + (t.y0 - t.ty) * kk * kk;
+            if(t.x > VIEW_W + 30 || t.x < -30) t.s = 2;
+            // jump to dodge it and the ceiling has something for you (a spike over where you are about to be)
+          }
+          if(d.ceil && t.cs === 0 && t.armed && !st.onGround && st.py < d.row * TILE - 3 && (t.s === 0 || (t.s === 1 && t.x < st.px + 28))){ t.cs = 1; t.cx = Math.max(12, Math.min(VIEW_W - 12, st.px + predVx * d.cl)); t.cy = 2 * TILE; t.cvy = 0; }
+          if(t.cs === 1){
+            if(t.cy < 90) t.cx = Math.max(12, Math.min(VIEW_W - 12, st.px + st.vx * 0.12));       // it keeps its eye on you until it is nearly on you
+            t.cvy += 2200 * DT; t.cy += t.cvy * DT;
+            if(overlapSolid(st, dynSolids(st), t.cx - 2, t.cy + 14, t.cx + 2, t.cy + 15)){ t.cs = 2; st.events.push({ e: 'thud', x: t.cx - 8, y: t.cy }); }
+            else if(t.cy > VIEW_H + 20) t.cs = 3;
+          }
           break;
         case 'boulder': {
           var R = d.R, floorY = d.row * TILE;
@@ -337,7 +361,10 @@
     for(i = 0; i < traps.length; i++){
       var h = traps[i], hd = h.d;
       switch(hd.k){
-        case 'fling': if(h.s <= 1 && hits(st, h.x - 7, h.y - 2.5, h.x + 7, h.y + 2.5, 0.5)) die(st, 'fling'); break;
+        case 'fling':
+          if(h.s === 0 ? hits(st, h.x - 8, h.y - 5, h.x + 8, h.y + 5, 0.5) : h.s === 1 && hits(st, h.x - 7, h.y - 2.5, h.x + 7, h.y + 2.5, 0.5)) die(st, 'fling');
+          if(h.cs === 1 && hits(st, h.cx - 4, 2 * TILE, h.cx + 4, h.cy + 14, 0.5)) die(st, 'ceil');
+          break;
         case 'boulder': if((h.s === 1 || h.s === 2) && hits(st, h.x - hd.R + 2, hd.row * TILE - hd.R * 2, h.x + hd.R - 2, hd.row * TILE, 0.5)) die(st, 'boulder'); break;
         case 'pop': if(h.h > 3 && hits(st, hd.x * TILE + 2, (hd.y + 1) * TILE - h.h, (hd.x + hd.n) * TILE - 2, (hd.y + 1) * TILE, 0.5)) die(st, 'pop'); break;
         case 'rock': if(h.s === 1 && hits(st, h.rx - 7, h.y + 1, h.rx + 7, h.y + 16, 0.5)) die(st, 'rock'); break;
@@ -367,7 +394,7 @@
       var s = Math.round(st.px / 2) + ':' + Math.round(st.py / 2) + ':' + Math.round(st.vx / 30) + ':' + Math.round(st.vy / 60) + ':' + (st.onGround ? 1 : 0) + (st.duck ? 'd' : '') + ':' + Math.min(3, Math.floor(st.still / 0.5));
       for(var i = 0; i < st.traps.length; i++){
         var t = st.traps[i];
-        s += '|' + t.s + (t.gone ? 'g' : '') + (t.pressed ? 'p' : '') + (t.bridge === false ? 'b' : '') + (t.rs || '') + (t.d.k === 'boulder' ? Math.round(t.x / 10) : t.d.k === 'fling' && t.s === 1 ? Math.round(t.x / 10) : t.d.k === 'rock' && t.s === 1 ? Math.round(t.y / 8) : (t.d.k === 'collapse' || t.d.k === 'slide') && t.s === 1 ? Math.round(t.t * 4) : t.d.k === 'doorSpike' ? Math.round(t.t * 5) : t.d.k === 'button' && t.pressed ? Math.round(t.t * 6) : '');
+        s += '|' + t.s + (t.gone ? 'g' : '') + (t.pressed ? 'p' : '') + (t.bridge === false ? 'b' : '') + (t.rs || '') + (t.d.k === 'boulder' ? Math.round(t.x / 10) : t.d.k === 'fling' ? (t.s === 1 ? Math.round(t.x / 10) : '') + 'c' + t.cs + (t.cs === 1 ? Math.round(t.cy / 8) : '') : t.d.k === 'rock' && t.s === 1 ? Math.round(t.y / 8) : (t.d.k === 'collapse' || t.d.k === 'slide') && t.s === 1 ? Math.round(t.t * 4) : t.d.k === 'doorSpike' ? Math.round(t.t * 5) : t.d.k === 'button' && t.pressed ? Math.round(t.t * 6) : '');
       }
       return s;
     }
