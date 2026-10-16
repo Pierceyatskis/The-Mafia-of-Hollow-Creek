@@ -2,7 +2,7 @@
 #phone-topbar, #phone-tabbar, #phone-menu{display:none;}
 body.phone #phone-topbar{position:fixed; left:0; right:0; top:0; height:40px; z-index:260; align-items:center; justify-content:space-between; gap:8px; padding:0 8px; box-sizing:border-box; background:linear-gradient(#1b130c,#0d0805); border-bottom:1px solid #6b4a20; box-shadow:0 2px 8px rgba(0,0,0,0.6); font-family:var(--font-type); color:#e8d5a0;}
 body.phone #phone-topbar button{height:30px; min-width:34px; padding:0 10px; color:#f0d9a0; font-family:var(--font-ornate); font-weight:700; font-size:13px; letter-spacing:.4px; background:linear-gradient(#3a2a1a,#1f140b); border:1px solid #d9a441; border-radius:5px;}
-body.phone #phone-role{max-width:34%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+body.phone #phone-role{max-width:44%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 body.phone #phone-phase{flex:1; min-width:0; display:flex; align-items:center; justify-content:center; gap:8px; font-size:12px; letter-spacing:.8px; text-transform:uppercase; white-space:nowrap;}
 body.phone #phone-phase-a{overflow:hidden; text-overflow:ellipsis; color:#d9c9a0;}
 body.phone #phone-phase-t{font-weight:700; font-size:15px; color:#f3d98a;}

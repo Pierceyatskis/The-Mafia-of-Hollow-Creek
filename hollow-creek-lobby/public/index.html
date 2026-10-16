@@ -2673,7 +2673,6 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
 <div id="silenced-notice" class="voting-content" style="display:none;">
   <div class="status-notice">
     <p class="msg err">You've been silenced today. You cannot speak, but your vote still counts.</p>
-    <button class="btn" id="silenced-continue-btn">Let the town decide without you</button>
   </div>
 </div>
 <div id="dead-notice" class="voting-content" style="display:none;">
@@ -5975,8 +5974,8 @@ function renderNightSleepCard(area, later){
   area.innerHTML = '<div id="night-sleep-card">'+
     '<h2 class="nsc-title">The Town Sleeps</h2><div class="nsc-rule"></div>'+
     '<img class="nsc-art" src="assets/ui/night-town-art.webp" alt="">'+
-    '<p class="nsc-main">'+(later ? 'Your choice is locked in.' : 'You have no night action tonight.')+'</p>'+
-    '<p class="nsc-sub">Morning comes once everyone has acted, or when the night timer ends.</p><div class="nsc-rule"></div>'+
+    '<p class="nsc-main">'+(later === 'dead' ? 'You have been eliminated.' : later ? 'Your choice is locked in.' : 'You have no night action tonight.')+'</p>'+
+    '<p class="nsc-sub">'+(later === 'dead' ? 'You cannot act tonight. Watch how it unfolds, and talk with the other ghosts.' : 'Morning comes once everyone has acted, or when the night timer ends.')+'</p><div class="nsc-rule"></div>'+
     '<h3 class="nsc-wait">While you wait</h3>'+
     '<div class="nsc-btns">'+
       '<button type="button" class="nsc-btn" id="nsc-history" aria-label="Review vote history"><img src="assets/ui/night-btn-history.webp" alt=""></button>'+
@@ -6155,7 +6154,7 @@ function renderNightAction(){
   if(!h || !h.alive){
     document.getElementById('mafia-chat-section').style.display='none';
     document.getElementById('cult-chat-section').style.display='none';
-    area.innerHTML = '<p style="font-size:13px; color:var(--parchment-dim);">You\'ve been eliminated. You can\'t act tonight — just watch how it unfolds.</p>';
+    renderNightSleepCard(area, 'dead');      // the same sleeping-town card the living get, not a bare line of text
     return;
   }
 
@@ -6774,7 +6773,6 @@ document.getElementById('day-confirm-btn').addEventListener('click', function(){
   lockTownBoard();
   renderDayPanel();
 });
-document.getElementById('silenced-continue-btn').addEventListener('click', function(){});
 document.getElementById('dead-continue-btn').addEventListener('click', function(){
   // Bug 4: this used to be a no-op, so the notice just sat there forever
   // instead of getting out of the way. Once acknowledged it stays dismissed

@@ -147,7 +147,7 @@
     if(A && A.textContent !== a) A.textContent = a;
     if(T){ T.textContent = t; T.classList.toggle('hot', !!document.querySelector('#daylayout-timer-time .timer-danger, #daylayout-timer-time.timer-danger')); }
     var role = txt('role-badge-name');
-    var R = document.getElementById('phone-role-txt'); if(R) R.textContent = role ? role : 'Role';
+    var R = document.getElementById('phone-role-txt'); if(R) R.textContent = role ? role.replace(/^(The|An?)\s+/i, '') : 'Role';      // "The Godfather" is too wide for the strip; "Godfather" fits
   }
   function setTab(t){
     if(!REGIONS[t]) return;
@@ -173,6 +173,10 @@
     watchChat(); hooks(); syncTop();
     var key = (typeof latestView !== 'undefined' && latestView) ? latestView.phase + ':' + latestView.night : '';
     if(key !== lastPhase){ lastPhase = key; if(/^day-discuss|^day-vote/.test(key)) { P.tab = 'hall'; if(typeof updateCanvasScale === 'function') updateCanvasScale(); } }
+    // the canvas flips night <-> day a moment AFTER the phase changes (behind the phase-transition screen), so re-fit when it actually does:
+    // otherwise the tab bar and the visible region stay on the night layout for the whole first part of the day
+    var bgNow = (function(){ var cv = document.getElementById('design-canvas'); return !cv ? '' : cv.classList.contains('bg-day') ? 'day' : cv.classList.contains('bg-night') ? 'night' : 'other'; })();
+    if(bgNow !== tick._bg){ tick._bg = bgNow; if(bgNow === 'day') P.tab = 'hall'; if(typeof updateCanvasScale === 'function') updateCanvasScale(); }
     // the night card changes height as the picker opens/closes
     var canvas = document.getElementById('design-canvas');
     if(canvas && canvas.classList.contains('bg-night')){ var f = document.getElementById('game-folder'); var fam = document.getElementById('mafia-chat-section'); var hh = (f ? Math.max(f.offsetHeight, f.scrollHeight) : 0) + (inFamilyTab() && fam ? fam.offsetHeight + 1000 : 0); if(hh !== P.nightH){ P.nightH = hh; if(typeof updateCanvasScale === 'function') updateCanvasScale(); } }
