@@ -835,6 +835,7 @@ function rateOk(socket, msg) {
     if (++socket.rate.drops > 600) { try { socket.close(1008, 'Too many messages'); } catch (e) {} }
     return false;
   }
+  if (REPORTED_CHAT_TYPES.has(msg.type) && isConductMuted(socket)) { tellBlocked(socket, "You're muted for the rest of this game. The host can lift it."); return false; }
   if (TEXT_TYPES.has(msg.type)) {
     if (!takeToken(socket.rate.text, 5, 0.7, now)) { tellBlocked(socket, "You're sending messages too fast. Give it a few seconds."); return false; }
     const body = String(msg.text || msg.question || '').trim().toLowerCase();
@@ -843,12 +844,40 @@ function rateOk(socket, msg) {
   }
   return true;
 }
+// Reports and repeat language offences end in the same place: the player is muted (voice on the Stage, and public chat) for the rest of the game, and the host can lift it.
+const REPORTED_CHAT_TYPES = new Set(['dayChat', 'lobbyChat', 'whisper', 'poll', 'ghostChat']);
+const STRIKES_BEFORE_MUTE = Number(process.env.STRIKES_BEFORE_MUTE) || 6, MAX_REPORTS_PER_PLAYER = 3;
+function reportsNeeded(room) {
+  const others = Math.max(0, room.players.length - 1);       // everyone except the person being reported
+  return others <= 1 ? 1 : Math.max(2, Math.ceil(others * 0.4));
+}
+function muteForConduct(room, targetId, reason, why) {
+  if (!room.reportMuted) room.reportMuted = new Set();
+  if (room.reportMuted.has(targetId)) return;
+  room.reportMuted.add(targetId);
+  if (room.started && room.stage) room.stage.hostMuted.set(targetId, { reason: reason || 'toxic', note: '' });
+  const target = room.players.find(p => p.id === targetId);
+  if (target && target.socket.readyState === WebSocket.OPEN) target.socket.send(JSON.stringify({ type: 'reportMuted', message: "You've been muted for the rest of this game (" + why + "). The host can lift it." }));
+  broadcastRoom(room, { type: 'reportAction', targetId, name: target ? target.name : 'A player', message: (target ? target.name : 'A player') + ' was muted (' + why + '). The host can lift it.' });
+  if (room.started && room.stage) sendGameState(room);
+  console.log(`${target ? target.name : targetId} was muted - ${why}`);
+}
+function isConductMuted(socket) {
+  const { room, player } = getRoomAndPlayer(socket);
+  return !!(room && player && room.reportMuted && room.reportMuted.has(player.id));
+}
 // true = the text is fine; false = it was blocked and the sender has been told
 function cleanOrBlock(socket, ...texts) {
   for (const t of texts) {
     if (t && !Profanity.isClean(t)) {
       socket.strikes = (socket.strikes || 0) + 1;
       tellBlocked(socket, "That message has language that isn't allowed here, so it wasn't sent.");
+      const { room, player } = getRoomAndPlayer(socket);
+      if (room && player) {
+        if (!room.strikes) room.strikes = new Map();
+        const n = (room.strikes.get(player.id) || 0) + 1; room.strikes.set(player.id, n);
+        if (n >= STRIKES_BEFORE_MUTE) muteForConduct(room, player.id, 'inappropriate-language', 'repeated language that is not allowed');
+      }
       return false;
     }
   }
@@ -1061,6 +1090,9 @@ wss.on('connection', (socket) => {
       if (!room || !player || !room.started || !room.stage) return;
       if (player.id !== room.hostId) return;
       room.stage.hostMuted.delete(String(msg.targetId || ''));
+      if (room.reportMuted) room.reportMuted.delete(String(msg.targetId || ''));
+      if (room.reports) room.reports.delete(String(msg.targetId || ''));
+      if (room.strikes) room.strikes.delete(String(msg.targetId || ''));
       sendGameState(room);
     }
 
@@ -1287,6 +1319,7 @@ wss.on('connection', (socket) => {
         }
 
         room.started = true;
+        room.reports = new Map(); room.reportMuted = new Set(); room.strikes = new Map();      // reports and language strikes are per game
         room.scoreRounds = []; room.allCum = {}; room.lastSummary = null;
         room.lobbyChat = [];   // the lobby chat belongs to that waiting period only - never carries into a game or the next lobby
         room.state = state;
@@ -1297,6 +1330,33 @@ wss.on('connection', (socket) => {
         console.log(`Room ${socket.roomCode} started with ${seats.length} real player(s), ${room.state.players.length} total seats`);
         beginNightPhase(room);
       }, START_COUNTDOWN_MS);
+    }
+
+    // ---- player reports: private, one per reporter per target, a few per game; enough of them mute the reported player until the host lifts it ----
+    else if (msg.type === 'report') {
+      const { room, player } = getRoomAndPlayer(socket);
+      if (!room || !player) return;
+      const reason = sanitizeModerationReason(msg.reason);
+      const targetId = String(msg.targetId || '');
+      const target = room.players.find(p => p.id === targetId);
+      if (!reason || !target || target.id === player.id) { socket.send(JSON.stringify({ type: 'reportAck', ok: false, message: "That player can't be reported." })); return; }
+      if (!room.reports) room.reports = new Map();
+      const mine = [...room.reports.values()].filter(m => m.has(player.id)).length;
+      const forTarget = room.reports.get(targetId) || new Map();
+      if (forTarget.has(player.id)) { socket.send(JSON.stringify({ type: 'reportAck', ok: false, message: "You've already reported " + target.name + '.' })); return; }
+      if (mine >= MAX_REPORTS_PER_PLAYER) { socket.send(JSON.stringify({ type: 'reportAck', ok: false, message: "You've used your reports for this game. Tell the host if something is wrong." })); return; }
+      forTarget.set(player.id, reason); room.reports.set(targetId, forTarget);
+      const need = reportsNeeded(room), have = forTarget.size;
+      const label = MODERATION_REASON_LABELS[reason];
+      socket.send(JSON.stringify({ type: 'reportAck', ok: true, message: 'Report sent. Thank you. (' + have + ' of ' + need + ' needed to mute ' + target.name + ')' }));
+      const host = room.players.find(p => p.id === room.hostId);
+      if (host && host.id !== player.id && host.socket.readyState === WebSocket.OPEN) host.socket.send(JSON.stringify({ type: 'reportNotice', targetId, message: target.name + ' was reported for: ' + label + ' (' + have + ' of ' + need + ')' }));
+      console.log(`${target.name} was reported in room ${socket.roomCode} - ${label} (${have}/${need})`);
+      if (have >= need) {
+        const counts = {}; forTarget.forEach(r => { counts[r] = (counts[r] || 0) + 1; });
+        const top = Object.keys(counts).sort((a, b) => counts[b] - counts[a])[0];
+        muteForConduct(room, targetId, top, 'reported by other players');
+      }
     }
 
     else if (msg.type === 'playAgain') {

@@ -9,6 +9,7 @@ const WebSocket = require(path.join(__dirname, 'node_modules', 'ws'));
 const PORT = 8098;
 process.env.PORT = PORT;
 process.env.START_COUNTDOWN_MS = '50';
+process.env.STRIKES_BEFORE_MUTE = '4';
 // day-discuss has no early-resolve path (unlike night/day-vote, which resolve
 // the moment everyone's submitted) - shrink it so tests don't have to sit
 // through the real 90s discussion timer to reach day-vote.
@@ -973,6 +974,67 @@ async function testLanguageAndFlooding() {
   [host, guest, spammer].forEach(p => { try { p.ws.close(); } catch (e) {} });
 }
 
+async function testReportsAndMutes() {
+  const host = await createRoom('RepHost');
+  const a = await joinRoom(host.roomCode, 'RepA'), b = await joinRoom(host.roomCode, 'RepB'), d = await joinRoom(host.roomCode, 'RepD');
+  const got = (p, type, ms) => once(p.ws, m => m.type === type, ms || 1500);
+  // can't report yourself or nobody
+  let r = got(a, 'reportAck'); send(a.ws, { type: 'report', targetId: a.playerId, reason: 'toxic' });
+  assert((await r).ok === false, 'Reports: you cannot report yourself');
+  r = got(a, 'reportAck'); send(a.ws, { type: 'report', targetId: 'nobody', reason: 'toxic' });
+  assert((await r).ok === false, 'Reports: reporting a player who is not there is refused');
+  r = got(a, 'reportAck'); send(a.ws, { type: 'report', targetId: d.playerId, reason: 'not-a-reason' });
+  assert((await r).ok === false, 'Reports: a report needs one of the fixed reasons');
+  // the first report: acknowledged to the reporter, host is told, nobody is muted yet
+  r = got(a, 'reportAck'); const hostNote = got(host, 'reportNotice');
+  send(a.ws, { type: 'report', targetId: d.playerId, reason: 'inappropriate-language' });
+  const ack = await r; assert(ack.ok === true && /1 of 2/.test(ack.message), 'Reports: the reporter gets a thank-you with how many reports are needed (' + ack.message + ')');
+  assert(/RepD/.test((await hostNote).message), 'Reports: the host is told someone was reported (without being told by whom)');
+  r = got(a, 'reportAck'); send(a.ws, { type: 'report', targetId: d.playerId, reason: 'toxic' });
+  assert((await r).ok === false, 'Reports: the same player cannot report the same person twice');
+  // D can still talk after one report
+  let dTold = false; d.ws.on('message', raw => { const m = JSON.parse(raw); if (m.type === 'chatBlocked') dTold = true; });
+  const heard1 = got(a, 'lobbyChatMsg'); send(d.ws, { type: 'lobbyChat', text: 'still here' });
+  assert((await heard1).text === 'still here' && !dTold, 'Reports: one report on its own does not mute anyone');
+  // the second report reaches the threshold: D is muted and everyone is told
+  const mutedMsg = got(d, 'reportMuted'); const action = got(host, 'reportAction');
+  send(b.ws, { type: 'report', targetId: d.playerId, reason: 'inappropriate-language' });
+  assert(/muted for the rest of this game/.test((await mutedMsg).message), 'Reports: once enough players report, the reported player is told they are muted');
+  assert(/RepD was muted/.test((await action).message), 'Reports: the room is told who was muted');
+  await new Promise(x => setTimeout(x, 1600));
+  let leaked = false; a.ws.on('message', raw => { const m = JSON.parse(raw); if (m.type === 'lobbyChatMsg' && m.text === 'muted words') leaked = true; });
+  const stopped = got(d, 'chatBlocked'); send(d.ws, { type: 'lobbyChat', text: 'muted words' });
+  assert(/muted/i.test((await stopped).message), 'Reports: a muted player is told when they try to talk');
+  await new Promise(x => setTimeout(x, 300));
+  assert(!leaked, 'Reports: nothing a muted player types reaches anyone');
+
+  // repeat language offences mute too (4 strikes in the test setup)
+  const bad = await joinRoom(host.roomCode, 'RepBad');
+  const muteTold = got(bad, 'reportMuted', 3000);
+  for (let i = 0; i < 4; i++) { send(bad.ws, { type: 'lobbyChat', text: 'you a$$ number ' + i }); await new Promise(x => setTimeout(x, 350)); }
+  assert(/language/.test((await muteTold).message), 'Reports: a player who keeps sending blocked language is muted automatically');
+  [host, a, b, d, bad].forEach(p => { try { p.ws.close(); } catch (e) {} });
+}
+
+async function testReportMuteInGame() {
+  const host = await createRoom('RG1');
+  const players = [host];
+  for (let i = 2; i <= 6; i++) players.push(await joinRoom(host.roomCode, 'RG' + i));
+  const roles = Object.assign({}, require('./game.js').DEFAULT_ROLES_CONFIG, { Godfather: false, DoubleAgent: false, Detective: false, Doctor: false, Miller: false, BountyHunter: false, CrazyGranny: false });
+  const started = once(players[1].ws, m => m.type === 'gameState', 3000);
+  send(host.ws, { type: 'start', playerCount: 6, mafiaCount: 1, roles });
+  await started;
+  const target = players[5];
+  const mutedView = once(host.ws, m => m.type === 'gameState' && (m.view.players.find(p => p.id === target.playerId) || {}).muted === true, 3000);
+  send(players[1].ws, { type: 'report', targetId: target.playerId, reason: 'toxic' });
+  send(players[2].ws, { type: 'report', targetId: target.playerId, reason: 'toxic' });
+  assert(!!(await mutedView), 'Reports (in game): enough reports mute the reported player on the Stage');
+  const unmuted = once(host.ws, m => m.type === 'gameState' && (m.view.players.find(p => p.id === target.playerId) || {}).muted === false, 3000);
+  send(host.ws, { type: 'hostUnmute', targetId: target.playerId });
+  assert(!!(await unmuted), 'Reports (in game): the host can lift the mute');
+  players.forEach(p => { try { p.ws.close(); } catch (e) {} });
+}
+
 async function testPingPong() {
   const ws = await connect();
   const pPong = once(ws, m => m.type === 'pong', 2000);
@@ -1046,6 +1108,8 @@ async function main() {
   await testLobbyChatIsPerRoom();
   await testPingPong();
   await testLanguageAndFlooding();
+  await testReportsAndMutes();
+  await testReportMuteInGame();
   await testStartCountdown();
   await testFamilyPicks();
 

@@ -691,6 +691,8 @@ body.force-reduced-motion #daylayout-heat.heat-pulse, body.force-reduced-motion 
 #design-canvas.bg-day #daylayout-stage-give-time-btn{display:block; position:absolute; z-index:2; border:none; background-color:transparent; background-size:100% 100%; background-repeat:no-repeat; cursor:pointer; padding:0;}
 #design-canvas.bg-day #daylayout-stage-mute-btn{left:789px; top:709px; width:153px; height:34px; font-family:var(--font-type); font-size:11px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; color:var(--gold-bright); text-align:right; padding-right:16px; box-sizing:border-box;}
 #design-canvas.bg-day #daylayout-stage-request-btn{left:954px; top:706px; width:177px; height:40px;}
+#design-canvas.bg-day #daylayout-stage-report-btn{position:absolute; z-index:2; left:1208px; top:711px; width:74px; height:30px; padding:0; border:1px solid rgba(217,164,65,0.55); border-radius:5px; background:rgba(10,7,6,0.55); color:#e8c98a; font-family:var(--font-type); font-size:10.5px; font-weight:700; letter-spacing:0.8px; text-transform:uppercase; cursor:pointer; pointer-events:auto;}
+#design-canvas.bg-day #daylayout-stage-report-btn:hover{background:rgba(120,24,16,0.7); color:#fff0d0;}
 /* Square plaque icon (give-time-to-speaker/leave-stage, swapped per viewer
    state in renderStagePanel) - sits in the empty margin left of Mute
    Speaker, vertically centered on that same row. Only shown once someone
@@ -2623,6 +2625,7 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
 <button id="daylayout-stage-give-time-btn" class="daylayout-btn-fx" type="button" aria-label="Give time to speaker" style="display:none;"></button>
 <button id="daylayout-stage-kick-btn" class="daylayout-btn-fx" type="button" aria-label="Vote to kick the speaker" style="display:none;"><span class="kick-fill"></span><span class="kick-glyph">&#x1F97E;</span></button>
 <button id="daylayout-stage-mute-btn" class="daylayout-btn-fx" type="button" aria-label="Mute speaker">Mute Speaker</button>
+<button id="daylayout-stage-report-btn" type="button" aria-label="Report the speaker" style="display:none;">Report</button>
 <button id="daylayout-stage-request-btn" class="daylayout-btn-fx" type="button" aria-label="Request to speak">Request to Speak</button>
 <!-- Ballot area - overlaid on the cabinet's own painted bottom drawer/box
      (measured off c45610ee directly, same connected-component pixel
@@ -3146,6 +3149,7 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
       <button class="player-action-tab-btn" data-tab="whisper" id="player-action-tab-whisper">Whisper</button>
       <button class="player-action-tab-btn" data-tab="spotlight" id="player-action-tab-spotlight">Spotlight</button>
       <button class="player-action-tab-btn" data-tab="note" id="player-action-tab-note">Note</button>
+      <button class="player-action-tab-btn" data-tab="report" id="player-action-tab-report" style="display:none;">Report</button>
       <button class="player-action-tab-btn" data-tab="moderate" id="player-action-tab-moderate" style="display:none;">Moderate</button>
     </div>
     <div id="player-action-vote-panel" class="player-action-panel">
@@ -3169,6 +3173,10 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
     <div id="player-action-note-panel" class="player-action-panel" style="display:none;">
       <p style="font-size:13px; color:var(--parchment-dim); margin:0 0 8px;">Only you can see this.</p>
       <textarea id="player-action-note-input" maxlength="300" rows="4" placeholder="Write a note about this player..." style="width:100%; background:var(--panel-2); border:1px solid var(--line); border-radius:5px; padding:9px 11px; font-family:var(--font-body); font-size:13px; color:var(--parchment); resize:vertical; box-sizing:border-box;"></textarea>
+    </div>
+    <div id="player-action-report-panel" class="player-action-panel" style="display:none;">
+      <p style="font-size:13px; color:var(--parchment-dim); margin:0 0 10px;">Is this player breaking the rules, with their words, their voice or their name? Reports are private. If enough players report someone, they are muted for the rest of the game and the host is told.</p>
+      <button class="btn danger" id="player-action-report-btn" type="button">Report this player</button>
     </div>
     <div id="player-action-moderate-panel" class="player-action-panel" style="display:none;">
       <p style="font-size:13px; color:var(--parchment-dim); margin:0 0 10px;">Host tools.</p>
@@ -4451,6 +4459,8 @@ function handleServerMessage(msg){
     switchPanel('mpentry');
   } else if(msg.type==='chatBlocked'){
     showNoticeToast(msg.message || "That message wasn't sent.");
+  } else if(msg.type==='reportAck' || msg.type==='reportNotice' || msg.type==='reportAction' || msg.type==='reportMuted'){
+    if(msg.message) showNoticeToast(msg.message);
   } else if(msg.type==='error'){
     if(/poll/i.test(msg.message || '')){
       var pe = document.getElementById(latestView ? 'game-poll-msg' : 'lobby-poll-msg');
@@ -6637,6 +6647,7 @@ function setPlayerActionTab(tab){
   document.getElementById('player-action-spotlight-panel').style.display = tab==='spotlight' ? 'block' : 'none';
   document.getElementById('player-action-note-panel').style.display = tab==='note' ? 'block' : 'none';
   document.getElementById('player-action-moderate-panel').style.display = tab==='moderate' ? 'block' : 'none';
+  document.getElementById('player-action-report-panel').style.display = tab==='report' ? 'block' : 'none';
 }
 document.querySelectorAll('.player-action-tab-btn').forEach(function(b){
   b.addEventListener('click', function(){
@@ -9928,6 +9939,7 @@ function openPlayerActionModal(id){
   whisperBtn.disabled = !whisperOk;
   spotlightBtn.disabled = !spotlightOk;
   moderateBtn.style.display = (amHost || canShame(p)) ? 'flex' : 'none';
+  document.getElementById('player-action-tab-report').style.display = (myRoomCode && !p.isPlaceholder && p.id !== myPlayerId) ? 'flex' : 'none';
   document.getElementById('player-action-host-tools').style.display = amHost ? 'flex' : 'none';
   var shameActionBtn = document.getElementById('player-action-shame-btn');
   shameActionBtn.style.display = canShame(p) ? '' : 'none';
@@ -10802,6 +10814,9 @@ function renderStagePanel(){
   var kickBtn = document.getElementById('daylayout-stage-kick-btn');
   var canKick = !!s.speakerId && !iAmSpeaker && !deadStageViewer;
   kickBtn.style.display = canKick ? 'block' : 'none';
+  var reportBtn = document.getElementById('daylayout-stage-report-btn');
+  reportBtn.style.display = canKick ? 'block' : 'none';
+  if(canKick){ reportBtn.onclick = function(){ openReasonPickerModal('report', s.speakerId); }; }
   if(canKick){
     var kickFrac = s.voteOffStageThreshold ? Math.min(1, s.voteOffStageCount / s.voteOffStageThreshold) : 0;
     kickBtn.querySelector('.kick-fill').style.height = (kickFrac * 100) + '%';
@@ -10859,9 +10874,9 @@ function reasonChipGridHTML(){
 }
 function openReasonPickerModal(kind, targetId){
   reasonPickerState = {kind:kind, targetId:targetId, reason:null};
-  document.getElementById('reason-picker-title').textContent = kind==='kick' ? 'Remove player' : 'Mute player';
+  document.getElementById('reason-picker-title').textContent = kind==='kick' ? 'Remove player' : (kind==='report' ? 'Report player' : 'Mute player');
   var target = byId(targetId);
-  document.getElementById('reason-picker-subtitle').textContent = (target ? target.name : 'This player') + ' will see the reason you pick.';
+  document.getElementById('reason-picker-subtitle').textContent = kind==='report' ? 'Your report is private. Enough reports mute ' + (target ? target.name : 'this player') + ' for the rest of the game.' : (target ? target.name : 'This player') + ' will see the reason you pick.';
   document.getElementById('reason-picker-grid').innerHTML = reasonChipGridHTML();
   document.getElementById('reason-picker-note').style.display = 'none';
   document.getElementById('reason-picker-note').value = '';
@@ -10885,6 +10900,7 @@ document.getElementById('reason-picker-confirm-btn').addEventListener('click', f
   var note = document.getElementById('reason-picker-note').value;
   var payload = {targetId: reasonPickerState.targetId, reason: reasonPickerState.reason, note: note};
   if(reasonPickerState.kind==='kick'){ payload.type = 'kick'; }
+  else if(reasonPickerState.kind==='report'){ payload.type = 'report'; }
   else { payload.type = 'hostMute'; }
   sendWS(payload);
   closeReasonPickerModal();
@@ -10895,6 +10911,10 @@ document.getElementById('reason-picker-confirm-btn').addEventListener('click', f
 document.getElementById('player-action-mute-btn').addEventListener('click', function(){
   if(!actionModalTargetId) return;
   openReasonPickerModal('mute', actionModalTargetId);
+});
+document.getElementById('player-action-report-btn').addEventListener('click', function(){
+  if(!actionModalTargetId) return;
+  openReasonPickerModal('report', actionModalTargetId);
 });
 document.getElementById('player-action-unmute-btn').addEventListener('click', function(){
   if(!actionModalTargetId) return;

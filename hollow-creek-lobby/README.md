@@ -47,6 +47,11 @@ starting the server at all.
   (mild words like "damn" and "hell" are allowed on purpose, there is an empty `mild` list to fill in). Run `node test-profanity.js`.
 - **Flood limits** (`server.js`, `rateOk`): a few chat messages in a burst, then about one every 1.5 seconds; the same line twice in a
   row is refused; a socket that hammers the server is disconnected; any single message over 64 KB closes that connection.
+- **Reports**: any player can report another (player menu > Report, or the Report button beside the Stage for the current speaker),
+  choosing one of the fixed reasons. Reports are private and limited (one per person per target, three per game). When enough different
+  players report someone (2 in a small room, about 40% of the others in a big one) they are muted for the rest of the game, on the
+  Stage and in public chat, and everyone is told. The host is told about each report and can lift the mute (Moderate > Unmute).
+  Six blocked-language messages in one game mute a player the same way (`STRIKES_BEFORE_MUTE`).
 - **Host tools**: the host can mute or kick a player from the room (with a fixed set of reasons), and the verified owner can hang the
   Tag of Shame on a name.
 
@@ -57,5 +62,5 @@ starting the server at all.
 - No real internet hosting configured - this runs on your own machine for now
 - No persistence - if the server restarts, all rooms and in-progress games
   are gone (that's a deliberate, documented decision for now)
-- No player-to-player report button yet (the host can kick or mute)
+- Voice is not filtered live (audio goes straight between browsers); reports and host mute are the tools for that
 - Achievements and the Leaderboard are not built yet, so their buttons are hidden on the home screen
