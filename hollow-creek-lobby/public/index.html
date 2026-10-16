@@ -5975,8 +5975,8 @@ function renderNightSleepCard(area, later){
   area.innerHTML = '<div id="night-sleep-card">'+
     '<h2 class="nsc-title">The Town Sleeps</h2><div class="nsc-rule"></div>'+
     '<img class="nsc-art" src="assets/ui/night-town-art.webp" alt="">'+
-    '<p class="nsc-main">'+(later ? 'You no longer have a night action tonight.' : 'You have no night action tonight.')+'</p>'+
-    '<p class="nsc-sub">Morning begins when the night timer ends.</p><div class="nsc-rule"></div>'+
+    '<p class="nsc-main">'+(later ? 'Your choice is locked in.' : 'You have no night action tonight.')+'</p>'+
+    '<p class="nsc-sub">Morning comes once everyone has acted, or when the night timer ends.</p><div class="nsc-rule"></div>'+
     '<h3 class="nsc-wait">While you wait</h3>'+
     '<div class="nsc-btns">'+
       '<button type="button" class="nsc-btn" id="nsc-history" aria-label="Review vote history"><img src="assets/ui/night-btn-history.webp" alt=""></button>'+
@@ -8028,6 +8028,17 @@ function findLynchedFromHistory(view){
   return null;
 }
 
+// The name plates under the revealed portraits are one line in a narrow frame: shrink the text until it fits instead of clipping it ("MAFIA ENFORC").
+function fitPlateText(el){
+  if(!el || !el.textContent) return;
+  el.style.fontSize = '';
+  var size = parseFloat(getComputedStyle(el).fontSize) || 12, guard = 0;
+  while(el.scrollWidth > el.clientWidth + 1 && size > 6 && guard++ < 40){ size -= 0.5; el.style.fontSize = size + 'px'; }
+}
+function fitVoteRevealLabels(){
+  var run = function(){ fitPlateText(document.getElementById('vote-reveal-role-name')); fitPlateText(document.getElementById('vote-reveal-player-name')); };
+  run(); setTimeout(run, 80); setTimeout(run, 400);
+}
 function renderLynchReveal(view){
   var lead = findLynchedFromHistory(view);
   if(!lead) return;
@@ -8193,6 +8204,7 @@ function showPendingRevengeCard(){
     '<div class="vote-reveal-group-voters"><div class="vote-reveal-voter"><img class="vote-reveal-voter-icon" src="'+portraitImgFor(lead)+'" alt=""><span class="vote-reveal-voter-name">'+escapeHtmlMp(lead.name)+' ('+escapeHtmlMp(roleName)+')</span></div></div>'+
   '</div>';
   document.getElementById('vote-reveal-modal').style.display = 'flex';
+  fitVoteRevealLabels();
   groupsEl.style.setProperty('--vs', 1);
   Array.prototype.slice.call(groupsEl.querySelectorAll('.vote-reveal-group')).forEach(function(el){
     if(!el.offsetWidth || !el.offsetHeight) return;
@@ -8279,6 +8291,7 @@ function renderVoteRevealModal(view){
   }).join('');
   // Modal must be visible before measuring - rects inside display:none are 0.
   document.getElementById('vote-reveal-modal').style.display = 'flex';
+  fitVoteRevealLabels();
   // Shrink everything (--vs) until the cards fit the wood band - no scrollbar
   // ever. offsetWidth/offsetHeight (layout px), not getBoundingClientRect:
   // the modal sits inside the scaled design canvas, so rects are scaled.
@@ -9455,6 +9468,8 @@ function renderFromServerView(view){
   previousView = view;
   // The vote-results popup belongs to day-reveal only: if it was left open, it must not follow the player into the night.
   if(view.phase!=='day-reveal'){ var vrm = document.getElementById('vote-reveal-modal'); if(vrm) vrm.style.display = 'none'; }
+  // Likewise the "you are silenced today" screen: once the night comes round, or the silence no longer applies, an unanswered one is stale.
+  if(view.phase==='night' || !(me && me.silencedToday)){ var sil = document.getElementById('silence-screen'); if(sil && sil.style.display!=='none') sil.style.display = 'none'; }
 
   var phaseKey = view.phase+':'+view.night;
   var prevPhaseKey = prev ? (prev.phase+':'+prev.night) : null;

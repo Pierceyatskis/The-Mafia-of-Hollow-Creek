@@ -192,4 +192,5 @@
 
   window.PhoneMode = { active: active, applyScale: applyScale, setTab: setTab, tab: function(){ return P.tab; } };
   if(active()){ document.body.classList.add('phone'); liftOverlays(); }
+  try{ var posterImg = document.querySelector('.poster-img'), posterWrap = document.querySelector('.poster-wrap'); if(posterImg && posterWrap && posterImg.getAttribute('src')) posterWrap.style.setProperty('--poster-src', 'url("' + posterImg.getAttribute('src') + '")'); }catch(e){}
 })();

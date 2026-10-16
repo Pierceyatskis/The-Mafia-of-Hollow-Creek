@@ -40,8 +40,13 @@ body.phone .btn{min-height:44px;}
 /* menus and lobby already reflow; give them the top/bottom breathing room they need */
 body.phone .poster-actions .btn{min-height:44px;}
 @media (orientation:portrait){
-  body.phone .poster-img{object-fit:contain; object-position:center 38%; background:#050302;}
-  body.phone .poster-actions{top:58%;}
+  body.phone .poster-img{object-fit:contain; object-position:center 38%; background:transparent; z-index:2; transform:scale(1.28); transform-origin:50% 38%;}
+  /* the wide poster is letterboxed on a tall screen: fill the empty bands with a blurred, darkened copy of the same art instead of flat black */
+  body.phone .poster-wrap{background:#050302;}
+  body.phone .poster-wrap::before{content:''; position:absolute; inset:-30px; background:var(--poster-src) center/cover no-repeat; filter:blur(14px) brightness(1.15) saturate(1.2); z-index:0;}
+  body.phone .poster-wrap::after{content:''; position:absolute; inset:0; background:linear-gradient(180deg, rgba(5,3,2,0.85) 0%, rgba(5,3,2,0.25) 30%, rgba(5,3,2,0) 45%, rgba(5,3,2,0) 60%, rgba(5,3,2,0.55) 100%); z-index:1; pointer-events:none;}
+  body.phone .poster-actions, body.phone .embers{z-index:3;}
+  body.phone .poster-actions{top:60%;}
 }
 
 /* the painted title + watch are replaced by the top strip */
