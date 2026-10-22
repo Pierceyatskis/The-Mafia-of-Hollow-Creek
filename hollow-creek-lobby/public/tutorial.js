@@ -65,7 +65,7 @@
     var read = picked === 'tut-dex' ? 'guilty' : 'innocent';
     T.flags.read = read;
     feedView(mkView({ phase:'day-discuss', night:1, dead:['tut-gus'], detLog:[{ night:1, name:p ? p[1] : 'Dex Marlowe', read:read }],
-      report:'Gus Thorne was found dead at dawn. The mafia struck in the night.' }), 300);
+      report:'Gus Thorne was eliminated overnight. The mafia struck in the night.' }), 300);
   }
   function enterVote(){
     feedView(mkView({ phase:'day-vote', night:1, dead:['tut-gus'], chat:chatNow, heat:T.flags.heat || heatObj(0, 0),
@@ -406,7 +406,7 @@
         + '<li><b>Day</b>: read the news, talk, accuse, defend. Use the <b>Notebook</b> to keep track.</li>'
         + '<li><b>Heat</b> is danger. Defend yourself before it gets high.</li>'
         + '<li><b>Vote</b> carefully: a wrong vote helps the mafia.</li></ul>'
-        + 'Town wins by eliminating all mafia. Mafia wins when they equal the town. You also earn points for good plays, and dead players still get to watch the end.<br><br>Want more? <b>How to Play</b> on the home screen has the rules and every role, and the full practice tutorial (Notebook, Heat, the Stage) is in Settings.<br><br>You are ready. Good luck, detective.</div>' });
+        + 'Town wins by eliminating all mafia. Mafia wins when they equal the town. You also earn points for good plays, and eliminated players still get to watch the end.<br><br>Want more? <b>How to Play</b> on the home screen has the rules and every role, and the full practice tutorial (Notebook, Heat, the Stage) is in Settings.<br><br>You are ready. Good luck, detective.</div>' });
     return S;
   }
   function pulsePick(on){

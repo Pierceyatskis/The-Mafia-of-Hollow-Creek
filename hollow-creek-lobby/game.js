@@ -471,7 +471,7 @@ function resolveNight(state){
       const counterVictim = mafiaOptions[Math.floor(Math.random()*mafiaOptions.length)];
       counterVictim.alive = false;
       checkBountyHit(state, counterVictim);
-      reportLines.push(counterVictim.name+' was found dead this morning — word is the family\'s hit went badly wrong.');
+      reportLines.push(counterVictim.name+' was eliminated overnight — word is the family\'s hit went badly wrong.');
       // No role named here - a night death never reveals role publicly
       // (only a day-vote lynch does, see resolveDayVote below), and naming
       // the counter-kill's victim's role would out them as the Navy Seal.
@@ -542,8 +542,8 @@ function resolveNight(state){
       // town would learn who the Vigilante is (and what they killed) the
       // instant this printed, which is exactly the kind of thing this case
       // file must never leak.
-      log(state, vigTarget.name+' was found dead as well, in the night.');
-      reportLines.push(vigTarget.name+' was found dead this morning — not the family\'s doing this time.');
+      log(state, vigTarget.name+' was eliminated as well, in the night.');
+      reportLines.push(vigTarget.name+' was eliminated overnight — not the family\'s doing this time.');
       // Guilt is purely the target's alignment category, never a judgment
       // of how dangerous they currently are: mafia-aligned or neutral
       // (Bounty Hunter) targets never trigger guilt, regardless of how
@@ -565,8 +565,8 @@ function resolveNight(state){
         // Same reasoning as above - naming the Vigilante and the fact their
         // target was town-aligned would leak both their identity and the
         // target's alignment to the entire town.
-        log(state, vigilante.name+' was found dead as well, by their own hand.');
-        reportLines.push(vigilante.name+' was found dead as well, by their own hand.');
+        log(state, vigilante.name+' was eliminated as well, by their own hand.');
+        reportLines.push(vigilante.name+' was eliminated as well, by their own hand.');
       }
     }
   }
@@ -1406,7 +1406,7 @@ function nightNoteFor(state, me){
     const t = byId(state, n.attackedId);
     if(!t) return null;
     if(n.saved) return 'The family struck at ' + t.name + ', but the Doctor got there first. ' + t.name + ' lives.';
-    return t.alive ? 'The family struck at ' + t.name + ', but ' + t.name + ' is still alive.' : 'The family struck at ' + t.name + '. ' + t.name + ' is dead.';
+    return t.alive ? 'The family struck at ' + t.name + ', but ' + t.name + ' is still alive.' : 'The family struck at ' + t.name + '. ' + t.name + ' is eliminated.';
   }
   return null;
 }

@@ -3765,14 +3765,14 @@ var ROLE_BIO = {
   DoubleAgent:"You do the mafia's work without anyone ever suspecting you're capable of it. Each night you get an equal vote on who the family eliminates, same as anyone else in it. The first time the detective investigates you, their instincts fail and you read innocent. But your cover only holds once \u2014 a second look reads guilty.",
   Doctor:"Whatever's happening in this town, you've decided you're not going to let it take anyone else. Each night, choose one resident to protect.",
   Miller:"You're about as ordinary as Hollow Creek gets. For reasons you can't quite explain, people have always looked at you a little sideways, as if you're hiding something. You aren't. Probably doesn't matter.",
-  BountyHunter:"You don't answer to the town or to whatever's lurking in it. Place a bounty on someone each night. However they end up dead — voted out, eliminated by the mafia, or otherwise — your ledger gets a mark. Three marks and you walk away the real winner, whatever else happens.",
+  BountyHunter:"You don't answer to the town or to whatever's lurking in it. Place a bounty on someone each night. However they end up eliminated — voted out, eliminated by the mafia, or otherwise — your ledger gets a mark. Three marks and you walk away the real winner, whatever else happens.",
   CrazyGranny:"You're just a sweet old woman with too many pies and not enough people to eat them. Or so it seems. Something tells you that if this town ever ran out of monsters, you might become the last one standing.",
   Coward:"You've never once been the bravest person in a room, and you've made a kind of peace with that. Each night, you may quietly hide behind someone else in town — if the mafia comes for you, they find your cover instead, and never know the difference.",
   Farmer:"You keep your land outside town and your business to yourself, and you keep a shotgun by the door for a reason. If the town ever votes you out, you're taking one more person down with you on the way out.",
   NavySeal:"You did a stretch of service somewhere you don't talk about, and it left you a lot harder to take down than you look. The first time the mafia comes for you, you fight back and take one of them with you instead — but that only works once.",
   Vigilante:"You've decided the town can't afford to wait for a trial. Once — just once, for the rest of this game — you may choose someone in the night and end it yourself, no vote, no discussion. Choose wrong, and it isn't the family who comes for you next. It's your own conscience.",
   Consigliere:"You're the family's quiet research department — no gun, no vote on who gets eliminated, just a ledger and an ear to the ground. Each night you may look into one resident outside the family and learn exactly what they are, no guessing, no guilty-or-innocent hedge.",
-  Mayor:"Hollow Creek elected you, though most days it's easy to forget that's worth anything. You're holding two cards close: once, and only once, you may quietly double your own vote for the day — no announcement, nobody the wiser. And every single day, whether you've spent that card or not, if the town's vote ever ends in a dead tie, it's your pick that decides who goes — nobody ever finds out that's what happened either.",
+  Mayor:"Hollow Creek elected you, though most days it's easy to forget that's worth anything. You're holding two cards close: once, and only once, you may quietly double your own vote for the day — no announcement, nobody the wiser. And every single day, whether you've spent that card or not, if the town's vote ever ends in a tie, it's your pick that decides who goes — nobody ever finds out that's what happened either.",
   Mortician:"The bodies pass through your care one way or another, and you've learned to read what a person leaves behind. Starting the second night, you may examine whoever died in the dark the night before and learn exactly who they really were — nothing to work with on the very first night, nothing at all after a night no one died, and if two go down together, you'll only have hands enough to examine one.",
   Framer:"You've got a talent for planting exactly the right idea in exactly the right head. Each night you get a vote on who the family eliminates, same as anyone else in it, and you alone may also point the finger at one resident — if they're one of the family, whatever the detective sees of them tonight comes back clean; if they're not, it comes back looking exactly like guilt. No reason you can't use it to cover your own people, either.",
   Hitman:"You work for the family, but not with it. No seat at their table, no vote on who dies tonight, no whispered plan you're ever let in on — your own people don't even know your face, not for certain, though the sharper ones among them will eventually notice who's never in the room. If the town ever catches on and votes you out, you get one last move: take somebody down with you on the way out, and nobody's off-limits, not even your own family.",
@@ -5560,7 +5560,7 @@ function renderYourFile(){
 function renderRoster(){
   document.getElementById('roster').innerHTML = STATE.players.filter(function(p){return !p.isHuman;}).map(function(p, idx){
     var st = p.alive ? (p.silencedToday? 'silenced' : 'alive') : 'dead';
-    return '<div class="roster-row" data-id="'+p.id+'" style="animation-delay:'+(idx*0.04+0.02)+'s;">'+avatarHTML(p,26)+'<span>'+p.name+'</span><span style="color:var(--parchment-dim); font-size:13px;">&nbsp;— '+p.occ+'</span><span class="status '+st+'">'+st+'</span></div>'+
+    return '<div class="roster-row" data-id="'+p.id+'" style="animation-delay:'+(idx*0.04+0.02)+'s;">'+avatarHTML(p,26)+'<span>'+p.name+'</span><span style="color:var(--parchment-dim); font-size:13px;">&nbsp;— '+p.occ+'</span><span class="status '+st+'">'+(st==='dead' ? 'eliminated' : st)+'</span></div>'+
       '<div class="bio-expand" id="bio-'+p.id+'">'+p.bio+'</div>';
   }).join('');
   document.querySelectorAll('.roster-row').forEach(function(row){
@@ -5604,7 +5604,7 @@ function classifyLogEntry(text){
   if(/eyes went red|wears an apron/.test(text)) return {tag:'TWIST', cls:'twist', private:true};
   if(/has joined the cult|tried to turn .* protection held/.test(text)) return {tag:'TWIST', cls:'twist', private:true};
   if(/doctor's hands got there first|but found .* instead/.test(text)) return {tag:'SAVED', cls:'saved'};
-  if(/killed in the night|took .* down with them|found dead this morning|fought back and (?:killed|eliminated)|died in the night/.test(text)) return {tag:'ELIMINATED', cls:'eliminated'};
+  if(/killed in the night|took .* down with them|found dead this morning|eliminated (?:overnight|as well|in the night)|fought back and (?:killed|eliminated)|died in the night/.test(text)) return {tag:'ELIMINATED', cls:'eliminated'};
   return {tag:'NOTE', cls:'note'};
 }
 // The case file is public knowledge the whole town would plausibly witness -
@@ -6026,7 +6026,7 @@ function nightActionConfig(h){
     if(le) pre = '<p>Last night, <b>'+escapeHtmlMp(le.name)+'</b> turned out to be <span class="detective-log-read detective-log-guilty">'+ROLE_SHORT[le.role]+'</span>.</p>';
     var cands = latestView.morticianCandidates || [];
     if(!cands.length) return null;
-    return {pre:pre, actions:[{key:'exam', field:'morticianInvestigate', title:'Examine the Dead', hint:'Choose which of last night\'s dead to examine.', confirm:'Confirm Examination', options:function(){return cands.map(function(c){return byId(c.id) || c;});}, includeDead:true}]};
+    return {pre:pre, actions:[{key:'exam', field:'morticianInvestigate', title:'Examine the Eliminated', hint:'Choose which player was eliminated last night to examine.', confirm:'Confirm Examination', options:function(){return cands.map(function(c){return byId(c.id) || c;});}, includeDead:true}]};
   }
   if(role==='CultLeader'){
     var cultIds = latestView.players.filter(function(q){return q.align==='cult';}).map(function(q){return q.id;});
@@ -6309,7 +6309,7 @@ document.getElementById('night-continue-btn').addEventListener('click', function
       var counterVictim = mafiaOptions[Math.floor(Math.random()*mafiaOptions.length)];
       counterVictim.alive = false;
       checkBountyHit(counterVictim);
-      reportLines.push('<b>'+counterVictim.name+'</b> was found dead this morning — word is the family\'s hit went badly wrong.');
+      reportLines.push('<b>'+counterVictim.name+'</b> was eliminated overnight — word is the family\'s hit went badly wrong.');
       log('The mafia moved on '+killTarget.name+', but they fought back and eliminated '+counterVictim.name+' ('+counterVictim.role+') instead.');
       deathSummary = counterVictim.name+' ('+counterVictim.role+') died in the night.';
       nightDeathOccurred = true;
@@ -6880,7 +6880,7 @@ async function resolveDayVote(timedOut){
   var reportEl = document.getElementById('lynch-report');
   reportEl.innerHTML = STATE.cachedLynchReport;
   var img = portraitFor(lead);
-  STATE.cachedLynchCard = img? ('<div class="portrait-frame"><img class="photo-img" src="'+img+'" alt="'+lead.role+'"><img class="frame-overlay" src="'+FRAME_IMG+'" alt=""></div><span class="deceased-stamp">deceased</span>') : '<span class="deceased-stamp">deceased</span>';
+  STATE.cachedLynchCard = img? ('<div class="portrait-frame"><img class="photo-img" src="'+img+'" alt="'+lead.role+'"><img class="frame-overlay" src="'+FRAME_IMG+'" alt=""></div><span class="deceased-stamp">eliminated</span>') : '<span class="deceased-stamp">eliminated</span>';
   var cardEl = document.getElementById('lynch-card');
   cardEl.innerHTML = STATE.cachedLynchCard;
   reveal.style.display='block';
@@ -8081,7 +8081,7 @@ function renderLynchReveal(view){
       (view.farmerRevengeName ? ' On the way out, they took <b>'+view.farmerRevengeName+'</b> down with them.' : '');
     var stamp = document.createElement('span');
     stamp.className = 'deceased-stamp stamp-in';
-    stamp.textContent = 'deceased';
+    stamp.textContent = 'eliminated';
     cardEl.appendChild(stamp);
     // Gavel already played once when day-reveal began (see the
     // justEnteredReveal branch in renderFromServerView) - a second one
@@ -11353,7 +11353,7 @@ function updateNotebookAutoLog(view, prev){
     view.players.forEach(function(p){
       var prevP = prev.players.find(function(pp){ return pp.id===p.id; });
       if(prevP && prevP.alive && !p.alive){
-        var cause = prev.phase === 'day-vote' ? 'was voted out by the town' : 'was found dead';
+        var cause = prev.phase === 'day-vote' ? 'was voted out by the town' : 'was eliminated in the night';
         pushNotebookEvent(p.name+' '+cause+'.', view);
       }
     });
@@ -12501,9 +12501,9 @@ document.getElementById('daylayout-stage-mute-btn').addEventListener('click', fu
 // every time; a distinct fallback set covers a round-1 death with no
 // recorded activity at all.
 var OBIT_INTROS = [
-  '{name} was found dead this morning.',
-  '{name} was discovered dead at first light.',
-  'The body of {name} was found early this morning.'
+  '{name} was eliminated in the night.',
+  '{name} was eliminated overnight, the town learned at first light.',
+  'The Chronicle confirms the elimination of {name} early this morning.'
 ];
 var OBIT_LASTWORDS = [
   '{name}\'s last words to the town were: “{text}”',
@@ -12597,8 +12597,8 @@ var OBIT_BYLINE = [
   '— Hollow Creek Chronicle, Morning Edition'
 ];
 var OBIT_NODATA = [
-  '{name} was found dead before the town had gathered. Little is known of their last hours.',
-  'The town never heard from {name}: they were found dead before the first meeting.',
+  '{name} was eliminated before the town had gathered. Little is known of their last hours.',
+  'The town never heard from {name}: they were eliminated before the first meeting.',
   '{name} was gone before the town could gather. No words, no votes, no accusations.'
 ];
 // the Chronicle's lead on a night when nobody died and nobody was saved
@@ -12745,7 +12745,7 @@ function renderObituary(){
   var headlineEl = document.getElementById('daylayout-obit-headline');
   var subject = survivor || dead || {name: 'Hollow Creek'};
   document.getElementById('daylayout-obit-headline-name').textContent = subject.name.toUpperCase();
-  document.getElementById('daylayout-obit-headline-sub').textContent = survivor ? 'NARROW ESCAPE' : quiet ? 'A QUIET NIGHT' : 'FOUND DEAD';
+  document.getElementById('daylayout-obit-headline-sub').textContent = survivor ? 'NARROW ESCAPE' : quiet ? 'A QUIET NIGHT' : 'ELIMINATED';
   document.getElementById('daylayout-obit-portrait').src = quiet ? DAYTIME_IMG.newsIconUnknown : newsPortraitFor(subject);
   document.getElementById('daylayout-obit-portrait').style.display = quiet ? 'none' : '';
   document.getElementById('daylayout-obit-body').textContent = survivor ? buildSurvivorStory(survivor) : quiet ? obitPick(QUIET_NIGHT_STORY) : buildObituary(dead, latestView);
