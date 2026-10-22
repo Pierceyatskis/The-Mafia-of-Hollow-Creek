@@ -475,8 +475,8 @@ function resolveNight(state){
       // No role named here - a night death never reveals role publicly
       // (only a day-vote lynch does, see resolveDayVote below), and naming
       // the counter-kill's victim's role would out them as the Navy Seal.
-      log(state, 'The mafia moved on '+killTarget.name+', but they fought back and killed '+counterVictim.name+' instead.');
-      deathSummary = counterVictim.name+' ('+counterVictim.role+') was killed in the night.';
+      log(state, 'The mafia moved on '+killTarget.name+', but they fought back and eliminated '+counterVictim.name+' instead.');
+      deathSummary = counterVictim.name+' ('+counterVictim.role+') died in the night.';
       nightDeathOccurred = true; revealVictim = counterVictim;
       state.cachedNearMissId = null;
     } else {
@@ -494,15 +494,15 @@ function resolveNight(state){
     // Doctor's role to everyone, not just tell the town someone survived.
     reportLines.push(killTarget.name+' was attacked in the dark last night, but someone reached them just in time and saved their life.');
     log(state, 'The mafia struck at '+killTarget.name+', but the doctor\'s hands got there first.');
-    deathSummary = killTarget.name+' was nearly killed last night, the doctor\'s protection held.';
+    deathSummary = killTarget.name+' nearly died last night, the doctor\'s protection held.';
     state.cachedNearMissId = killTarget.id;
   } else {
     killTarget.alive = false;
     checkBountyHit(state, killTarget);
     reportLines.push(killTarget.name+' was found this morning. The town gathers, uneasy.');
     // No role named here - see the counter-kill case above for why.
-    log(state, killTarget.name+' was killed in the night.');
-    deathSummary = killTarget.name+' ('+killTarget.role+') was killed in the night.';
+    log(state, killTarget.name+' died in the night.');
+    deathSummary = killTarget.name+' ('+killTarget.role+') died in the night.';
     nightDeathOccurred = true; revealVictim = killTarget;
     state.cachedNearMissId = null;
   }

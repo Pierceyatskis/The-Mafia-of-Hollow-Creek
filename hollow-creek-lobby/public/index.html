@@ -2985,7 +2985,7 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
 
       <h3 class="set-h">Display</h3>
       <label class="set-row" for="settings-bigchat-check"><span class="set-text"><b>Larger chat text</b><small>Makes Town Talk easier to read.</small></span><input type="checkbox" id="settings-bigchat-check" class="rule-switch-input"><span class="rule-switch" aria-hidden="true"></span></label>
-      <label class="set-row" for="settings-shake-check"><span class="set-text"><b>Screen shake</b><small>The jolt when something dramatic happens, such as a night kill.</small></span><input type="checkbox" id="settings-shake-check" class="rule-switch-input"><span class="rule-switch" aria-hidden="true"></span></label>
+      <label class="set-row" for="settings-shake-check"><span class="set-text"><b>Screen shake</b><small>The jolt when something dramatic happens, such as a night elimination.</small></span><input type="checkbox" id="settings-shake-check" class="rule-switch-input"><span class="rule-switch" aria-hidden="true"></span></label>
       <label class="set-row" for="settings-reduced-motion-check"><span class="set-text"><b>Reduce motion</b><small>Same as your device's reduce-motion setting, forced on here even if that's off.</small></span><input type="checkbox" id="settings-reduced-motion-check" class="rule-switch-input"><span class="rule-switch" aria-hidden="true"></span></label>
       <label class="set-row" for="settings-colorblind-check"><span class="set-text"><b>Colorblind-friendly mode</b><small>Adds a text label to every alignment color (portrait outlines, reveal names), not just color.</small></span><input type="checkbox" id="settings-colorblind-check" class="rule-switch-input"><span class="rule-switch" aria-hidden="true"></span></label>
 
@@ -3765,11 +3765,11 @@ var ROLE_BIO = {
   DoubleAgent:"You do the mafia's work without anyone ever suspecting you're capable of it. Each night you get an equal vote on who the family eliminates, same as anyone else in it. The first time the detective investigates you, their instincts fail and you read innocent. But your cover only holds once \u2014 a second look reads guilty.",
   Doctor:"Whatever's happening in this town, you've decided you're not going to let it take anyone else. Each night, choose one resident to protect.",
   Miller:"You're about as ordinary as Hollow Creek gets. For reasons you can't quite explain, people have always looked at you a little sideways, as if you're hiding something. You aren't. Probably doesn't matter.",
-  BountyHunter:"You don't answer to the town or to whatever's lurking in it. Place a bounty on someone each night. However they end up dead — voted out, killed by the mafia, or otherwise — your ledger gets a mark. Three marks and you walk away the real winner, whatever else happens.",
+  BountyHunter:"You don't answer to the town or to whatever's lurking in it. Place a bounty on someone each night. However they end up dead — voted out, eliminated by the mafia, or otherwise — your ledger gets a mark. Three marks and you walk away the real winner, whatever else happens.",
   CrazyGranny:"You're just a sweet old woman with too many pies and not enough people to eat them. Or so it seems. Something tells you that if this town ever ran out of monsters, you might become the last one standing.",
   Coward:"You've never once been the bravest person in a room, and you've made a kind of peace with that. Each night, you may quietly hide behind someone else in town — if the mafia comes for you, they find your cover instead, and never know the difference.",
   Farmer:"You keep your land outside town and your business to yourself, and you keep a shotgun by the door for a reason. If the town ever votes you out, you're taking one more person down with you on the way out.",
-  NavySeal:"You did a stretch of service somewhere you don't talk about, and it left you a lot harder to kill than you look. The first time the mafia comes for you, you fight back and take one of them with you instead — but that only works once.",
+  NavySeal:"You did a stretch of service somewhere you don't talk about, and it left you a lot harder to take down than you look. The first time the mafia comes for you, you fight back and take one of them with you instead — but that only works once.",
   Vigilante:"You've decided the town can't afford to wait for a trial. Once — just once, for the rest of this game — you may choose someone in the night and end it yourself, no vote, no discussion. Choose wrong, and it isn't the family who comes for you next. It's your own conscience.",
   Consigliere:"You're the family's quiet research department — no gun, no vote on who gets eliminated, just a ledger and an ear to the ground. Each night you may look into one resident outside the family and learn exactly what they are, no guessing, no guilty-or-innocent hedge.",
   Mayor:"Hollow Creek elected you, though most days it's easy to forget that's worth anything. You're holding two cards close: once, and only once, you may quietly double your own vote for the day — no announcement, nobody the wiser. And every single day, whether you've spent that card or not, if the town's vote ever ends in a dead tie, it's your pick that decides who goes — nobody ever finds out that's what happened either.",
@@ -3784,20 +3784,20 @@ var ROLE_POINTS = {
   Godfather:["Equal vote each night on who the family eliminates", "May silence one player per day — they can't speak or vote"],
   Mafia:["Equal vote each night on who the family eliminates"],
   DoubleAgent:["Equal vote each night on who the family eliminates", "Reads innocent the first time you're investigated", "Reads guilty on every investigation after that"],
-  Doctor:["Protect one player every night from the mafia's kill", "You may protect yourself"],
+  Doctor:["Protect one player every night from the mafia's elimination", "You may protect yourself"],
   Miller:["No night action of your own", "Always reads guilty if investigated — even though you're innocent"],
-  BountyHunter:["Place a bounty on one player every night", "Earn a mark whenever they die — voted out, killed by the mafia, or otherwise", "Collect three marks and you win, no matter how the rest of the game turns out"],
+  BountyHunter:["Place a bounty on one player every night", "Earn a mark whenever they die — voted out, eliminated by the mafia, or otherwise", "Collect three marks and you win, no matter how the rest of the game turns out"],
   CrazyGranny:["No night action while the mafia is still alive", "If the mafia is wiped out with you alive, you flip mafia and take their vote"],
   Coward:["Choose someone to hide behind every night", "If the mafia targets you, they hit your cover instead"],
   Farmer:["No night action of your own", "If the town votes you out, take one more player down with you"],
-  NavySeal:["No night action of your own", "The first mafia attempt on you fails — you kill one of them instead, once only"],
-  Vigilante:["Once per game, kill one player directly at night", "Independent of the Doctor, Coward, or Navy Seal — nothing protects or redirects it", "If the target turns out to be town-aligned, you die too"],
+  NavySeal:["No night action of your own", "The first mafia attempt on you fails — you eliminate one of them instead, once only"],
+  Vigilante:["Once per game, eliminate one player directly at night", "Independent of the Doctor, Coward, or Navy Seal — nothing protects or redirects it", "If the target turns out to be town-aligned, you die too"],
   Consigliere:["Mafia-aligned — you already see your family's teammates directly", "Investigate one non-teammate every night and learn their exact role by name", "No equal vote of your own on who the family eliminates"],
   Mayor:["Once per game, quietly double your own vote for the day — spent the moment you use it, no announcement", "Silently, every day: if the vote ends in a tie, whoever you voted for wins the tiebreak — no one is ever told"],
   Mortician:["No night action on the first night — nothing has died yet", "Starting the second night, examine whoever died the night before and learn their exact role", "If two died the same night, choose which one to examine", "Never reveals a day-vote elimination — that's already public"],
   Framer:["Equal vote each night on who the family eliminates", "Also targets one player to alter their investigation read for that round only", "Target is mafia-aligned: they read innocent, shielding them", "Target is town-aligned: they read guilty, framing them", "Can target a mafia-aligned teammate — no restriction", "Never affects Consigliere's exact-role read, or a neutral/cult target's suspicious read"],
-  Hitman:["Mafia-aligned, but cut out of mafia chat and the shared kill vote entirely", "No passive way to know who your own teammates are", "If voted out by the town specifically, take one more player down with you — anyone, even a teammate", "Triggers only on a day-vote elimination, never a night kill or any other cause"],
-  CultLeader:["Each night, convert one player to the cult — town or mafia-aligned, no restriction", "Blocked if the Doctor protects that target the same night", "A convert immediately learns who you and the rest of the cult are, and joins cult chat", "A converted mafia-aligned player keeps their own abilities but loses the shared kill vote", "Cult wins once cult members are a majority or equal share of everyone still alive", "If you die, existing converts stay cult-aligned — only new recruitment stops"],
+  Hitman:["Mafia-aligned, but cut out of mafia chat and the shared elimination vote entirely", "No passive way to know who your own teammates are", "If voted out by the town specifically, take one more player down with you — anyone, even a teammate", "Triggers only on a day-vote elimination, never a night elimination or any other cause"],
+  CultLeader:["Each night, convert one player to the cult — town or mafia-aligned, no restriction", "Blocked if the Doctor protects that target the same night", "A convert immediately learns who you and the rest of the cult are, and joins cult chat", "A converted mafia-aligned player keeps their own abilities but loses the shared elimination vote", "Cult wins once cult members are a majority or equal share of everyone still alive", "If you die, existing converts stay cult-aligned — only new recruitment stops"],
   Civilian:["No night action, no special ability", "Just your vote and your read on the room"]
 };
 var DEFAULT_ROLE_POOL = ['Detective','Godfather','DoubleAgent','Doctor','Miller','BountyHunter','CrazyGranny','Civilian','Civilian','Civilian','Civilian','Civilian'];
@@ -5604,7 +5604,7 @@ function classifyLogEntry(text){
   if(/eyes went red|wears an apron/.test(text)) return {tag:'TWIST', cls:'twist', private:true};
   if(/has joined the cult|tried to turn .* protection held/.test(text)) return {tag:'TWIST', cls:'twist', private:true};
   if(/doctor's hands got there first|but found .* instead/.test(text)) return {tag:'SAVED', cls:'saved'};
-  if(/killed in the night|took .* down with them|found dead this morning|fought back and killed/.test(text)) return {tag:'ELIMINATED', cls:'eliminated'};
+  if(/killed in the night|took .* down with them|found dead this morning|fought back and (?:killed|eliminated)|died in the night/.test(text)) return {tag:'ELIMINATED', cls:'eliminated'};
   return {tag:'NOTE', cls:'note'};
 }
 // The case file is public knowledge the whole town would plausibly witness -
@@ -5997,7 +5997,7 @@ function nightPlayerChoice(id){ return byId(id); }
 function nightActionConfig(h){
   var teammates = mafiaTeammateIdsOf(h);
   var killOpts = function(){ return otherLivingOptions([h.id].concat(teammates)); };
-  var KILL = {key:'kill', field:'kill', title:'Choose a Player to Kill', hint:'Vote for who the family eliminates tonight. If the family can\'t agree, it\'s a coin flip.', confirm:'Confirm Kill', options:killOpts};
+  var KILL = {key:'kill', field:'kill', title:'Choose a Player to Eliminate', hint:'Vote for who the family eliminates tonight. If the family can\'t agree, it\'s a coin flip.', confirm:'Confirm Elimination', options:killOpts};
   var pre = '';
   var role = h.role;
   if(h.align==='mafia' || h.align==='cult') pre = renderAllyLine(h);
@@ -6310,8 +6310,8 @@ document.getElementById('night-continue-btn').addEventListener('click', function
       counterVictim.alive = false;
       checkBountyHit(counterVictim);
       reportLines.push('<b>'+counterVictim.name+'</b> was found dead this morning — word is the family\'s hit went badly wrong.');
-      log('The mafia moved on '+killTarget.name+', but they fought back and killed '+counterVictim.name+' ('+counterVictim.role+') instead.');
-      deathSummary = counterVictim.name+' ('+counterVictim.role+') was killed in the night.';
+      log('The mafia moved on '+killTarget.name+', but they fought back and eliminated '+counterVictim.name+' ('+counterVictim.role+') instead.');
+      deathSummary = counterVictim.name+' ('+counterVictim.role+') died in the night.';
       nightDeathOccurred = true;
       revealVictim = counterVictim;
     } else {
@@ -6329,8 +6329,8 @@ document.getElementById('night-continue-btn').addEventListener('click', function
     killTarget.alive = false;
     checkBountyHit(killTarget);
     reportLines.push('<b>'+killTarget.name+'</b> was found this morning. The town gathers, uneasy.');
-    log(killTarget.name+' ('+killTarget.role+') was killed in the night.');
-    deathSummary = killTarget.name+' ('+killTarget.role+') was killed in the night.';
+    log(killTarget.name+' ('+killTarget.role+') died in the night.');
+    deathSummary = killTarget.name+' ('+killTarget.role+') died in the night.';
     nightDeathOccurred = true;
     revealVictim = killTarget;
   }
@@ -7900,16 +7900,16 @@ document.getElementById('settings-reset-confirm-btn').addEventListener('click', 
 
 var ROLE_ONELINE = {
   Detective:'Investigate one player each night: guilty, innocent or suspicious.',
-  Godfather:'Leads the mafia: votes on the nightly kill and silences one player.',
-  Mafia:'Votes with the family on who is killed each night.',
+  Godfather:'Leads the mafia: votes on the nightly elimination and silences one player.',
+  Mafia:'Votes with the family on who is eliminated each night.',
   DoubleAgent:'Mafia. Reads innocent to the Detective the first time only.',
-  Doctor:'Protect one player from the mafia\'s kill each night.',
+  Doctor:'Protect one player from the mafia\'s elimination each night.',
   Miller:'No power. Town, but always reads guilty to the Detective.',
   BountyHunter:'Bounty one player nightly; three of their deaths wins it for you.',
   CrazyGranny:'Quiet town player who turns mafia if the family is wiped out.',
   Coward:'Hide behind someone: if the mafia comes for you, they get them.',
   Farmer:'If the town votes you out, you take one player with you.',
-  NavySeal:'The first kill attempt on you fails and kills a mafia instead.',
+  NavySeal:'The first attempt on your life fails, and a mafia member is eliminated instead.',
   Vigilante:'One night shot per game. Shoot a town player and you die too.',
   Consigliere:'Mafia. Learn one player\'s exact role each night.',
   Mayor:'Double your vote once; your pick breaks vote ties.',
@@ -7923,7 +7923,7 @@ var ROLE_ONELINE = {
 function rulesGlanceHTML(){
   var items = [
     ['Two sides', 'The <b>Town</b> wins by voting out every mafia member. The <b>Mafia</b> win the moment they equal everyone else still alive.'],
-    ['Night', 'Roles with a power use it in secret: investigate, protect, silence, kill. Nobody sees anyone else\'s choice until morning.'],
+    ['Night', 'Roles with a power use it in secret: investigate, protect, silence, eliminate. Nobody sees anyone else\'s choice until morning.'],
     ['Day', 'The town learns who died overnight, talks it over in chat, then votes. Your <b>Notebook</b> keeps your private notes and every vote.'],
     ['The vote', 'The player with the most votes is voted out and their role is revealed. Once you are out you stay out, but you can keep watching.'],
     ['Ties', 'If two or more players tie for the most votes, <b>one of them is chosen by drawing lots</b>. If a living <b>Mayor</b> voted for one of the tied players, that pick wins the tie instead. The reveal screen says which happened.'],
@@ -11230,7 +11230,7 @@ function casePlayerEvents(p){
     var m = line.match(/^Night (\d+) \/ (.*)$/);
     if(!m) return;
     var night = parseInt(m[1],10), text = m[2];
-    if(text.indexOf(myName+' was killed in the night.')===0){
+    if(text.indexOf(myName+' died in the night.')===0){
       add(night, 4, 'Died in the night.');
     } else if(text.indexOf(myName+' (')===0 && / was voted out by the town\.$/.test(text)){
       add(night, 4, 'Was voted out by the town.');
@@ -11425,7 +11425,7 @@ function notebookKnownEvents(p){
     var m = line.match(/^Night (\d+) \/ (.*)$/);
     if(!m) return;
     var night = parseInt(m[1],10), text = m[2];
-    if(text.indexOf(p.name+' was killed in the night.')===0){
+    if(text.indexOf(p.name+' died in the night.')===0){
       add(night, 'night', 4, 'Eliminated during the night.');
     } else if(text.indexOf(p.name+' (')===0 && / was voted out by the town\.$/.test(text)){
       add(night, 'day', 4, 'Voted out by the town.');

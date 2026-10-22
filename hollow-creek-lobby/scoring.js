@@ -163,7 +163,7 @@ function scoreRound(state, round){
     if(targetDiedByVote){
       addPoints(scores, bountyHunter.id, BOUNTY_DAY_VOTE_BONUS, 'bounty-day-vote', 'Bounty target eliminated by the town\'s vote');
     } else if(targetDiedByNight){
-      addPoints(scores, bountyHunter.id, BOUNTY_NIGHT_KILL_BONUS, 'bounty-night-kill', 'Bounty target killed in the night');
+      addPoints(scores, bountyHunter.id, BOUNTY_NIGHT_KILL_BONUS, 'bounty-night-kill', 'Bounty target died in the night');
     } else {
       // Never expose *why* a near miss happened (e.g. a doctor save) - the
       // reason string stays generic even here, server-side.
@@ -190,7 +190,7 @@ function scoreRound(state, round){
     if(victimRole === 'Detective' || victimRole === 'Doctor'){
       const baseBonus = victimRole === 'Detective' ? MAFIA_KILL_DETECTIVE_BONUS : MAFIA_KILL_DOCTOR_BONUS;
       const bonus = scaleMafiaBonus(baseBonus, totalPlayers);
-      aliveMafia.forEach(p => addPoints(scores, p.id, bonus, 'mafia-key-kill', 'Night kill eliminated the ' + victimRole));
+      aliveMafia.forEach(p => addPoints(scores, p.id, bonus, 'mafia-key-kill', 'Night elimination took out the ' + victimRole));
     }
   }
   if(lead && lead.align === 'town'){

@@ -305,9 +305,9 @@
     function add(o){ S.push(o); return o; }
     // ---- intro
     add({ q:1, kind:'intro', title:'Welcome to Hollow Creek', noBack:true,
-      text:'A quiet town. A few of its people are secretly <b class="tut-red">the Mafia</b>. Everyone else is <b class="tut-green">the Town</b>, and nobody knows who is who.<br><br><b>Town wins</b> by voting out every mafia member.<br><b>Mafia wins</b> by killing until they equal the Town.<br><br>This 4-minute practice round walks you through a real game, one step at a time.' });
+      text:'A quiet town. A few of its people are secretly <b class="tut-red">the Mafia</b>. Everyone else is <b class="tut-green">the Town</b>, and nobody knows who is who.<br><br><b>Town wins</b> by voting out every mafia member.<br><b>Mafia wins</b> by eliminating players until they equal the Town.<br><br>This 4-minute practice round walks you through a real game, one step at a time.' });
     add({ q:1, kind:'intro', title:'Every round has two halves',
-      text:'<div class="tut-halves"><div><span class="tut-moon">&#9790;</span><b>Night</b><br>Everyone acts in secret. The mafia choose someone to kill. Special roles use their powers.</div><div><span class="tut-sun">&#9728;</span><b>Day</b><br>The town learns who died, talks it over, accuses, defends, and finally <b>votes someone out</b>.</div></div>Then night falls again, until one side wins.' });
+      text:'<div class="tut-halves"><div><span class="tut-moon">&#9790;</span><b>Night</b><br>Everyone acts in secret. The mafia choose someone to eliminate. Special roles use their powers.</div><div><span class="tut-sun">&#9728;</span><b>Day</b><br>The town learns who died, talks it over, accuses, defends, and finally <b>votes someone out</b>.</div></div>Then night falls again, until one side wins.' });
     add({ kind:'intro', title:'You have a secret role',
       text:'At the start, every player is dealt a role that only they can see. Some are plain townsfolk. Others have powers: the <b>Detective</b> investigates, the <b>Doctor</b> protects, the <b>Godfather</b> silences.<br><br>In this practice round <b>you are the Detective</b>. Tap <i>Next</i> and night will fall.' , nextLabel:'Begin practice round' });
     // ---- night
@@ -316,7 +316,7 @@
       text:'Every game opens with this beat. Next, the town deals you your secret role.',
       until:function(){ return shown('role-reveal-screen'); }, auto:300 });
     add({ q:1, title:'Your secret role', target:'#role-reveal-card|#role-reveal-name|#role-reveal-flavor|#role-reveal-continue-btn', pad:14, place:'r', noBack:true, noForward:true,
-      text:'You are <b>the Detective</b>. Each night you investigate one player and learn whether they look <b class="tut-red">guilty</b> or <b class="tut-green">innocent</b>.<br><br>Keep your role close: the mafia would love to kill a Detective.',
+      text:'You are <b>the Detective</b>. Each night you investigate one player and learn whether they look <b class="tut-red">guilty</b> or <b class="tut-green">innocent</b>.<br><br>Keep your role close: the mafia would love to eliminate a Detective.',
       hint:'Press <b>Begin the night</b>.', until:function(){ return shown('panel-night'); }, auto:400 });
     add({ title:'Your night action', target:'#night-action', place:'r', noBack:true, noForward:true,
       text:'This card is your power for the night. Only you can see it. Everyone with a night role is making a choice like this right now, and night ends once everybody has locked in (or the timer runs out).' });
