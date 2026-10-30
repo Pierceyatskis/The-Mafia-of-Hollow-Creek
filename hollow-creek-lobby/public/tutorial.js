@@ -307,7 +307,7 @@
     add({ q:1, kind:'intro', title:'Welcome to Hollow Creek', noBack:true,
       text:'A quiet town. A few of its people are secretly <b class="tut-red">the Mafia</b>. Everyone else is <b class="tut-green">the Town</b>, and nobody knows who is who.<br><br><b>Town wins</b> by voting out every mafia member.<br><b>Mafia wins</b> by eliminating players until they equal the Town.<br><br>This 4-minute practice round walks you through a real game, one step at a time.' });
     add({ q:1, kind:'intro', title:'Every round has two halves',
-      text:'<div class="tut-halves"><div><span class="tut-moon">&#9790;</span><b>Night</b><br>Everyone acts in secret. The mafia choose someone to eliminate. Special roles use their powers.</div><div><span class="tut-sun">&#9728;</span><b>Day</b><br>The town learns who died, talks it over, accuses, defends, and finally <b>votes someone out</b>.</div></div>Then night falls again, until one side wins.' });
+      text:'<div class="tut-halves"><div><span class="tut-moon">&#9790;</span><b>Night</b><br>Everyone acts in secret. The mafia choose someone to eliminate. Special roles use their powers.</div><div><span class="tut-sun">&#9728;</span><b>Day</b><br>The town learns who was eliminated, talks it over, accuses, defends, and finally <b>votes someone out</b>.</div></div>Then night falls again, until one side wins.' });
     add({ kind:'intro', title:'You have a secret role',
       text:'At the start, every player is dealt a role that only they can see. Some are plain townsfolk. Others have powers: the <b>Detective</b> investigates, the <b>Doctor</b> protects, the <b>Godfather</b> silences.<br><br>In this practice round <b>you are the Detective</b>. Tap <i>Next</i> and night will fall.' , nextLabel:'Begin practice round' });
     // ---- night
@@ -338,7 +338,7 @@
     // ---- morning
     add({ q:1, title:'Dawn breaks', block:false, noBack:true, noForward:true, place:'t',
       enter:function(){ enterMorning(); },
-      text:'First you see your private result, then the whole town finds out who died overnight. Click <b>Continue</b> on each screen.',
+      text:'First you see your private result, then the whole town finds out who was eliminated overnight. Click <b>Continue</b> on each screen.',
       until:function(){ return shown('panel-day'); }, auto:500 });
     add({ title:'The day timer', target:'#daylayout-timer-bar', place:'b', noBack:true,
       text:'Day has two parts: <b>Discussion</b> (talk, accuse, defend) and then <b>Voting</b>. This bar shows which part you are in and how much time is left.' });

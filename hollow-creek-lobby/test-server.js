@@ -917,6 +917,8 @@ async function testStartCountdown() {
   send(host.ws, { type: 'start', playerCount: 6, mafiaCount: 1, roles });
   const c = await cd;
   assert(c.endsAt > Date.now() - 1000 && c.seconds >= 0, 'Countdown: every player in the room is told the game is about to start');
+  assert(Array.isArray(c.roles) && c.roles.reduce((n, r) => n + r.count, 0) === 6 && c.roles.every(r => r.role && r.count > 0), 'Countdown: the roles in play are sent (a count per role, one per seat, never who holds them)');
+  assert(!JSON.stringify(c).includes('"playerId"') && c.roles.every(r => Object.keys(r).sort().join() === 'count,role'), 'Countdown: the role list names no players');
   const late = await joinRoom(host.roomCode, 'SCLate');
   await started;
   assert(order[0] === 'startCountdown' && order.indexOf('gameState') > 0, 'Countdown: the game state only arrives after the countdown message');

@@ -2499,10 +2499,19 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
 .notebook-card-corners i:nth-child(3){left:0; bottom:0; background-position:0 100%;}
 .notebook-card-corners i:nth-child(4){right:0; bottom:0; background-position:100% 100%;}
 
-#start-countdown .sc-box{text-align:center; padding:34px 70px 30px; border:2px solid #b08840; border-radius:8px; background:linear-gradient(180deg, rgba(60,42,22,0.96), rgba(22,15,9,0.97)); box-shadow:0 0 60px rgba(0,0,0,0.8), inset 0 0 0 1px rgba(0,0,0,0.6);}
+#start-countdown .sc-box{text-align:center; padding:34px 70px 30px; max-width:min(92vw, 980px); border:2px solid #b08840; border-radius:8px; background:linear-gradient(180deg, rgba(60,42,22,0.96), rgba(22,15,9,0.97)); box-shadow:0 0 60px rgba(0,0,0,0.8), inset 0 0 0 1px rgba(0,0,0,0.6);}
 #start-countdown .sc-label{font-family:var(--font-type); letter-spacing:3px; text-transform:uppercase; font-size:15px; color:var(--parchment-dim);}
-#start-countdown .sc-num{font-family:var(--font-ornate); font-weight:700; font-size:150px; line-height:1.05; color:var(--gold-bright); text-shadow:0 4px 18px rgba(0,0,0,0.9);}
-#start-countdown .sc-num.pop{animation:scPop .8s ease-out;}
+#start-countdown .sc-deck{display:flex; flex-wrap:wrap; justify-content:center; gap:14px 12px; margin:20px 0 18px; min-height:150px;}
+#start-countdown .sc-card{width:104px; opacity:0; transform:translateY(-40px) scale(1.4) rotate(-6deg);}
+#start-countdown .sc-card.in{animation:scDeal .55s cubic-bezier(.2,.9,.3,1.2) forwards;}
+#start-countdown .sc-card .sc-pic{position:relative; width:104px; height:132px; border:2px solid #b08840; border-radius:6px; overflow:hidden; background:#120c07; box-shadow:0 6px 16px rgba(0,0,0,0.7);}
+#start-countdown .sc-card img{width:100%; height:100%; object-fit:cover; display:block;}
+#start-countdown .sc-card .sc-count{position:absolute; right:4px; bottom:4px; min-width:28px; padding:1px 7px; border-radius:12px; background:rgba(12,8,5,0.88); border:1px solid #b08840; color:var(--gold-bright); font-family:var(--font-type); font-size:15px; font-weight:700; text-align:center;}
+#start-countdown .sc-card .sc-name{margin-top:6px; font-family:var(--font-type); font-size:12px; letter-spacing:1px; text-transform:uppercase; color:var(--parchment);}
+#start-countdown .sc-bar{height:4px; border-radius:2px; background:rgba(176,136,64,0.25); overflow:hidden; margin:0 auto 12px; max-width:420px;}
+#start-countdown .sc-bar i{display:block; height:100%; width:100%; background:var(--gold-bright); transform-origin:left center;}
+@media (max-width:700px){ #start-countdown .sc-box{padding:22px 16px 20px;} #start-countdown .sc-box{max-height:94vh; overflow:auto;} #start-countdown .sc-card, #start-countdown .sc-card .sc-pic{width:68px;} #start-countdown .sc-card .sc-pic{height:86px;} #start-countdown .sc-card .sc-count{font-size:12px; min-width:22px; padding:0 5px;} #start-countdown .sc-card .sc-name{font-size:10px;} #start-countdown .sc-deck{gap:10px 8px;} }
+@keyframes scDeal{0%{opacity:0; transform:translateY(-40px) scale(1.4) rotate(-6deg);} 100%{opacity:1; transform:none;}}
 #start-countdown .sc-sub{font-family:var(--font-type); font-size:14px; color:var(--parchment-dim);}
 @keyframes scPop{0%{transform:scale(1.35); opacity:.4;} 40%{transform:scale(1); opacity:1;} 100%{transform:scale(1);}}
 
@@ -3250,7 +3259,7 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
 </div>
 
 <div id="start-countdown" class="role-card-overlay" style="display:none; z-index:450;" role="status" aria-live="polite">
-  <div class="sc-box"><div class="sc-label">The game begins in</div><div class="sc-num" id="start-countdown-num">10</div><div class="sc-sub">Get ready. Everyone is being seated.</div></div>
+  <div class="sc-box"><div class="sc-label">These roles are in the game</div><div class="sc-deck" id="start-countdown-deck"></div><div class="sc-bar"><i id="start-countdown-bar"></i></div><div class="sc-sub" id="start-countdown-sub">Shuffling the deck. Everyone is being seated.</div></div>
 </div>
 <div id="leave-confirm-modal" class="role-card-overlay" style="display:none; z-index:400;">
   <div class="role-card-modal-content player-action-content" style="text-align:center; max-width:min(460px,92vw);">
@@ -3473,7 +3482,7 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
           <div class="rule-rows">
             <div class="rule-row"><div class="rule-label"><b>Total seats</b><small>real players + <span id="setup-ai-count">11</span> placeholder townspeople</small></div>
               <div class="rule-ctl"><button class="rule-btn" id="setup-players-minus" aria-label="Fewer seats">&minus;</button><span class="rule-val" id="setup-players-count">12</span><button class="rule-btn" id="setup-players-plus" aria-label="More seats">+</button></div></div>
-            <div class="rule-row"><div class="rule-label"><b>Regular mafia</b><small>family members with an equal vote on who dies</small></div>
+            <div class="rule-row"><div class="rule-label"><b>Regular mafia</b><small>family members with an equal vote on who is eliminated</small></div>
               <div class="rule-ctl"><button class="rule-btn" id="setup-mafia-minus" aria-label="Fewer mafia">&minus;</button><span class="rule-val" id="setup-mafia-count">0</span><button class="rule-btn" id="setup-mafia-plus" aria-label="More mafia">+</button></div></div>
             <div class="rule-row"><div class="rule-label"><b>Discussion time</b><small>how long the town talks before voting opens</small></div>
               <div class="rule-ctl"><button class="rule-btn" id="setup-discuss-minus" aria-label="Shorter discussion">&minus;</button><span class="rule-val" id="setup-discuss-count">90s</span><button class="rule-btn" id="setup-discuss-plus" aria-label="Longer discussion">+</button></div></div>
@@ -3773,9 +3782,9 @@ var ROLE_BIO = {
   Vigilante:"You've decided the town can't afford to wait for a trial. Once — just once, for the rest of this game — you may choose someone in the night and end it yourself, no vote, no discussion. Choose wrong, and it isn't the family who comes for you next. It's your own conscience.",
   Consigliere:"You're the family's quiet research department — no gun, no vote on who gets eliminated, just a ledger and an ear to the ground. Each night you may look into one resident outside the family and learn exactly what they are, no guessing, no guilty-or-innocent hedge.",
   Mayor:"Hollow Creek elected you, though most days it's easy to forget that's worth anything. You're holding two cards close: once, and only once, you may quietly double your own vote for the day — no announcement, nobody the wiser. And every single day, whether you've spent that card or not, if the town's vote ever ends in a tie, it's your pick that decides who goes — nobody ever finds out that's what happened either.",
-  Mortician:"The bodies pass through your care one way or another, and you've learned to read what a person leaves behind. Starting the second night, you may examine whoever died in the dark the night before and learn exactly who they really were — nothing to work with on the very first night, nothing at all after a night no one died, and if two go down together, you'll only have hands enough to examine one.",
+  Mortician:"The bodies pass through your care one way or another, and you've learned to read what a person leaves behind. Starting the second night, you may examine whoever was eliminated in the dark the night before and learn exactly who they really were — nothing to work with on the very first night, nothing at all after a night no one was eliminated, and if two go down together, you'll only have hands enough to examine one.",
   Framer:"You've got a talent for planting exactly the right idea in exactly the right head. Each night you get a vote on who the family eliminates, same as anyone else in it, and you alone may also point the finger at one resident — if they're one of the family, whatever the detective sees of them tonight comes back clean; if they're not, it comes back looking exactly like guilt. No reason you can't use it to cover your own people, either.",
-  Hitman:"You work for the family, but not with it. No seat at their table, no vote on who dies tonight, no whispered plan you're ever let in on — your own people don't even know your face, not for certain, though the sharper ones among them will eventually notice who's never in the room. If the town ever catches on and votes you out, you get one last move: take somebody down with you on the way out, and nobody's off-limits, not even your own family.",
+  Hitman:"You work for the family, but not with it. No seat at their table, no vote on who is eliminated tonight, no whispered plan you're ever let in on — your own people don't even know your face, not for certain, though the sharper ones among them will eventually notice who's never in the room. If the town ever catches on and votes you out, you get one last move: take somebody down with you on the way out, and nobody's off-limits, not even your own family.",
   CultLeader:"You've built something quiet in this town, and it's growing. Each night you may reach out to one resident — anyone, even one of the family — and pull them into the fold. They'll know exactly who you are the moment it takes, and who else has already joined. You don't need to outlast the mafia or the town, not exactly. You just need to become most of what's left.",
   Civilian:"You don't have a badge, a secret, or a special gift. Just a vote, a memory for who said what, and whatever instinct got you this far."
 };
@@ -3786,18 +3795,18 @@ var ROLE_POINTS = {
   DoubleAgent:["Equal vote each night on who the family eliminates", "Reads innocent the first time you're investigated", "Reads guilty on every investigation after that"],
   Doctor:["Protect one player every night from the mafia's elimination", "You may protect yourself"],
   Miller:["No night action of your own", "Always reads guilty if investigated — even though you're innocent"],
-  BountyHunter:["Place a bounty on one player every night", "Earn a mark whenever they die — voted out, eliminated by the mafia, or otherwise", "Collect three marks and you win, no matter how the rest of the game turns out"],
+  BountyHunter:["Place a bounty on one player every night", "Earn a mark whenever they are eliminated — voted out, eliminated by the mafia, or otherwise", "Collect three marks and you win, no matter how the rest of the game turns out"],
   CrazyGranny:["No night action while the mafia is still alive", "If the mafia is wiped out with you alive, you flip mafia and take their vote"],
   Coward:["Choose someone to hide behind every night", "If the mafia targets you, they hit your cover instead"],
   Farmer:["No night action of your own", "If the town votes you out, take one more player down with you"],
   NavySeal:["No night action of your own", "The first mafia attempt on you fails — you eliminate one of them instead, once only"],
-  Vigilante:["Once per game, eliminate one player directly at night", "Independent of the Doctor, Coward, or Navy Seal — nothing protects or redirects it", "If the target turns out to be town-aligned, you die too"],
+  Vigilante:["Once per game, eliminate one player directly at night", "Independent of the Doctor, Coward, or Navy Seal — nothing protects or redirects it", "If the target turns out to be town-aligned, you are eliminated too"],
   Consigliere:["Mafia-aligned — you already see your family's teammates directly", "Investigate one non-teammate every night and learn their exact role by name", "No equal vote of your own on who the family eliminates"],
   Mayor:["Once per game, quietly double your own vote for the day — spent the moment you use it, no announcement", "Silently, every day: if the vote ends in a tie, whoever you voted for wins the tiebreak — no one is ever told"],
-  Mortician:["No night action on the first night — nothing has died yet", "Starting the second night, examine whoever died the night before and learn their exact role", "If two died the same night, choose which one to examine", "Never reveals a day-vote elimination — that's already public"],
+  Mortician:["No night action on the first night — nothing has happened yet", "Starting the second night, examine whoever was eliminated the night before and learn their exact role", "If two were eliminated the same night, choose which one to examine", "Never reveals a day-vote elimination — that's already public"],
   Framer:["Equal vote each night on who the family eliminates", "Also targets one player to alter their investigation read for that round only", "Target is mafia-aligned: they read innocent, shielding them", "Target is town-aligned: they read guilty, framing them", "Can target a mafia-aligned teammate — no restriction", "Never affects Consigliere's exact-role read, or a neutral/cult target's suspicious read"],
   Hitman:["Mafia-aligned, but cut out of mafia chat and the shared elimination vote entirely", "No passive way to know who your own teammates are", "If voted out by the town specifically, take one more player down with you — anyone, even a teammate", "Triggers only on a day-vote elimination, never a night elimination or any other cause"],
-  CultLeader:["Each night, convert one player to the cult — town or mafia-aligned, no restriction", "Blocked if the Doctor protects that target the same night", "A convert immediately learns who you and the rest of the cult are, and joins cult chat", "A converted mafia-aligned player keeps their own abilities but loses the shared elimination vote", "Cult wins once cult members are a majority or equal share of everyone still alive", "If you die, existing converts stay cult-aligned — only new recruitment stops"],
+  CultLeader:["Each night, convert one player to the cult — town or mafia-aligned, no restriction", "Blocked if the Doctor protects that target the same night", "A convert immediately learns who you and the rest of the cult are, and joins cult chat", "A converted mafia-aligned player keeps their own abilities but loses the shared elimination vote", "Cult wins once cult members are a majority or equal share of everyone still alive", "If you are eliminated, existing converts stay cult-aligned — only new recruitment stops"],
   Civilian:["No night action, no special ability", "Just your vote and your read on the room"]
 };
 var DEFAULT_ROLE_POOL = ['Detective','Godfather','DoubleAgent','Doctor','Miller','BountyHunter','CrazyGranny','Civilian','Civilian','Civilian','Civilian','Civilian'];
@@ -4304,7 +4313,7 @@ function handleServerMessage(msg){
     var mpErrEl = document.getElementById('mpentry-error');
     if(mpErrEl){ mpErrEl.textContent = msg.message || "Couldn't rejoin that game."; mpErrEl.style.display = 'block'; }
   } else if(msg.type==='startCountdown'){
-    showStartCountdown(msg.endsAt);
+    showStartCountdown(msg.endsAt, msg.roles, msg.startedAt);
   } else if(msg.type==='startCancelled'){
     hideStartCountdown(true);
   } else if(msg.type==='roster'){
@@ -4527,7 +4536,7 @@ function fmtSeconds(n){ return n >= 60 ? Math.floor(n / 60) + ':' + ('0' + (n % 
 function currentRuleValues(){
   return [
     ['seats', 'Total seats', 'real players + placeholder townspeople', String(GAME_CONFIG.playerCount)],
-    ['mafia', 'Regular mafia', 'family members with an equal vote on who dies', String(GAME_CONFIG.mafiaCount)],
+    ['mafia', 'Regular mafia', 'family members with an equal vote on who is eliminated', String(GAME_CONFIG.mafiaCount)],
     ['discuss', 'Discussion time', 'how long the town talks before voting opens', fmtSeconds(GAME_CONFIG.discussSeconds)],
     ['vote', 'Voting time', 'how long the town has to cast votes', fmtSeconds(GAME_CONFIG.voteSeconds)],
     ['speaker', 'Speaker time', 'each speaker\'s turn on the stage when others wait', fmtSeconds(GAME_CONFIG.speakerSeconds)],
@@ -7910,10 +7919,10 @@ var ROLE_ONELINE = {
   Coward:'Hide behind someone: if the mafia comes for you, they get them.',
   Farmer:'If the town votes you out, you take one player with you.',
   NavySeal:'The first attempt on your life fails, and a mafia member is eliminated instead.',
-  Vigilante:'One night shot per game. Shoot a town player and you die too.',
+  Vigilante:'One night shot per game. Shoot a town player and you are eliminated too.',
   Consigliere:'Mafia. Learn one player\'s exact role each night.',
   Mayor:'Double your vote once; your pick breaks vote ties.',
-  Mortician:'Learn the exact role of whoever died last night.',
+  Mortician:'Learn the exact role of whoever was eliminated last night.',
   Framer:'Mafia. Frame a player as guilty, or shield one as innocent.',
   Hitman:'Mafia, cut off from the family. If voted out, take someone down.',
   CultLeader:'Convert a player each night; the cult wins at parity.',
@@ -7924,7 +7933,7 @@ function rulesGlanceHTML(){
   var items = [
     ['Two sides', 'The <b>Town</b> wins by voting out every mafia member. The <b>Mafia</b> win the moment they equal everyone else still alive.'],
     ['Night', 'Roles with a power use it in secret: investigate, protect, silence, eliminate. Nobody sees anyone else\'s choice until morning.'],
-    ['Day', 'The town learns who died overnight, talks it over in chat, then votes. Your <b>Notebook</b> keeps your private notes and every vote.'],
+    ['Day', 'The town learns who was eliminated overnight, talks it over in chat, then votes. Your <b>Notebook</b> keeps your private notes and every vote.'],
     ['The vote', 'The player with the most votes is voted out and their role is revealed. Once you are out you stay out, but you can keep watching.'],
     ['Ties', 'If two or more players tie for the most votes, <b>one of them is chosen by drawing lots</b>. If a living <b>Mayor</b> voted for one of the tied players, that pick wins the tie instead. The reveal screen says which happened.'],
     ['Example', 'Everyone votes. Otis gets the most votes, so Otis is voted out and the town sees his role. If Otis and Mabel had tied, the town would have drawn lots between them.']
@@ -9190,25 +9199,33 @@ function updateQuickVoteBtn(){
   btn.classList.toggle('active', quickVoteMode);
   btn.innerHTML = quickVoteMode ? 'Pick a player&hellip;' : 'Vote for&hellip;';
 }
-// 10-second countdown shown to the whole room after the host presses Start (the server starts the game when it ends)
-var startCountdownTimer = null;
-function showStartCountdown(endsAt){
-  var box = document.getElementById('start-countdown'), num = document.getElementById('start-countdown-num');
+// Shown to the whole room after the host presses Start: the roles in play are dealt out one card at a time (the server starts the game when the timer ends)
+var startCountdownTimer = null, startCountdownDeal = [];
+var START_ROLE_ORDER = ['Godfather','Mafia','Framer','Consigliere','Hitman','DoubleAgent','CultLeader'];
+function showStartCountdown(endsAt, roles, startedAt){
+  var box = document.getElementById('start-countdown'), deck = document.getElementById('start-countdown-deck'), bar = document.getElementById('start-countdown-bar');
   if(!box) return;
-  clearInterval(startCountdownTimer);
+  clearInterval(startCountdownTimer); startCountdownDeal.forEach(clearTimeout); startCountdownDeal = [];
   box.style.display = 'flex';
   var btn = document.getElementById('setup-start-btn'); if(btn) btn.disabled = true;
-  var last = null;
-  function tick(){
-    var left = Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
-    num.textContent = left;
-    if(left !== last){ last = left; try{ SoundFX.playTick && SoundFX.playTick(); }catch(e){} num.classList.remove('pop'); void num.offsetWidth; num.classList.add('pop'); }
-    if(left <= 0) clearInterval(startCountdownTimer);
-  }
-  tick(); startCountdownTimer = setInterval(tick, 200);
+  var list = (roles || []).filter(function(r){ return ROLE_IMG[r.role]; });
+  list.sort(function(a, b){
+    var ia = START_ROLE_ORDER.indexOf(a.role), ib = START_ROLE_ORDER.indexOf(b.role);
+    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+  });
+  deck.innerHTML = list.map(function(r){
+    return '<div class="sc-card"><div class="sc-pic"><img src="'+ROLE_IMG[r.role]+'" alt="">'+(r.count > 1 ? '<span class="sc-count">&times;'+r.count+'</span>' : '')+'</div><div class="sc-name">'+(ROLE_SHORT[r.role] || r.role)+'</div></div>';
+  }).join('');
+  var total = Math.max(1, endsAt - Date.now());
+  var gap = Math.min(450, Math.max(120, (total * 0.65) / Math.max(1, list.length)));
+  Array.prototype.forEach.call(deck.children, function(card, i){
+    startCountdownDeal.push(setTimeout(function(){ card.classList.add('in'); try{ SoundFX.playTick && SoundFX.playTick(); }catch(e){} }, 250 + i * gap));
+  });
+  bar.style.transition = 'none'; bar.style.transform = 'scaleX(1)'; void bar.offsetWidth;
+  bar.style.transition = 'transform ' + total + 'ms linear'; bar.style.transform = 'scaleX(0)';
 }
 function hideStartCountdown(cancelled){
-  clearInterval(startCountdownTimer); startCountdownTimer = null;
+  clearInterval(startCountdownTimer); startCountdownTimer = null; startCountdownDeal.forEach(clearTimeout); startCountdownDeal = [];
   var box = document.getElementById('start-countdown'); if(box) box.style.display = 'none';
   if(cancelled){ var btn = document.getElementById('setup-start-btn'); if(btn) btn.disabled = false; }
 }

@@ -20,7 +20,7 @@ const PORT = process.env.PORT || 8080;
 // voting time are also host-configurable per room (see sanitizeDurationMs
 // below and room.discussMs/room.voteMs) - these constants are just the
 // defaults a room falls back to until the host picks something else.
-const START_COUNTDOWN_MS = Number(process.env.START_COUNTDOWN_MS) || 10000;
+const START_COUNTDOWN_MS = Number(process.env.START_COUNTDOWN_MS) || 9000;
 const NIGHT_DURATION_MS = Number(process.env.NIGHT_DURATION_MS) || 60000;
 const DAY_DISCUSS_DURATION_MS = Number(process.env.DAY_DISCUSS_DURATION_MS) || 90000;
 // Once every living player has locked in their night choice, hold the night screen this long before resolving so the change to morning is a clean transition instead of an instant flash.
@@ -1261,11 +1261,16 @@ wss.on('connection', (socket) => {
       if (room.started || room.startTimer) return;
 
       // Dry run so a bad setup (too few seats, impossible role mix) is reported right away rather than after the countdown.
+      let startRoles = [];
       {
         let pc = Number(msg.playerCount); if (!Number.isFinite(pc)) pc = 8; pc = Math.round(pc);
         let mc = Number(msg.mafiaCount); if (!Number.isFinite(mc)) mc = 1; mc = Math.max(0, Math.min(G.MAX_MAFIA_COUNT, Math.round(mc)));
         try {
-          G.createGame(room.players.map(p => ({ id: p.id, name: p.name, avatarKey: p.avatarKey, gameIconKey: p.gameIconKey, color: p.color })), { playerCount: pc, mafiaCount: mc, roles: sanitizeRolesConfig(msg.roles) });
+          const dry = G.createGame(room.players.map(p => ({ id: p.id, name: p.name, avatarKey: p.avatarKey, gameIconKey: p.gameIconKey, color: p.color })), { playerCount: pc, mafiaCount: mc, roles: sanitizeRolesConfig(msg.roles) });
+          // Which roles are in the game (never who holds them) - the role pool is fixed by the setup, only the dealing is random.
+          const counts = {};
+          dry.players.forEach(p => { counts[p.role] = (counts[p.role] || 0) + 1; });
+          startRoles = Object.keys(counts).map(role => ({ role, count: counts[role] }));
         } catch (e) {
           socket.send(JSON.stringify({ type: 'error', message: e.message }));
           return;
@@ -1274,7 +1279,7 @@ wss.on('connection', (socket) => {
 
       // The game begins START_COUNTDOWN_MS after the host presses Start; everyone in the room sees the countdown and the lobby is locked meanwhile.
       room.startsAt = Date.now() + START_COUNTDOWN_MS;
-      broadcastRoom(room, { type: 'startCountdown', endsAt: room.startsAt, seconds: Math.round(START_COUNTDOWN_MS / 1000) });
+      broadcastRoom(room, { type: 'startCountdown', endsAt: room.startsAt, seconds: Math.round(START_COUNTDOWN_MS / 1000), startedAt: Date.now(), roles: startRoles });
       room.startTimer = setTimeout(() => {
         room.startTimer = null; room.startsAt = null;
         if (room.started || !rooms[socket.roomCode]) return;
