@@ -1072,7 +1072,7 @@ assert(resCultF.cultConvertedPlayer === null, 'Phase2 Task5: resolveNight confir
   st.pendingNightVotes[mf.id] = {kill: cow.id};
   st.pendingNightVotes[cow.id] = {hideBehind: vet.id};     // ...who hops behind the War Veteran
   st.pendingNightVotes[doc.id] = {protect: doc.id};        // the Doctor protects themself, which does nothing here
-  st.pendingNightVotes[vig.id] = {vigilanteKill: gf.id};   // and the Vigilante shoots the Godfather
+  st.pendingNightVotes[vig.id] = {vigilanteKill: doc.id};  // and the Vigilante shoots the Doctor (not a mafia member, so the Veteran's random counter can't pre-empt the shot)
   G.resolveNight(st);
   const rec = st.nightRecap[0];
   const kinds = rec.steps.map(x => x.kind);
