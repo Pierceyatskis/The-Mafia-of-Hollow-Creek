@@ -138,6 +138,7 @@ function createGame(seats, config){
   assignGameIcons(players);
   return {
     night: 1, phase: 'night', players, bountyTarget: null, bountyPoints: 0, history: [],
+    recapQueue: [],   // recap lines produced by helpers that don't know whether it is night or day (bounty marks); drained by whoever is resolving
     nightRecap: [],   // one plain-language explanation per night (and the day vote after it), shown only once the game is over
     chatLog: [], mafiaChatLog: [], cultChatLog: [], voteLog: [], voteHistory: [], winner: null, gameOver: false,
     pendingNightVotes: {}, // playerId -> {kill, silence, protect, investigate, bounty, hideBehind}
@@ -273,6 +274,8 @@ function checkBountyHit(state, deadPlayer){
   if(deadPlayer && state.bountyTarget === deadPlayer.id){
     state.bountyPoints++;
     log(state, "The bounty hunter's private ledger gains a point.");
+    const bh = state.players.find(p => p.role === 'BountyHunter');
+    (state.recapQueue = state.recapQueue || []).push({kind:'bountymark', role:'BountyHunter', text: deadPlayer.name + ' was the Bounty Hunter\'s target and was eliminated, so ' + (bh ? bh.name : 'the Bounty Hunter') + ' earns a mark (' + state.bountyPoints + ' of 3).' + (state.bountyPoints >= 3 ? ' Three marks wins the game.' : '')});
   }
 }
 
@@ -742,7 +745,8 @@ function resolveNight(state){
   }
   const gone = nightDeaths.map(d => d.name + ' (' + recapRole(d.role) + ')');
   rec('result', gone.length ? 'Eliminated overnight: ' + gone.join(', ') + '.' : 'Nobody was eliminated overnight.');
-  state.nightRecap.push({night: state.night, steps, day: null});
+  (state.recapQueue || []).splice(0).forEach(q => steps.push(q));
+  state.nightRecap.push({night: state.night, steps, day: null, extras: []});
   state.cachedOvernightReport = reportLines.join(' ');
   const gameOver = checkWin(state);
 
@@ -786,6 +790,7 @@ function resolveDayVote(state, timedOutFallbackId){
     if(target) state.pendingDayVotes[p.id] = target;
   });
 
+  const mayorRevealedAtStart = state.mayorRevealedId ? byId(state, state.mayorRevealedId) : null;
   const maxV = Math.max(...Object.values(tally));
   // Nobody cast a single vote for anyone (everyone abstained / no ballots):
   // nobody is voted out. Previously every living player tied at 0 and one was
@@ -819,6 +824,8 @@ function resolveDayVote(state, timedOutFallbackId){
   state.lastDayVoteTie = (leaders.length > 1 && lead) ? { ids: leaders.slice(), votes: maxV, mayorResolved: mayorTiebreakResolved, winnerId: lead.id } : null;
   const recapEntry = state.nightRecap.find(r => r.night === state.night);
   if(recapEntry){
+    const counts = Object.keys(tally).filter(k => tally[k] > 0).sort((a, b) => tally[b] - tally[a]).map(k => byId(state, k).name + ' ' + tally[k]);
+    recapEntry.tally = counts.length ? 'Votes: ' + counts.join(', ') + '.' + (mayorRevealedAtStart ? ' ' + mayorRevealedAtStart.name + ' (Mayor) revealed themselves, so their vote counted double.' : '') : '';
     recapEntry.day = lead
       ? lead.name + ' (' + recapRole(lead.role) + ') was voted out by the town with ' + maxV + ' vote' + (maxV === 1 ? '' : 's') + (mayorTiebreakResolved ? ', after the Mayor quietly broke a tie' : (leaders.length > 1 ? ', after a tie was settled by chance' : '')) + '.'
       : 'Nobody was voted out by the town.';
@@ -889,9 +896,11 @@ function resolveDayVote(state, timedOutFallbackId){
         checkBountyHit(state, target);
         log(state, lead.name+' took '+target.name+' down with them on the way out.');
         state.farmerRevengeName = target.name;
+        if(recapEntry) recapEntry.extras.push({kind:'revenge', role: lead.role, text: lead.name + ' (' + recapRole(lead.role) + ') was voted out, but gets one last move: they took ' + recapName(target) + ' down with them.'});
       }
     }
   }
+  if(recapEntry) (state.recapQueue || []).splice(0).forEach(q => recapEntry.extras.push(q));
 
   checkGrannyFlip(state);
   const gameOver = checkWin(state);
@@ -910,6 +919,15 @@ function resolveFarmerRevenge(state, farmerId, targetId){
     log(state, farmer.name+' took '+target.name+' down with them on the way out.');
     state.farmerRevengeName = target.name;
     revengeKillOccurred = true;
+  }
+  {
+    const re = state.nightRecap.find(r => r.night === state.night);
+    if(re){
+      re.extras.push({kind:'revenge', role: farmer.role, text: revengeKillOccurred
+        ? farmer.name + ' (' + recapRole(farmer.role) + ') was voted out, but gets one last move: they took ' + recapName(target) + ' down with them.'
+        : farmer.name + ' (' + recapRole(farmer.role) + ') was voted out and could have taken someone with them, but did not choose anyone.'});
+      (state.recapQueue || []).splice(0).forEach(q => re.extras.push(q));
+    }
   }
   state.farmerRevengePending = null;
   const gameOver = checkWin(state);
@@ -1456,6 +1474,7 @@ function buildGameSummary(state, scoreRounds){
       whispers: (state.whisperLog || []).length
     },
     nightRecap: (state.nightRecap || []).slice(),
+    recapEnd: {winner, text: winner === 'town' ? 'Every member of the mafia and the cult is gone, so the town wins.' : winner === 'mafia' ? 'The mafia now equal or outnumber everyone else still alive, so the town can no longer outvote them. The mafia wins.' : winner === 'cult' ? 'The cult now equals or outnumbers everyone else still alive, so the cult wins.' : winner === 'bounty' ? 'The Bounty Hunter collected three marks, so they win no matter who else is left.' : ''},
     timeline: (state.history || []).slice()
   };
 }

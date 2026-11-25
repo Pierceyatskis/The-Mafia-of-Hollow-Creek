@@ -1081,4 +1081,20 @@ assert(resCultF.cultConvertedPlayer === null, 'Phase2 Task5: resolveNight confir
   assert(/nothing can stop|cannot stop/.test(rec.steps.find(x => x.kind === 'vigilante').text), 'Recap: it says the Vigilante\'s shot cannot be stopped');
   assert(G.buildGameSummary(st, []).nightRecap.length === 1, 'Recap: the end-of-game summary carries it');
 }
+{
+  // Recap: bounty marks, the day vote tally and a Farmer's last move are explained too
+  const R = {Godfather:true, DoubleAgent:false, Detective:false, Doctor:false, Miller:false, BountyHunter:true, CrazyGranny:false, Coward:false, Farmer:true, NavySeal:false, Vigilante:false};
+  const st = G.createGame([{id:'a',name:'A'},{id:'b',name:'B'},{id:'c',name:'C'},{id:'d',name:'D'},{id:'e',name:'E'},{id:'f',name:'F'}], {playerCount: 8, mafiaCount: 1, roles: R});
+  const bh = st.players.find(p => p.role === 'BountyHunter'), gf = st.players.find(p => p.role === 'Godfather'), mf = st.players.find(p => p.role === 'Mafia'), farmer = st.players.find(p => p.role === 'Farmer');
+  const victim = st.players.find(p => p.align === 'town' && p.id !== bh.id && p.id !== farmer.id);
+  st.pendingNightVotes = {}; st.pendingNightVotes[bh.id] = {bounty: victim.id}; st.pendingNightVotes[gf.id] = {kill: victim.id}; st.pendingNightVotes[mf.id] = {kill: victim.id};
+  G.resolveNight(st);
+  assert(st.nightRecap[0].steps.some(x => x.kind === 'bountymark' && /1 of 3/.test(x.text)), 'Recap: a Bounty Hunter mark is explained when their target is eliminated');
+  living: { st.pendingDayVotes = {}; G.living(st).forEach(p => { st.pendingDayVotes[p.id] = farmer.id; }); }
+  const r = G.resolveDayVote(st);
+  assert(/Votes: .*\d/.test(st.nightRecap[0].tally) && /voted out/.test(st.nightRecap[0].day), 'Recap: the day vote shows the vote counts');
+  if(r.farmerRevengePending) G.resolveFarmerRevenge(st, farmer.id, G.living(st).find(p => p.id !== farmer.id).id);
+  assert(st.nightRecap[0].extras.some(x => x.kind === 'revenge' && /took .* down with them/.test(x.text)), 'Recap: the Farmer\'s last move is explained');
+  assert(G.buildGameSummary(st, []).recapEnd && typeof G.buildGameSummary(st, []).recapEnd.text === 'string', 'Recap: the summary says why the game ended');
+}
 console.log('\nAll game.js checks completed.');

@@ -9223,7 +9223,7 @@ document.getElementById('eg-close').addEventListener('click', function(){
 });
 document.getElementById('eg-play-again').addEventListener('click', function(){ document.getElementById('play-again-btn').click(); });
 var RECAP_ACTOR = {family:'Mafia', coward:'Coward', doctor:'Doctor', veteran:'NavySeal', silence:'Godfather', vigilante:'Vigilante', detective:'Detective', consigliere:'Consigliere', mortician:'Mortician', cult:'CultLeader', bounty:'BountyHunter', frame:'Framer', granny:'CrazyGranny'};
-var RECAP_TITLE = {family:'The family', coward:'Coward', doctor:'Doctor', veteran:'War Veteran', silence:'Godfather', vigilante:'Vigilante', detective:'Detective', consigliere:'Consigliere', mortician:'Mortician', cult:'Cult Leader', bounty:'Bounty Hunter', frame:'Framer', granny:'Crazy Granny', result:'The result', day:'The day vote'};
+var RECAP_TITLE = {end:'The ending', bountymark:'Bounty Hunter', revenge:'Last move', family:'The family', coward:'Coward', doctor:'Doctor', veteran:'War Veteran', silence:'Godfather', vigilante:'Vigilante', detective:'Detective', consigliere:'Consigliere', mortician:'Mortician', cult:'Cult Leader', bounty:'Bounty Hunter', frame:'Framer', granny:'Crazy Granny', result:'The result', day:'The day vote'};
 // the short outcome label shown on each link of the chain
 function recapTag(st){
   var t = st.text || '', m;
@@ -9238,6 +9238,9 @@ function recapTag(st){
     case 'consigliere': case 'mortician': return 'Role learned';
     case 'cult': return /failed/.test(t) ? 'Failed' : 'Converted';
     case 'bounty': return 'Bounty set';
+    case 'bountymark': return 'Earned a mark';
+    case 'revenge': return /did not choose/.test(t) ? 'Passed' : 'Took someone down';
+    case 'end': return 'Game over';
     case 'frame': return 'Framed';
     case 'granny': return 'Turned';
     case 'result': return /Nobody/.test(t) ? 'Quiet night' : 'Eliminated';
@@ -9245,12 +9248,19 @@ function recapTag(st){
   }
   return '';
 }
-function recapPicHTML(kind, cls){
-  var role = RECAP_ACTOR[kind];
+function recapTeamClass(st){
+  var actor = st.role || RECAP_ACTOR[st.kind];
+  if(!actor) return st.kind === 'result' ? 'mafia' : 'none';
+  var team = roleTeamLabel(actor);
+  return team === 'Mafia' ? 'mafia' : team === 'Town' ? 'town' : 'other';
+}
+function recapPicHTML(kind, cls, roleOverride){
+  var role = roleOverride || RECAP_ACTOR[kind];
   if(role && ROLE_IMG[role]){
     var team = roleTeamLabel(role);
     return '<span class="'+cls+' tm-'+(team === 'Mafia' ? 'mafia' : team === 'Town' ? 'town' : 'other')+'"><img src="'+ROLE_IMG[role]+'" alt=""></span>';
   }
+  if(kind === 'end') return '<span class="'+cls+' stamp tm-none"><img src="'+PAINTED_X_IMG+'" alt=""></span>';
   if(kind === 'result') return '<span class="'+cls+' stamp tm-mafia"><img src="'+PAINTED_X_IMG+'" alt=""></span>';
   return '<span class="'+cls+' stamp tm-none"><img src="'+(typeof DAYTIME_IMG !== 'undefined' && DAYTIME_IMG.ballotWaxSeal ? DAYTIME_IMG.ballotWaxSeal : PAINTED_X_IMG)+'" alt=""></span>';
 }
@@ -9258,14 +9268,14 @@ function openRecapModal(){
   var body = document.getElementById('recap-body');
   var rounds = (latestSummary && latestSummary.nightRecap) || [];
   body.innerHTML = rounds.length ? rounds.map(function(r){
-    var all = r.steps.slice(); if(r.day) all.push({kind:'day', text:r.day});
+    var all = r.steps.slice(); if(r.day) all.push({kind:'day', text:r.day + (r.tally ? ' ' + r.tally : '')}); (r.extras || []).forEach(function(x){ all.push(x); });
+    if(r === rounds[rounds.length - 1] && latestSummary.recapEnd && latestSummary.recapEnd.text) all.push({kind:'end', text:latestSummary.recapEnd.text});
     var chain = all.map(function(st){
-      return '<div class="recap-link">'+recapPicHTML(st.kind, 'rl-pic')+'<span class="rl-tag tm-'+(RECAP_ACTOR[st.kind] ? (roleTeamLabel(RECAP_ACTOR[st.kind]) === 'Mafia' ? 'mafia' : roleTeamLabel(RECAP_ACTOR[st.kind]) === 'Town' ? 'town' : 'other') : 'none')+'"><b>'+escapeHtmlMp(RECAP_TITLE[st.kind] || st.kind)+'</b>'+escapeHtmlMp(recapTag(st))+'</span></div>';
+      return '<div class="recap-link">'+recapPicHTML(st.kind, 'rl-pic', st.role)+'<span class="rl-tag tm-'+recapTeamClass(st)+'"><b>'+escapeHtmlMp(RECAP_TITLE[st.kind] || st.kind)+'</b>'+escapeHtmlMp(recapTag(st))+'</span></div>';
     }).join('<div class="recap-arrow"></div>');
     var steps = all.map(function(st){
-      var actor = RECAP_ACTOR[st.kind], team = actor ? roleTeamLabel(actor) : '';
-      var tm = actor ? (team === 'Mafia' ? 'mafia' : team === 'Town' ? 'town' : 'other') : (st.kind === 'result' ? 'mafia' : 'none');
-      return '<div class="recap-step '+st.kind+'">'+recapPicHTML(st.kind, 'recap-pic')+'<div class="recap-card tm-'+tm+'"><div class="rc-top"><span class="rc-role">'+escapeHtmlMp(RECAP_TITLE[st.kind] || st.kind)+'</span><span class="rc-tag">'+escapeHtmlMp(recapTag(st))+'</span></div><div class="rc-text">'+escapeHtmlMp(st.text)+'</div></div></div>';
+      var tm = recapTeamClass(st);
+      return '<div class="recap-step '+st.kind+'">'+recapPicHTML(st.kind, 'recap-pic', st.role)+'<div class="recap-card tm-'+tm+'"><div class="rc-top"><span class="rc-role">'+escapeHtmlMp(RECAP_TITLE[st.kind] || st.kind)+'</span><span class="rc-tag">'+escapeHtmlMp(recapTag(st))+'</span></div><div class="rc-text">'+escapeHtmlMp(st.text)+'</div></div></div>';
     }).join('');
     return '<div class="recap-night"><h3>Night '+r.night+'</h3><div class="recap-chain">'+chain+'</div><div class="recap-steps">'+steps+'</div></div>';
   }).join('') : '<p class="intro-modal-text">No night recap is available for this game.</p>';
