@@ -428,7 +428,7 @@
   }
   function start(onFinish, opts){
     if(T.active) return;
-    if(typeof myRoomCode !== 'undefined' && myRoomCode){ if(typeof showComingSoonToast === 'function'){ /* reuse toast style */ } alert('Leave your current room before starting the tutorial.'); return; }
+    if(typeof myRoomCode !== 'undefined' && myRoomCode){ showSealNotice('Leave your current room before starting the tutorial.', {ok:true}); return; }
     resetClientState();
     T.active = true; T.idx = 0; T.flags = {}; T.onTimers = []; T.onFinish = onFinish || null; T.quick = !!(opts && opts.quick); T.steps = buildSteps().filter(function(st){ return !T.quick || st.q; });
     T.origSendWS = window.sendWS;

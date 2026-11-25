@@ -75,8 +75,22 @@ body.game-mode{height:100%; overflow:hidden;}
 #panel-mpentry .mp-card .btn{align-self:flex-start; font-size:16px; padding:12px 26px;}
 #panel-mpentry .mp-card input[type=text]{text-transform:uppercase; width:100%; max-width:200px; box-sizing:border-box; background:var(--panel-2); border:1px solid var(--gold-dim); border-radius:6px; padding:11px 14px; font-family:var(--font-type); font-size:22px; letter-spacing:6px; color:var(--parchment);}
 @media (max-width:1100px){ #panel-mpentry .mp-grid{grid-template-columns:1fr;} }
-#reconnect-banner{display:none; position:fixed; top:14px; left:50%; transform:translateX(-50%); z-index:1001; background:rgba(20,16,12,0.94); border:2px solid var(--gold-dim); border-radius:6px; padding:10px 20px; font-family:var(--font-type); font-size:13px; letter-spacing:0.5px; color:var(--parchment); box-shadow:0 4px 14px rgba(0,0,0,0.5);}
-#reconnect-banner.showing{display:block;}
+/* Every pop-up notice is the same wax-seal card: the seal stamps down at the left edge, the message sits on dark parchment beside it. */
+.seal-card{position:fixed; width:max-content; z-index:2147482000; display:flex; align-items:center; gap:14px; max-width:min(92vw, 520px); box-sizing:border-box; padding:12px 22px 12px 52px; margin-left:0; background:linear-gradient(180deg, #34231a, #1d130d); border:1px solid #8a6a3a; border-radius:8px; box-shadow:0 10px 28px rgba(0,0,0,0.65), inset 0 0 0 1px rgba(0,0,0,0.5); color:#f0e2c2; font-family:var(--font-body); font-size:14.5px; line-height:1.4; text-align:left; pointer-events:none;}
+.seal-card .sn-seal{position:absolute; left:-18px; top:50%; width:62px; height:62px; margin-top:-31px; transform:rotate(-9deg); filter:drop-shadow(0 3px 5px rgba(0,0,0,0.7)); object-fit:contain;}
+.seal-card .sn-text{min-width:0; overflow-wrap:anywhere;}
+.seal-card .sn-ok{display:none; flex-shrink:0; pointer-events:auto; font-size:13px; padding:7px 18px;}
+#seal-notice{left:50%; bottom:70px; opacity:0; transform:translate(-50%, 10px); transition:opacity .25s ease, transform .25s ease;}
+#seal-notice.show{opacity:1; transform:translate(-50%, 0);}
+#seal-notice.show .sn-seal{animation:sealStamp .45s cubic-bezier(.2,.9,.3,1.3);}
+#seal-notice.modal{bottom:auto; top:42%; margin-left:18px; transform:translate(-50%, -50%); flex-wrap:wrap; justify-content:flex-end; pointer-events:auto;}
+#seal-notice.modal .sn-text{flex:1 1 200px;} #seal-notice.modal .sn-ok{display:inline-block;}
+#seal-backdrop{display:none; position:fixed; inset:0; z-index:2147481999; background:rgba(0,0,0,0.55);}
+#seal-backdrop.show{display:block;}
+#reconnect-banner{display:none; top:14px; left:50%; transform:translateX(-50%); margin-left:18px; z-index:2147482001;}
+#reconnect-banner.showing{display:flex;}
+@keyframes sealStamp{0%{transform:rotate(-9deg) scale(2); opacity:0;} 60%{transform:rotate(-9deg) scale(0.92); opacity:1;} 100%{transform:rotate(-9deg) scale(1);}}
+body.force-reduced-motion .seal-card .sn-seal{animation:none !important;}
 
 #design-canvas.bg-leather{background:linear-gradient(180deg, rgba(10,8,6,0.6) 0%, rgba(10,8,6,0.8) 100%), var(--bg-leather); background-size:cover; background-position:center;}
 #design-canvas.bg-night{background:linear-gradient(rgba(8,7,6,0.84), rgba(8,7,6,0.92)), var(--bg-night); background-size:cover; background-position:center;}
@@ -2043,8 +2057,19 @@ body.phone #design-canvas.bg-night #mafia-chat-section{display:none !important; 
 body.phone.fam-tab #design-canvas.bg-night #mafia-chat-section{display:flex !important;}
 /* earlier days' chat folds into one tappable line in Town Talk */
 /* settings window: grouped rows with switches */
-.settings-content{width:min(560px, 94vw); max-width:560px; max-height:86vh; display:flex; flex-direction:column;}
-#settings-body{overflow-y:auto; min-height:0; padding-right:6px; scrollbar-width:thin;}
+.settings-content{width:min(1180px, 96vw); max-width:1180px; max-height:92vh; display:flex; flex-direction:column;}
+/* two columns on a wide screen so everything fits without scrolling; on a phone it is one column that still scrolls, with no visible scrollbar */
+#settings-body{overflow-y:auto; min-height:0; scrollbar-width:none; -ms-overflow-style:none;}
+#settings-body::-webkit-scrollbar{display:none; width:0; height:0;}
+.set-cols{display:grid; grid-template-columns:1fr 1fr 1fr; gap:0 30px; align-items:start;}
+@media (max-width:1060px){ .set-cols{grid-template-columns:1fr 1fr;} }
+@media (max-width:760px){ .set-cols{grid-template-columns:1fr;} }
+#settings-body .set-row{padding:6px 4px;}
+#settings-body .set-row-master{padding:8px 12px;}
+#settings-body .set-h{margin:12px 0 4px;}
+#settings-body .set-col .set-h:first-child{margin-top:2px;}
+body.big-rules .rules-sub, body.big-rules .rule-label small, body.big-rules .howtocard .one, body.big-rules #role-tip .rt-bio, body.big-rules #role-tip ul, body.big-rules #daylayout-note2-body, body.big-rules #bulletin-phase-instructions{font-size:1.28em;}
+body.big-rules #role-tip{width:min(420px, calc(100vw - 24px));}
 .set-h{margin:16px 0 6px; padding-bottom:5px; border-bottom:1px solid var(--line); font-family:var(--font-type); font-size:12.5px; letter-spacing:1.6px; text-transform:uppercase; color:var(--gold);}
 .set-h:first-child{margin-top:2px;}
 .set-row{display:flex; align-items:center; justify-content:space-between; gap:14px; padding:9px 4px; cursor:pointer; border-radius:6px;}
@@ -2264,10 +2289,6 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
 .poster-actions-row .btn{font-size:clamp(11px, 1.15vw, 15px); padding:clamp(8px,1vw,12px) clamp(14px,2vw,20px);}
 .btn.is-soon{filter:grayscale(0.7) brightness(0.72); position:relative; cursor:default;}
 .btn.is-soon::after{content:'SOON'; position:absolute; right:-6px; top:-9px; padding:1px 7px; font-family:var(--font-type); font-size:9.5px; letter-spacing:1px; color:#2a1208; background:linear-gradient(#f7d77a,#d9a441); border-radius:8px; filter:none;}
-.coming-soon-toast{position:absolute; left:50%; bottom:100%; transform:translate(-50%, 6px); margin-bottom:12px; font-family:var(--font-type); font-size:13px; letter-spacing:2px; text-transform:uppercase; color:var(--gold-bright); background:rgba(10,7,6,0.82); border:1px solid var(--gold-dim); border-radius:20px; padding:6px 18px; pointer-events:none; opacity:0; transition:opacity .25s ease, transform .25s ease; white-space:nowrap; z-index:5;}
-.coming-soon-toast.show{opacity:1; transform:translate(-50%, 0);}
-#notice-toast{position:fixed; left:50%; bottom:70px; transform:translate(-50%, 8px); max-width:min(92vw, 460px); text-align:center; font-family:var(--font-body); font-size:14px; line-height:1.35; color:#f6e2b0; background:rgba(40,12,8,0.94); border:1px solid #b5482c; border-radius:8px; padding:10px 18px; box-shadow:0 8px 24px rgba(0,0,0,0.6); pointer-events:none; opacity:0; transition:opacity .25s ease, transform .25s ease; z-index:2147482000;}
-#notice-toast.show{opacity:1; transform:translate(-50%, 0);}
 .sr-only{position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;}
 .home-title-area{text-align:center; padding:9vh 0 26px;}
 .hero-title{
@@ -2553,7 +2574,7 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
   <div class="boot-loading-mark">&#9670;</div>
   <p class="boot-loading-text">Loading the case files&hellip;</p>
 </div>
-<div id="reconnect-banner"></div>
+<div id="reconnect-banner" class="seal-card" role="status"><img class="sn-seal" alt=""><div class="sn-text" id="reconnect-banner-text"></div></div>
 <div id="canvas-outer">
 <div id="design-canvas">
 <div class="app-frame" aria-hidden="true">
@@ -2972,6 +2993,7 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
     <button class="role-card-close" id="settings-close-btn" aria-label="Close">&times;</button>
     <h2 class="intro-modal-title" style="font-size:20px; margin-bottom:12px;">Settings</h2>
     <div id="settings-body" style="text-align:left;">
+     <div class="set-cols"><div class="set-col">
 
       <h3 class="set-h">Sound</h3>
       <label class="set-row set-row-master" for="settings-sound-check">
@@ -2992,11 +3014,19 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
       <label class="set-row" for="settings-voice-check"><span class="set-text"><b>Hear other players on the stage</b><small>Turn off to stay silent on voice but keep every other sound.</small></span><input type="checkbox" id="settings-voice-check" class="rule-switch-input"><span class="rule-switch" aria-hidden="true"></span></label>
       <label class="set-row" for="settings-haptics-check"><span class="set-text"><b>Vibration</b><small>Independent of sound: muting doesn't turn this off, and turning it off doesn't mute.</small></span><input type="checkbox" id="settings-haptics-check" class="rule-switch-input"><span class="rule-switch" aria-hidden="true"></span></label>
 
+      </div><div class="set-col">
+
       <h3 class="set-h">Display</h3>
       <label class="set-row" for="settings-bigchat-check"><span class="set-text"><b>Larger chat text</b><small>Makes Town Talk easier to read.</small></span><input type="checkbox" id="settings-bigchat-check" class="rule-switch-input"><span class="rule-switch" aria-hidden="true"></span></label>
       <label class="set-row" for="settings-shake-check"><span class="set-text"><b>Screen shake</b><small>The jolt when something dramatic happens, such as a night elimination.</small></span><input type="checkbox" id="settings-shake-check" class="rule-switch-input"><span class="rule-switch" aria-hidden="true"></span></label>
       <label class="set-row" for="settings-reduced-motion-check"><span class="set-text"><b>Reduce motion</b><small>Same as your device's reduce-motion setting, forced on here even if that's off.</small></span><input type="checkbox" id="settings-reduced-motion-check" class="rule-switch-input"><span class="rule-switch" aria-hidden="true"></span></label>
       <label class="set-row" for="settings-colorblind-check"><span class="set-text"><b>Colorblind-friendly mode</b><small>Adds a text label to every alignment color (portrait outlines, reveal names), not just color.</small></span><input type="checkbox" id="settings-colorblind-check" class="rule-switch-input"><span class="rule-switch" aria-hidden="true"></span></label>
+
+      <h3 class="set-h">Rules</h3>
+      <label class="set-row" for="settings-roletips-check"><span class="set-text"><b>Role descriptions on hover</b><small>Rest the pointer (or hold a finger) on a role in the lobby to read what it does.</small></span><input type="checkbox" id="settings-roletips-check" class="rule-switch-input"><span class="rule-switch" aria-hidden="true"></span></label>
+      <label class="set-row" for="settings-bigrules-check"><span class="set-text"><b>Larger rules text</b><small>Bigger type for the rules, role descriptions and the day's instructions.</small></span><input type="checkbox" id="settings-bigrules-check" class="rule-switch-input"><span class="rule-switch" aria-hidden="true"></span></label>
+
+      </div><div class="set-col">
 
       <h3 class="set-h">Help</h3>
       <div class="set-buttons">
@@ -3017,10 +3047,12 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
         </div>
         <p class="msg ok" id="settings-reset-done" style="display:none; margin-top:8px;">Done — your local data has been cleared.</p>
       </div>
+     </div></div>
     </div>
   </div>
 </div>
-<div id="notice-toast" role="status" aria-live="polite"></div>
+<div id="seal-backdrop"></div>
+<div id="seal-notice" class="seal-card" role="status" aria-live="polite"><img class="sn-seal" alt=""><div class="sn-text" id="seal-notice-text"></div><button type="button" class="btn sn-ok" id="seal-notice-ok">OK</button></div>
 <div id="ghost-chat-badge" style="display:none;" title="Talk to the others who didn't make it">
   <span class="ghost-chat-badge-icon">&#128123;</span>
   <span class="ghost-chat-badge-text">Ghost Chat</span>
@@ -3326,7 +3358,7 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
       <div class="poster-actions">
         <button class="btn" id="create-game-btn">Play</button>
         <div class="poster-actions-row">
-          <div class="coming-soon-toast" id="coming-soon-toast"></div>
+          
           <button class="btn" id="tutorial-btn">Quick Start</button>
           <button class="btn" id="howto-btn">How to Play</button>
           <button class="btn is-soon" id="achievements-btn" aria-disabled="true" title="Not available yet" hidden style="display:none">Achievements</button>
@@ -4032,7 +4064,7 @@ async function clearActiveSession(){
 // above (deliberately NOT the sound keys' plain-localStorage shortcut,
 // to stay consistent with the app's cross-environment storage abstraction).
 var SETTINGS_KEY = 'hc-settings-v1';
-var DEFAULT_SETTINGS = {colorblind:false, reducedMotion:false, haptics:true, ambientSounds:true, clockTick:true, alertSounds:true, voicePlayback:true, bigChat:false, screenShake:true};
+var DEFAULT_SETTINGS = {colorblind:false, reducedMotion:false, haptics:true, ambientSounds:true, clockTick:true, alertSounds:true, voicePlayback:true, bigChat:false, screenShake:true, roleTips:true, bigRules:false};
 async function saveSettings(settings){
   try{
     var data = JSON.stringify(settings);
@@ -4111,7 +4143,7 @@ function playBallotDrop(targetId){
     var sc = 0.5, ch = h*sc;
     var mx = (sx + (slotCx - w/2)) / 2, my = Math.min(sy, slotY) - 110;                      // top of the arc
     var hx = slotCx - w/2, hy = (slotY - 12 - ch/2) - h/2;                                    // hovering just above the slot, upright
-    SoundFX.click();
+    SoundFX.ballotLift();
     var anim = card.animate([
       { transform:'translate('+sx+'px,'+sy+'px) scale(0.9) rotate(-5deg)', opacity:0 },
       { transform:'translate('+sx+'px,'+(sy-14)+'px) scale(1.08) rotate(-3deg)', opacity:1, offset:0.18 },
@@ -4126,6 +4158,7 @@ function playBallotDrop(targetId){
       var lx = cw/2 - w/2, ty = (chh - 12 - ch/2) - h/2;
       document.body.appendChild(clip); clip.appendChild(card);
       var drop = ch + 18;
+      SoundFX.ballotSlide();
       var down = card.animate([
         { transform:'translate('+lx+'px,'+ty+'px) scale('+sc+')', opacity:1 },
         { transform:'translate('+lx+'px,'+(ty+drop)+'px) scale('+(sc*0.9)+','+sc+')', opacity:1 }
@@ -4133,7 +4166,8 @@ function playBallotDrop(targetId){
       down.onfinish = function(){
         clip.remove();
         box.classList.remove('thump'); void box.offsetWidth; box.classList.add('thump');
-        SoundFX.confirm();
+        SoundFX.ballotLand();
+        setTimeout(function(){ SoundFX.ballotSeal(); }, 350);
       };
     };
   }catch(e){}
@@ -4215,7 +4249,7 @@ window.addEventListener('online', probeConnection);
 window.addEventListener('pageshow', function(e){ if(e.persisted) probeConnection(); });
 function showReconnectBanner(text){
   var el = document.getElementById('reconnect-banner');
-  if(el){ el.textContent = text; el.classList.add('showing'); }
+  if(el){ var t = document.getElementById('reconnect-banner-text'); if(t) t.textContent = text; var im = el.querySelector('.sn-seal'); if(im && !im.src) im.src = DAYTIME_IMG.notificationSeal; el.classList.add('showing'); }
 }
 function hideReconnectBanner(){
   var el = document.getElementById('reconnect-banner');
@@ -4461,7 +4495,7 @@ function handleServerMessage(msg){
     handleVoiceIceCandidate(msg.fromId, msg.candidate);
   } else if(msg.type==='kicked'){
     clearActiveSession();
-    alert((msg.message || 'You were removed from the room.') + (msg.reason ? '\nReason: '+msg.reason : ''));
+    showSealNotice((msg.message || 'You were removed from the room.') + (msg.reason ? ' Reason: '+msg.reason : ''), {ok:true});
     if(ws) ws.close();
     renderMpEntryScreen();
     switchPanel('mpentry');
@@ -4793,6 +4827,16 @@ var SoundFX = (function(){
     }
   }
   function jitter(f){ return f * (1 + (Math.random()*2-1) * 0.04); }
+  // A muffled low thump (felt-covered wood / a heartbeat): a short low-passed noise knock plus a sine that sags in pitch.
+  function thump(c, start, f, peak, dur){
+    noiseBurst(c, start, 0.05, 'lowpass', 420, 0, 0.7, peak * 0.9, 0.004);
+    tone(c, f, start, dur || 0.16, 'sine', peak, f * 0.62);
+  }
+  // A wooden clock "tock": a dry click over a short, soft, low-ish knock.
+  function tock(c, start, f, peak){
+    noiseBurst(c, start, 0.025, 'bandpass', 1900, 0, 5, peak, 0.002);
+    tone(c, f, start, 0.07, 'sine', peak * 0.55, f * 0.8);
+  }
   function safe(fn){
     if(muted) return;
     var c = getCtx();
@@ -4943,12 +4987,28 @@ var SoundFX = (function(){
       if(!alertsOn) return;
       safe(function(c){ tone(c, 880, c.currentTime, 0.035, 'sine', 0.045); });
     },
-    confirm: function(){
+    confirm: function(){ // a soft, low wooden pluck - no bright bleep
       safe(function(c){
-        tone(c, 500, c.currentTime, 0.09, 'sine', 0.13);
-        tone(c, 760, c.currentTime + 0.05, 0.13, 'sine', 0.11);
+        var t = c.currentTime;
+        noiseBurst(c, t, 0.03, 'lowpass', 900, 0, 0.7, 0.07, 0.003);
+        tone(c, 196, t, 0.2, 'triangle', 0.11, 175);
+        tone(c, 392, t, 0.12, 'sine', 0.03);
       });
     },
+    // Ballot casting: lift the card, slide it into the slot, the box takes it, the seal presses.
+    ballotLift: function(){ this.paper(); },
+    ballotSlide: function(){
+      safe(function(c){ var t = c.currentTime; noiseBurst(c, t, 0.3, 'bandpass', jitter(2600), 900, 0.8, 0.05, 0.06); crinkle(c, t + 0.02, 0.2, 0.03); });
+    },
+    ballotLand: function(){
+      safe(function(c){ var t = c.currentTime; thump(c, t, 110, 0.16, 0.2); noiseBurst(c, t + 0.02, 0.1, 'bandpass', jitter(900), 0, 0.8, 0.03, 0.01); });
+    },
+    seal: function(){ this.ballotSeal(); },
+    ballotSeal: function(){ // wax pressed down
+      safe(function(c){ var t = c.currentTime; noiseBurst(c, t, 0.12, 'lowpass', 500, 0, 0.7, 0.08, 0.02); tone(c, 150, t, 0.1, 'sine', 0.06, 100); });
+    },
+    // a card being dealt onto the table (the roles-in-play screen)
+    playTick: function(){ this.paper(); },
     playElimination: function(){ playFile('elimination', 0.6, 0.07); },
     playShush: function(){ playFile('shush', 0.6); },
     playGavel: function(){ playFile('gavel', 0.6, 0.06); },
@@ -4971,18 +5031,23 @@ var SoundFX = (function(){
     playHeatUp: function(level){
       safe(function(c){
         var t = c.currentTime;
-        tone(c, 300 + level*70, t, 0.35, 'sawtooth', 0.07, 520 + level*110);
-        if(level >= 3) tone(c, 880, t + 0.32, 0.18, 'square', 0.1);
-        if(level >= 4) tone(c, 1175, t + 0.5, 0.22, 'square', 0.12);
+        tone(c, 96 + level*14, t, 0.55, 'triangle', 0.09, 150 + level*20);        // a low, uneasy swell
+        noiseBurst(c, t, 0.5, 'lowpass', 300, 900, 0.7, 0.03, 0.25);
+        if(level >= 3){ thump(c, t + 0.4, 74, 0.18, 0.17); thump(c, t + 0.59, 64, 0.14, 0.17); }
+        if(level >= 4){ tone(c, 131, t + 0.7, 1.0, 'sine', 0.12); tone(c, 131*2.4, t + 0.7, 0.6, 'sine', 0.03); }   // a distant, dull bell
       });
     },
-    // One short beep per second while the voting clock is in its last 15 seconds (higher and doubled for the last 5).
+    // Once a second while the voting clock is in its last 15 seconds: a wooden tock, then a heartbeat for the last 5.
     playTimeWarning: function(secondsLeft){
       if(!alertsOn) return;
       safe(function(c){
-        var t = c.currentTime, urgent = secondsLeft <= 5;
-        tone(c, urgent ? 1320 : 880, t, 0.09, 'square', urgent ? 0.17 : 0.12);
-        if(urgent) tone(c, 1320, t + 0.15, 0.09, 'square', 0.17);
+        var t = c.currentTime;
+        if(secondsLeft <= 5){            // the last five seconds: a low heartbeat, lub-dub
+          thump(c, t, 78, 0.20, 0.17);
+          thump(c, t + 0.19, 66, 0.15, 0.17);
+        } else {                         // before that: a dry wooden clock tock
+          tock(c, t, 260, 0.11);
+        }
       });
     },
     // You've just been called up from the queue: a clear rising two-chime (twice) so it's noticed even mid-chat.
@@ -7374,7 +7439,7 @@ function renderSetupScreen(){
   var timer = null, current = null;
   function teamOf(r){ return roleTeamLabel ? roleTeamLabel(r) : 'Town'; }
   function show(chip){
-    var r = chip.getAttribute('data-tip-role'); if(!r) return;
+    var r = chip.getAttribute('data-tip-role'); if(!r || CURRENT_SETTINGS.roleTips === false) return;
     var bio = (typeof ROLE_BIO !== 'undefined' && ROLE_BIO[r]) || '';
     var pts = (typeof ROLE_POINTS !== 'undefined' && ROLE_POINTS[r]) || [];
     var img = ROLE_IMG && ROLE_IMG[r];
@@ -7733,26 +7798,32 @@ document.getElementById('home-nav-btn').addEventListener('click', function(){
   else goToHome();
 });
 
-function showNoticeToast(text){
-  var el = document.getElementById('notice-toast');
-  if(!el) return;
-  el.textContent = text;
-  el.classList.remove('show');
-  void el.offsetWidth;
-  el.classList.add('show');
+// The one pop-up notice: a wax seal stamps down beside the message. Plain notices fade on their own; opts.ok makes it a small modal that waits for OK (replaces alert()).
+var sealNoticeClose = null;
+function showSealNotice(text, opts){
+  opts = opts || {};
+  var el = document.getElementById('seal-notice'), back = document.getElementById('seal-backdrop');
+  if(!el){ return; }
+  var img = el.querySelector('.sn-seal'); if(!img.src || img.src === location.href) img.src = DAYTIME_IMG.notificationSeal;
+  document.getElementById('seal-notice-text').textContent = text;
   clearTimeout(el._hideTimer);
-  el._hideTimer = setTimeout(function(){ el.classList.remove('show'); }, 3600);
+  el.classList.toggle('modal', !!opts.ok);
+  el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+  try{ SoundFX.ballotSeal(); }catch(e){}
+  function close(){ el.classList.remove('show'); back.classList.remove('show'); sealNoticeClose = null; }
+  if(opts.ok){
+    back.classList.add('show');
+    var ok = document.getElementById('seal-notice-ok');
+    sealNoticeClose = function(){ close(); if(opts.onClose) opts.onClose(); };
+    ok.onclick = sealNoticeClose; back.onclick = sealNoticeClose;
+    setTimeout(function(){ try{ ok.focus(); }catch(e){} }, 50);
+  } else {
+    back.classList.remove('show');
+    el._hideTimer = setTimeout(close, opts.ms || 4200);
+  }
 }
-function showComingSoonToast(label){
-  var el = document.getElementById('coming-soon-toast');
-  if(!el) return;
-  el.textContent = label+' is not available yet';
-  el.classList.remove('show');
-  void el.offsetWidth;
-  el.classList.add('show');
-  clearTimeout(el._hideTimer);
-  el._hideTimer = setTimeout(function(){ el.classList.remove('show'); }, 1800);
-}
+function showNoticeToast(text){ showSealNotice(text); }
+function showComingSoonToast(label){ showSealNotice(label + ' is not available yet', {ms:2400}); }
 document.getElementById('achievements-btn').addEventListener('click', function(){
   showComingSoonToast('Achievements');
 });
@@ -7787,6 +7858,8 @@ function syncSoundSettingsUI(){
   $('settings-voice-check').checked = CURRENT_SETTINGS.voicePlayback !== false;
   $('settings-bigchat-check').checked = !!CURRENT_SETTINGS.bigChat;
   $('settings-shake-check').checked = CURRENT_SETTINGS.screenShake !== false;
+  $('settings-roletips-check').checked = CURRENT_SETTINGS.roleTips !== false;
+  $('settings-bigrules-check').checked = !!CURRENT_SETTINGS.bigRules;
   // with the master switch off, the other sound rows read as inactive
   ['settings-sfx-slider','settings-ambience-slider','settings-ambient-check','settings-tick-check','settings-alerts-check','settings-voice-check'].forEach(function(id){
     var el = $(id); el.disabled = muted; var row = el.closest('.set-row'); if(row) row.classList.toggle('is-off', muted);
@@ -7799,6 +7872,7 @@ function applyExtraSettings(){
   SoundFX.setClockTickEnabled(CURRENT_SETTINGS.clockTick !== false);
   SoundFX.setAlertsEnabled(CURRENT_SETTINGS.alertSounds !== false);
   document.body.classList.toggle('big-chat', !!CURRENT_SETTINGS.bigChat);
+  document.body.classList.toggle('big-rules', !!CURRENT_SETTINGS.bigRules);
   applyVoicePlayback();
 }
 function applyReducedMotion(){
@@ -7845,7 +7919,7 @@ document.getElementById('settings-sfx-slider').addEventListener('input', functio
   var top = document.getElementById('volume-slider'); if(top) top.value = pct;
 });
 document.getElementById('settings-sfx-slider').addEventListener('change', function(){ SoundFX.click(); });
-[['settings-ambient-check','ambientSounds'],['settings-tick-check','clockTick'],['settings-alerts-check','alertSounds'],['settings-voice-check','voicePlayback'],['settings-bigchat-check','bigChat'],['settings-shake-check','screenShake']].forEach(function(pair){
+[['settings-roletips-check','roleTips'],['settings-bigrules-check','bigRules'],['settings-ambient-check','ambientSounds'],['settings-tick-check','clockTick'],['settings-alerts-check','alertSounds'],['settings-voice-check','voicePlayback'],['settings-bigchat-check','bigChat'],['settings-shake-check','screenShake']].forEach(function(pair){
   document.getElementById(pair[0]).addEventListener('change', function(e){
     CURRENT_SETTINGS[pair[1]] = e.target.checked;
     saveSettings(CURRENT_SETTINGS);
@@ -7871,6 +7945,7 @@ document.getElementById('settings-defaults-btn').addEventListener('click', funct
   saveSettings(CURRENT_SETTINGS);
   SoundFX.setMuted(false); SoundFX.setVolume(0.8); SoundFX.setAmbienceVolume(0.8);
   applyReducedMotion(); applyExtraSettings(); refreshSoundToggleBtn();
+  syncSoundSettingsUI();
   document.getElementById('settings-colorblind-check').checked = false;
   document.getElementById('settings-haptics-check').checked = true;
   document.getElementById('settings-reduced-motion-check').checked = false;
@@ -10614,7 +10689,7 @@ function onBecomeSpeaker(){
     });
   }).catch(function(err){
     console.error('voice: mic permission denied or unavailable', err);
-    alert("Couldn't access your microphone, so you can't take the stage right now - check this site's mic permission in your browser.");
+    showSealNotice("Couldn't access your microphone, so you can't take the stage right now. Check this site's mic permission in your browser.", {ok:true});
     sendWS({type:'leaveStage'});
   });
 }
