@@ -7108,8 +7108,11 @@ function showDeathScreen(kind, onContinue){
     var hit = showDeathScreen._role === 'Hitman', art = hit ? 'assets/death/death-hitman.webp' : showDeathScreen._role === 'Farmer' ? 'assets/death/death-farmer.webp' : null;
     bgEl.onerror = function(){ bgEl.onerror = null; bgEl.src = IMG.deathVoted; };
     bgEl.src = art || IMG.deathVoted;
-    titleEl.textContent = hit ? 'A Parting Contract' : showDeathScreen._role === 'Farmer' ? 'Reaped on the Way Out' : 'Taken Down With Them';
-    subEl.textContent = (showDeathScreen._by || 'The player the town voted out') + ' took you down with them on the way out.';
+    titleEl.textContent = 'You Were Collateral Damage';
+    var by = showDeathScreen._by || 'The player the town voted out';
+    subEl.textContent = hit
+      ? 'The town voted out ' + by + '. As a last act, the hitman took you down with them. You were not the target of the vote, only in the way of the contract.'
+      : 'The town voted out ' + by + '. As a last act, the farmer took you down with them. You did nothing wrong, you were simply the one they chose.';
     subEl.style.display = 'block';
   } else {
     bgEl.src = IMG.deathVoted;
