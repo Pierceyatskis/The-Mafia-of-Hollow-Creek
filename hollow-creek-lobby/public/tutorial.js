@@ -185,7 +185,10 @@
       if(only){ var cxm = (r.left + r.right) / 2, cym = (r.top + r.bottom) / 2; if(cxm < only.l || cxm > only.r || cym < only.t || cym > only.b) continue; }   // dimmed screen: only what is inside the spotlight can be pressed
       var cs = getComputedStyle(n); if(cs.visibility === 'hidden' || cs.display === 'none' || cs.pointerEvents === 'none') continue;
       var mx = Math.min(innerWidth - 1, Math.max(0, (r.left + r.right) / 2)), my = Math.min(innerHeight - 1, Math.max(0, (r.top + r.bottom) / 2));
-      var top = document.elementFromPoint(mx, my); if(!top || !(top === n || n.contains(top) || top.contains(n))) continue;   // already hidden by something else
+      var top = document.elementFromPoint(mx, my);
+      // Our own card sitting on top does NOT make a button "already hidden": that is exactly the case this cost is meant to
+      // catch. Without this the card masks the button from its own hit test, every candidate spot scores zero, and it never moves.
+      if(!(top && top.closest('#tut-layer')) && (!top || !(top === n || n.contains(top) || top.contains(n)))) continue;   // genuinely hidden by something else
       cost += (n.closest('.role-card-overlay,#role-reveal-screen,#nightkill-screen,#phase-transition-screen') ? 40 : 6);
     }
     return cost;

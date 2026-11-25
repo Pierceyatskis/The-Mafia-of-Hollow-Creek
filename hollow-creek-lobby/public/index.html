@@ -2608,7 +2608,10 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
 #start-countdown .sc-box{text-align:center; padding:34px 70px 30px; max-width:min(92vw, 980px); border:2px solid #b08840; border-radius:8px; background:linear-gradient(180deg, rgba(60,42,22,0.96), rgba(22,15,9,0.97)); box-shadow:0 0 60px rgba(0,0,0,0.8), inset 0 0 0 1px rgba(0,0,0,0.6);}
 #start-countdown .sc-label{font-family:var(--font-type); letter-spacing:3px; text-transform:uppercase; font-size:15px; color:var(--parchment-dim);}
 #start-countdown .sc-deck{display:flex; flex-wrap:wrap; justify-content:center; gap:14px 12px; margin:20px 0 18px; min-height:150px;}
-#start-countdown .sc-card{width:104px; opacity:0; transform:translateY(-40px) scale(1.4) rotate(-6deg);}
+#start-countdown .sc-card{width:104px; opacity:0; pointer-events:none; transform:translateY(-40px) scale(1.4) rotate(-6deg);}
+#start-countdown .sc-card.in{pointer-events:auto; cursor:pointer;}
+#start-countdown .sc-card.in:hover .sc-pic, #start-countdown .sc-card.in:focus-visible .sc-pic{border-color:var(--gold-bright); box-shadow:0 0 14px rgba(227,177,85,0.55), 0 6px 16px rgba(0,0,0,0.7);}
+#start-countdown .sc-hint{margin:-4px 0 10px; font-family:var(--font-type); font-size:11.5px; letter-spacing:1px; text-transform:uppercase; color:var(--parchment-dim);}
 #start-countdown .sc-card.in{animation:scDeal .55s cubic-bezier(.2,.9,.3,1.2) forwards;}
 #start-countdown .sc-card .sc-pic{position:relative; width:104px; height:132px; border:2px solid #b08840; border-radius:6px; overflow:hidden; background:#120c07; box-shadow:0 6px 16px rgba(0,0,0,0.7);}
 #start-countdown .sc-card img{width:100%; height:100%; object-fit:cover; display:block;}
@@ -3386,7 +3389,7 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
 </div>
 
 <div id="start-countdown" class="role-card-overlay" style="display:none; z-index:450;" role="status" aria-live="polite">
-  <div class="sc-box"><div class="sc-label">These roles are in the game</div><div class="sc-deck" id="start-countdown-deck"></div><div class="sc-bar"><i id="start-countdown-bar"></i></div><div class="sc-sub" id="start-countdown-sub">Shuffling the deck. Everyone is being seated.</div></div>
+  <div class="sc-box"><div class="sc-label">These roles are in the game</div><div class="sc-deck" id="start-countdown-deck"></div><div class="sc-hint">Tap a card to read what that role does</div><div class="sc-bar"><i id="start-countdown-bar"></i></div><div class="sc-sub" id="start-countdown-sub">Shuffling the deck. Everyone is being seated.</div></div>
 </div>
 <div id="leave-confirm-modal" class="role-card-overlay" style="display:none; z-index:400;">
   <div class="role-card-modal-content player-action-content" style="text-align:center; max-width:min(460px,92vw);">
@@ -7554,8 +7557,9 @@ function renderSetupScreen(){
   var tip = document.createElement('div'); tip.id = 'role-tip'; document.body.appendChild(tip);
   var timer = null, current = null;
   function teamOf(r){ return roleTeamLabel ? roleTeamLabel(r) : 'Town'; }
-  function show(chip){
-    var r = chip.getAttribute('data-tip-role'); if(!r || CURRENT_SETTINGS.roleTips === false) return;
+  function show(chip, forced){
+    if(!forced && CURRENT_SETTINGS.roleTips === false) return;
+    var r = chip.getAttribute('data-tip-role'); if(!r) return;
     var bio = (typeof ROLE_BIO !== 'undefined' && ROLE_BIO[r]) || '';
     var pts = (typeof ROLE_POINTS !== 'undefined' && ROLE_POINTS[r]) || [];
     var img = ROLE_IMG && ROLE_IMG[r];
@@ -7571,6 +7575,9 @@ function renderSetupScreen(){
   }
   function hide(){ clearTimeout(timer); timer = null; current = null; tip.classList.remove('show'); }
   function start(chip){ if(current === chip) return; hide(); current = chip; timer = setTimeout(function(){ if(current === chip) show(chip); }, 500); }
+  // Tapping a role card in the roles-in-play animation opens its description right away (no hover wait, and never gated by the hover setting).
+  window.showRoleTipFor = function(chip){ clearTimeout(timer); timer = null; if(current === chip){ hide(); return; } current = chip; show(chip, true); };
+  window.hideRoleTip = hide;
   var lobby = document.getElementById('panel-lobby');
   lobby.addEventListener('mouseover', function(e){ var c = e.target.closest && e.target.closest('[data-tip-role]'); if(c) start(c); else if(current) hide(); });
   lobby.addEventListener('mouseleave', hide);
@@ -9499,7 +9506,7 @@ function showStartCountdown(endsAt, roles, startedAt){
     return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
   });
   deck.innerHTML = list.map(function(r){
-    return '<div class="sc-card"><div class="sc-pic"><img src="'+ROLE_IMG[r.role]+'" alt="">'+(r.count > 1 ? '<span class="sc-count">&times;'+r.count+'</span>' : '')+'</div><div class="sc-name">'+(ROLE_SHORT[r.role] || r.role)+'</div></div>';
+    return '<div class="sc-card" data-tip-role="'+r.role+'" role="button" tabindex="0" aria-label="'+escapeHtmlMp(ROLE_SHORT[r.role] || r.role)+' \u2014 what this role does"><div class="sc-pic"><img src="'+ROLE_IMG[r.role]+'" alt="">'+(r.count > 1 ? '<span class="sc-count">&times;'+r.count+'</span>' : '')+'</div><div class="sc-name">'+(ROLE_SHORT[r.role] || r.role)+'</div></div>';
   }).join('');
   var total = Math.max(1, endsAt - Date.now());
   var gap = Math.min(450, Math.max(120, (total * 0.65) / Math.max(1, list.length)));
@@ -9509,9 +9516,23 @@ function showStartCountdown(endsAt, roles, startedAt){
   bar.style.transition = 'none'; bar.style.transform = 'scaleX(1)'; void bar.offsetWidth;
   bar.style.transition = 'transform ' + total + 'ms linear'; bar.style.transform = 'scaleX(0)';
 }
+(function(){
+  var deck = document.getElementById('start-countdown');
+  deck.addEventListener('click', function(e){
+    var c = e.target.closest && e.target.closest('.sc-card.in[data-tip-role]');
+    if(c){ SoundFX.tap && SoundFX.tap(); window.showRoleTipFor(c); }
+    else if(window.hideRoleTip) window.hideRoleTip();
+  });
+  deck.addEventListener('keydown', function(e){
+    if(e.key !== 'Enter' && e.key !== ' ') return;
+    var c = e.target.closest && e.target.closest('.sc-card.in[data-tip-role]');
+    if(c){ e.preventDefault(); window.showRoleTipFor(c); }
+  });
+})();
 function hideStartCountdown(cancelled){
   clearInterval(startCountdownTimer); startCountdownTimer = null; startCountdownDeal.forEach(clearTimeout); startCountdownDeal = [];
   var box = document.getElementById('start-countdown'); if(box) box.style.display = 'none';
+  if(window.hideRoleTip) window.hideRoleTip();
   if(cancelled){ var btn = document.getElementById('setup-start-btn'); if(btn) btn.disabled = false; }
 }
 
