@@ -2583,7 +2583,7 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
   background:none; border-style:solid; border-width:0; border-image:url('assets/ui/hc-button-primary-wide-red.webp') 38% 7% fill / 14px 11px stretch;
   color:#f6e2b0; text-shadow:0 1px 2px rgba(0,0,0,0.8); border-radius:0;
 }
-#global-home-btn .btn, #home-nav-btn, #howto-back-btn, #profile-back-btn, #mp-leave-btn, #leave-confirm-stay-btn, #eg-leave, #mp-end-leave-btn, #intro-modal-skip-btn, #mp-waiting-howto-btn, #howto-fulltut-btn, #final-guess-skip-btn, #settings-reset-cancel-btn{
+#global-home-btn .btn, #home-nav-btn, #howto-back-btn, #profile-back-btn, #leave-confirm-stay-btn, #eg-leave, #mp-end-leave-btn, #intro-modal-skip-btn, #mp-waiting-howto-btn, #howto-fulltut-btn, #final-guess-skip-btn, #settings-reset-cancel-btn{
   background:none; border-style:solid; border-width:0; border-image:url('assets/ui/hc-button-secondary-wide-charcoal.webp') 38% 7% fill / 14px 11px stretch;
   color:#cfc3a6; text-shadow:0 1px 2px rgba(0,0,0,0.8); border-radius:0;
 }
@@ -3591,7 +3591,6 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
       </div>
       <div id="lobby-poll-wrap"></div>
     </div>
-        <button class="btn ghost" id="mp-leave-btn" style="margin-top:18px;">Leave room</button>
       </div>
 
       <aside class="lobby-side" id="lobby-rules-card">
@@ -7105,8 +7104,11 @@ function showDeathScreen(kind, onContinue){
   } else if(kind==='revenge'){
     // Taken down by a voted-out Farmer/Hitman: nothing about votes here, just who did it.
     SoundFX.setAmbience(null);
-    bgEl.src = IMG.deathVoted;
-    titleEl.textContent = 'Taken Down With Them';
+    // Each of the two roles has its own painted scene (assets/death/); the generic voted-off art stands in until a file exists.
+    var hit = showDeathScreen._role === 'Hitman', art = hit ? 'assets/death/death-hitman.webp' : showDeathScreen._role === 'Farmer' ? 'assets/death/death-farmer.webp' : null;
+    bgEl.onerror = function(){ bgEl.onerror = null; bgEl.src = IMG.deathVoted; };
+    bgEl.src = art || IMG.deathVoted;
+    titleEl.textContent = hit ? 'A Parting Contract' : showDeathScreen._role === 'Farmer' ? 'Reaped on the Way Out' : 'Taken Down With Them';
     subEl.textContent = (showDeathScreen._by || 'The player the town voted out') + ' took you down with them on the way out.';
     subEl.style.display = 'block';
   } else {
@@ -9946,6 +9948,7 @@ function renderFromServerView(view){
       var revLead = view.farmerRevengeName === me.name ? findLynchedFromHistory(view) : null;
       if(revLead){
         showDeathScreen._by = revLead.name + ' (' + (ROLE_SHORT[revLead.role] || revLead.role) + ')';
+        showDeathScreen._role = revLead.role;
         showDeathScreen('revenge', finish);
       } else showDeathScreen('day', finish);
       return;
@@ -11309,13 +11312,6 @@ document.getElementById('mpentry-join-btn').addEventListener('click', function()
   var code = document.getElementById('mpentry-code-input').value.trim().toUpperCase();
   if(!code){ var e=document.getElementById('mpentry-error'); e.textContent='Enter a room code.'; e.style.display='block'; return; }
   whenConnected(function(){ sendWS({type:'join', name: CURRENT_PROFILE.username||'Player', roomCode: code, avatarKey: CURRENT_PROFILE.avatarKey, gameIconKey: CURRENT_PROFILE.gameIconKey, color: CURRENT_PROFILE.color, ownerKey: getOwnerKey()}); });
-});
-document.getElementById('mp-leave-btn').addEventListener('click', function(){
-  confirmLeave(false, function(){
-    leaveCurrentRoom();
-    renderMpEntryScreen();
-    switchPanel('mpentry');
-  });
 });
 document.getElementById('mpentry-edit-profile-btn').addEventListener('click', function(){
   renderProfileScreen();
