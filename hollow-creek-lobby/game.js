@@ -138,6 +138,7 @@ function createGame(seats, config){
   assignGameIcons(players);
   return {
     night: 1, phase: 'night', players, bountyTarget: null, bountyPoints: 0, history: [],
+    nightRecap: [],   // one plain-language explanation per night (and the day vote after it), shown only once the game is over
     chatLog: [], mafiaChatLog: [], cultChatLog: [], voteLog: [], voteHistory: [], winner: null, gameOver: false,
     pendingNightVotes: {}, // playerId -> {kill, silence, protect, investigate, bounty, hideBehind}
     pendingDayVotes: {}, // playerId -> targetId
@@ -386,7 +387,16 @@ function placeholderNightAction(state, player){
 // Merges every submitted (or placeholder-defaulted) night action and resolves
 // the night in full: mafia kill consensus, coward redirect, doctor save,
 // navy seal counter, bounty, silence, granny flip, win check.
+// Short role name for the recap ("War Veteran", "Mafia", "Godfather").
+function recapRole(role){
+  const l = (ROLE_LABEL[role] || role).replace(/^(?:the|a|an)\s+/i, '');
+  return l.replace(/\b\w/g, c => c.toUpperCase()).replace(/^Mafia Enforcer$/, 'Mafia');
+}
+function recapName(p){ return p.name + ' (' + recapRole(p.role) + ')'; }
+
 function resolveNight(state){
+  const steps = [];   // the night, explained in order: {kind, text}
+  const rec = (kind, text) => steps.push({kind, text});
   // Fill in anything a placeholder never submitted.
   living(state).forEach(p => {
     if(!state.pendingNightVotes[p.id]) state.pendingNightVotes[p.id] = (p.isPlaceholder || p.connected === false) ? placeholderNightAction(state, p) : {};
@@ -401,10 +411,10 @@ function resolveNight(state){
   // rule the client's own UI text already promises the player - the mafia
   // chat channel exists precisely so real teammates can agree on one target
   // before submitting, rather than relying on this tiebreak.
-  const killVotes = [];
+  const killVotes = [], famPicks = [];
   mafiaVoters(state).forEach(p => {
     const v = (state.pendingNightVotes[p.id] || {}).kill;
-    if(v) killVotes.push(v);
+    if(v){ killVotes.push(v); famPicks.push({voter: p, target: byId(state, v)}); }
   });
   let finalKillId = null;
   if(killVotes.length){
@@ -413,6 +423,13 @@ function resolveNight(state){
     const maxCount = Math.max(...Object.values(tally));
     const top = Object.keys(tally).filter(k => tally[k]===maxCount);
     finalKillId = top.length===1 ? top[0] : top[Math.floor(Math.random()*top.length)];
+    const finalP = byId(state, finalKillId);
+    const picks = famPicks.map(f => recapName(f.voter) + ' chose ' + (f.target ? f.target.name : '?')).join('; ');
+    if(top.length > 1) rec('family', 'The family could not agree (' + picks + '), so it came down to a coin flip, and ' + (finalP ? finalP.name : '?') + ' was chosen.');
+    else if(famPicks.length > 1) rec('family', 'The family voted (' + picks + ') and settled on ' + (finalP ? finalP.name : '?') + '.');
+    else rec('family', picks + '.');
+  } else {
+    rec('family', 'The family did not pick anyone, so there was no attack from them tonight.');
   }
 
   // Single-actor role actions: whichever alive player holds that role, human or placeholder.
@@ -436,7 +453,15 @@ function resolveNight(state){
   // needs to read it after this round resolves.
   const framerTargetId = framer ? (state.pendingNightVotes[framer.id]||{}).frameTarget : null;
 
-  if(bountyId) state.bountyTarget = bountyId;
+  if(bountyId){
+    state.bountyTarget = bountyId;
+    const bt = byId(state, bountyId);
+    if(bt) rec('bounty', recapName(bountyHunter) + ' placed a bounty on ' + bt.name + '. They earn a mark if that player is eliminated for any reason; three marks wins the game.');
+  }
+  if(framerTargetId){
+    const ft = byId(state, framerTargetId);
+    if(ft) rec('frame', recapName(framer) + ' framed ' + ft.name + ' for tonight\'s investigation, flipping what the Detective would see.');
+  }
 
   let killTarget = finalKillId ? byId(state, finalKillId) : null;
   const reportLines = [];
@@ -449,9 +474,20 @@ function resolveNight(state){
     const hideTarget = byId(state, hideBehindId);
     if(hideTarget && hideTarget.alive && hideTarget.id !== killTarget.id){
       log(state, 'The mafia came for '+killTarget.name+', but found '+hideTarget.name+' instead.');
+      rec('coward', killTarget.name + ' is the Coward and hid behind ' + recapName(hideTarget) + ', so the attack landed on ' + hideTarget.name + ' instead.');
       killTarget = hideTarget;
       cowardRedirected = true;
+    } else if(hideTarget){
+      rec('coward', killTarget.name + ' is the Coward and tried to hide, but ' + (hideTarget.id === killTarget.id ? 'chose themself' : hideTarget.name + ' was no longer there to hide behind') + ', so nothing changed.');
     }
+  } else if(killTarget && killTarget.role==='Coward'){
+    rec('coward', killTarget.name + ' is the Coward but did not hide behind anyone, so the attack stayed on them.');
+  }
+  if(doctor){
+    const dp = protectTargetId ? byId(state, protectTargetId) : null;
+    if(!dp) rec('doctor', recapName(doctor) + ' did not protect anyone.');
+    else if(killTarget && dp.id === killTarget.id) rec('doctor', recapName(doctor) + ' protected ' + dp.name + ', the person who was attacked, so the attack was stopped.');
+    else rec('doctor', recapName(doctor) + ' protected ' + dp.name + (killTarget ? ', but the attack was on ' + killTarget.name + ', so the protection did nothing against it' : ', but nobody was attacked') + '.');
   }
 
   const doctorSaved = protectTargetId && killTarget && protectTargetId === killTarget.id;
@@ -476,10 +512,12 @@ function resolveNight(state){
       // (only a day-vote lynch does, see resolveDayVote below), and naming
       // the counter-kill's victim's role would out them as the Navy Seal.
       log(state, 'The mafia moved on '+killTarget.name+', but they fought back and eliminated '+counterVictim.name+' instead.');
+      rec('veteran', killTarget.name + ' is the War Veteran. Nobody protected them, so they fought back and eliminated ' + recapName(counterVictim) + ' from the family instead of being eliminated. This counter-attack can only be used once.');
       deathSummary = counterVictim.name+' ('+counterVictim.role+') died in the night.';
       nightDeathOccurred = true; revealVictim = counterVictim;
       state.cachedNearMissId = null;
     } else {
+      rec('veteran', killTarget.name + ' is the War Veteran and fought back, but there was nobody from the family left to hit.');
       reportLines.push('A quiet night, for once. No one made a move.');
       deathSummary = 'No one died last night.';
       state.cachedNearMissId = null;
@@ -494,6 +532,7 @@ function resolveNight(state){
     // Doctor's role to everyone, not just tell the town someone survived.
     reportLines.push(killTarget.name+' was attacked in the dark last night, but someone reached them just in time and saved their life.');
     log(state, 'The mafia struck at '+killTarget.name+', but the doctor\'s hands got there first.');
+    if(killTarget.role === 'NavySeal' && !killTarget.usedNavySealCounter) rec('veteran', killTarget.name + ' is the War Veteran. Because the attack was stopped by the Doctor, their one counter-attack was not triggered and is still saved for later.');
     deathSummary = killTarget.name+' nearly died last night, the doctor\'s protection held.';
     state.cachedNearMissId = killTarget.id;
   } else {
@@ -502,6 +541,7 @@ function resolveNight(state){
     reportLines.push(killTarget.name+' was found this morning. The town gathers, uneasy.');
     // No role named here - see the counter-kill case above for why.
     log(state, killTarget.name+' died in the night.');
+    if(killTarget.role === 'NavySeal') rec('veteran', killTarget.name + ' is the War Veteran, but the counter-attack was already used earlier in the game, so it could not fight back.');
     deathSummary = killTarget.name+' ('+killTarget.role+') died in the night.';
     nightDeathOccurred = true; revealVictim = killTarget;
     state.cachedNearMissId = null;
@@ -514,6 +554,7 @@ function resolveNight(state){
     if(s && s.alive){
       s.silencedToday = true;
       log(state, s.name+' was silenced for the coming day.');
+      rec('silence', (godfather ? godfather.name : 'The Godfather') + ' (Godfather) silenced ' + recapName(s) + ', so they cannot speak in the next day\'s chat. They can still vote.');
       silencedPlayerId = s.id;
     }
   }
@@ -534,6 +575,7 @@ function resolveNight(state){
     // same night).
     vigilante.usedVigilanteShot = true;
     const vigTarget = byId(state, vigilanteTargetId);
+    if(!vigTarget || !vigTarget.alive) rec('vigilante', recapName(vigilante) + ' fired at ' + (vigTarget ? vigTarget.name : 'someone') + ', who was already eliminated that night, so the shot was wasted (and it is now spent).');
     if(vigTarget && vigTarget.alive){
       vigTarget.alive = false;
       checkBountyHit(state, vigTarget);
@@ -553,6 +595,7 @@ function resolveNight(state){
       // specific to her flip mechanic and intentionally not generalized to
       // any other "could become a future threat" role.
       const guilty = vigTarget.role !== 'CrazyGranny' && vigTarget.align === 'town';
+      rec('vigilante', recapName(vigilante) + ' used their one shot on ' + recapName(vigTarget) + ' and eliminated them. The Doctor, Coward and War Veteran cannot stop this shot, it is separate from the family\'s attack.' + (guilty ? ' ' + vigTarget.name + ' was on the town\'s side, so ' + vigilante.name + ' was eliminated too, out of guilt.' : ' ' + vigTarget.name + (vigTarget.role === 'CrazyGranny' ? ' was the Crazy Granny, who never causes guilt, so ' : ' was not on the town\'s side, so ') + vigilante.name + ' lives.'));
       if(guilty){
         vigilante.alive = false;
         // Distinct from an ordinary night death (mafia kill, Navy Seal
@@ -590,6 +633,13 @@ function resolveNight(state){
       // file. The case file only ever holds things the whole town would
       // actually know, like who was found dead.
       state.detectiveLog.push({name: target.name, read: read});
+      let why = '';
+      if(target.align === 'neutral' || target.align === 'cult') why = ' (neutral and cult players always read suspicious)';
+      else if(framerTargetId && target.id === framerTargetId) why = ' (the Framer had tampered with this read: it is flipped)';
+      else if(target.role === 'Miller') why = ' (the Miller always reads guilty, even though they are on the town\'s side)';
+      else if(target.role === 'DoubleAgent') why = (target.investigateCount||0) >= 2 ? ' (the Double Agent only reads innocent the first time they are investigated)' : ' (the Double Agent reads innocent the first time they are investigated)';
+      else if(target.role === 'CrazyGranny' && !target.flipped) why = ' (the Crazy Granny reads suspicious until she turns on the town)';
+      rec('detective', recapName(detective) + ' investigated ' + recapName(target) + ' and saw "' + read + '"' + why + '.');
       investigationResult = {detectiveId: detective.id, targetId: target.id, targetName: target.name, read: read};
     }
   }
@@ -615,6 +665,7 @@ function resolveNight(state){
       // Private to the Consigliere alone (see consigliereLog below) - same
       // reasoning as the Detective above, never logged to the public case file.
       state.consigliereLog.push({name: target.name, role: target.role});
+      rec('consigliere', recapName(consigliere) + ' looked into ' + target.name + ' and learned their exact role: ' + recapRole(target.role) + '.');
       consigliereResult = {consigliereId: consigliere.id, targetId: target.id, targetName: target.name, role: target.role};
     }
   }
@@ -637,6 +688,7 @@ function resolveNight(state){
       // Private to the Mortician alone (see morticianLog below) - same
       // reasoning as the Detective/Consigliere above, never logged publicly.
       state.morticianLog.push({name: deadEntry.name, role: deadEntry.role});
+      rec('mortician', recapName(mortician) + ' examined ' + deadEntry.name + ', who was eliminated the night before, and learned they were the ' + recapRole(deadEntry.role) + '.');
       morticianResult = {morticianId: mortician.id, targetId: deadEntry.id, targetName: deadEntry.name, role: deadEntry.role};
     }
   }
@@ -664,6 +716,7 @@ function resolveNight(state){
       if(protectTargetId && protectTargetId === cultTarget.id){
         cultConversionBlocked = true;
         log(state, 'Someone tried to turn '+cultTarget.name+' last night, but the doctor\'s protection held.');
+        rec('cult', recapName(cultLeader) + ' tried to convert ' + recapName(cultTarget) + ', but the Doctor was protecting them, so the conversion failed.');
       } else {
         // Fully removed from their prior alignment (town or mafia), not left
         // as a silent gap in the old faction's count - mafiaAlive/cultAlive
@@ -672,6 +725,7 @@ function resolveNight(state){
         // The mafia's shared kill-vote access is the one individual privilege
         // this actually revokes (see mafiaVoters) - every other ability tied
         // to their role keeps working exactly as before.
+        rec('cult', recapName(cultLeader) + ' converted ' + recapName(cultTarget) + ' to the cult. They keep their role\'s ability' + (cultTarget.role === 'Godfather' || cultTarget.role === 'Mafia' || cultTarget.role === 'Framer' || cultTarget.role === 'DoubleAgent' ? ' but lose their vote in the family\'s kill' : '') + ', and now win with the cult.');
         cultTarget.align = 'cult';
         cultConvertedPlayer = cultTarget;
         // Never logged publicly - this would out the target's new alignment
@@ -682,7 +736,13 @@ function resolveNight(state){
     }
   }
 
-  checkGrannyFlip(state);
+  if(checkGrannyFlip(state)){
+    const gr = state.players.find(p => p.role === 'CrazyGranny');
+    if(gr) rec('granny', gr.name + ' (Crazy Granny) is now the last of the mafia, so she turns on the town and joins the mafia side.');
+  }
+  const gone = nightDeaths.map(d => d.name + ' (' + recapRole(d.role) + ')');
+  rec('result', gone.length ? 'Eliminated overnight: ' + gone.join(', ') + '.' : 'Nobody was eliminated overnight.');
+  state.nightRecap.push({night: state.night, steps, day: null});
   state.cachedOvernightReport = reportLines.join(' ');
   const gameOver = checkWin(state);
 
@@ -757,6 +817,12 @@ function resolveDayVote(state, timedOutFallbackId){
   // Remembered for the reveal screen: who tied, how many votes each had, and whether a living Mayor's pick (rather than the
   // draw of lots) settled it. Null when there was a clear leader.
   state.lastDayVoteTie = (leaders.length > 1 && lead) ? { ids: leaders.slice(), votes: maxV, mayorResolved: mayorTiebreakResolved, winnerId: lead.id } : null;
+  const recapEntry = state.nightRecap.find(r => r.night === state.night);
+  if(recapEntry){
+    recapEntry.day = lead
+      ? lead.name + ' (' + recapRole(lead.role) + ') was voted out by the town with ' + maxV + ' vote' + (maxV === 1 ? '' : 's') + (mayorTiebreakResolved ? ', after the Mayor quietly broke a tie' : (leaders.length > 1 ? ', after a tie was settled by chance' : '')) + '.'
+      : 'Nobody was voted out by the town.';
+  }
   if(lead){
     lead.alive = false;
     log(state, lead.name+' ('+lead.role+') was voted out by the town.');
@@ -1389,6 +1455,7 @@ function buildGameSummary(state, scoreRounds){
       polls: (state.chatLog || []).filter(e => e && e.kind === 'poll').length,
       whispers: (state.whisperLog || []).length
     },
+    nightRecap: (state.nightRecap || []).slice(),
     timeline: (state.history || []).slice()
   };
 }

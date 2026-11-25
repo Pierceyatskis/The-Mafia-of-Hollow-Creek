@@ -189,7 +189,7 @@
 
   // Every full-screen screen and popup lives INSIDE the scaled canvas in the markup. With a camera transform (and clip) on the
   // canvas they would be zoomed and cropped with it, so on a phone they are lifted out to <body> once, at startup.
-  var LIFT = ['death-screen','silence-screen','nightkill-screen','victory-screen','role-reveal-screen','phase-transition-screen','case-log-modal','notebook-modal','settings-modal','ghost-chat-modal','role-card-modal','vote-reveal-modal','intro-modal','howto-tour-modal','detective-reveal-modal','consigliere-reveal-modal','mortician-reveal-modal','cult-convert-modal','final-guess-modal','player-action-modal','reason-picker-modal','endgame-screen','leave-confirm-modal','revenge-wait-modal'];
+  var LIFT = ['death-screen','silence-screen','nightkill-screen','victory-screen','role-reveal-screen','phase-transition-screen','case-log-modal','recap-modal','notebook-modal','settings-modal','ghost-chat-modal','role-card-modal','vote-reveal-modal','intro-modal','howto-tour-modal','detective-reveal-modal','consigliere-reveal-modal','mortician-reveal-modal','cult-convert-modal','final-guess-modal','player-action-modal','reason-picker-modal','endgame-screen','leave-confirm-modal','revenge-wait-modal'];
   function liftOverlays(){
     LIFT.forEach(function(id){ var n = document.getElementById(id); if(n && n.parentNode !== document.body) document.body.appendChild(n); });
   }

@@ -1061,4 +1061,24 @@ assert(resCultF.cultConvertedPlayer === null, 'Phase2 Task5: resolveNight confir
   }
   assert(bad === 0, 'Icons: every townsperson is dealt a silhouette of their own gender (Mabel a woman, Otis a man...)');
 }
+{
+  // The post-game recap explains a crowded night: Coward, Doctor, Godfather, Mafia, War Veteran and Vigilante all acting at once
+  const ON = {Godfather:true, DoubleAgent:false, Detective:true, Doctor:true, Miller:false, BountyHunter:false, CrazyGranny:false, Coward:true, Farmer:false, NavySeal:true, Vigilante:true};
+  const st = G.createGame([{id:'a',name:'A'},{id:'b',name:'B'},{id:'c',name:'C'},{id:'d',name:'D'},{id:'e',name:'E'},{id:'f',name:'F'},{id:'g',name:'G'},{id:'h',name:'H'}], {playerCount: 11, mafiaCount: 1, roles: ON});
+  const by = r => st.players.find(p => p.role === r);
+  const gf = by('Godfather'), mf = by('Mafia'), cow = by('Coward'), doc = by('Doctor'), vet = by('NavySeal'), vig = by('Vigilante');
+  st.pendingNightVotes = {};
+  st.pendingNightVotes[gf.id] = {kill: cow.id};            // the family goes for the Coward...
+  st.pendingNightVotes[mf.id] = {kill: cow.id};
+  st.pendingNightVotes[cow.id] = {hideBehind: vet.id};     // ...who hops behind the War Veteran
+  st.pendingNightVotes[doc.id] = {protect: doc.id};        // the Doctor protects themself, which does nothing here
+  st.pendingNightVotes[vig.id] = {vigilanteKill: gf.id};   // and the Vigilante shoots the Godfather
+  G.resolveNight(st);
+  const rec = st.nightRecap[0];
+  const kinds = rec.steps.map(x => x.kind);
+  assert(rec.night === 1 && ['family','coward','doctor','veteran','vigilante','result'].every(k => kinds.includes(k)), 'Recap: a crowded night explains the family, Coward, Doctor, War Veteran, Vigilante and the result');
+  assert(/hid behind/.test(rec.steps.find(x => x.kind === 'coward').text) && /fought back/.test(rec.steps.find(x => x.kind === 'veteran').text), 'Recap: it says the Coward hid behind the Veteran, who then fought back');
+  assert(/nothing can stop|cannot stop/.test(rec.steps.find(x => x.kind === 'vigilante').text), 'Recap: it says the Vigilante\'s shot cannot be stopped');
+  assert(G.buildGameSummary(st, []).nightRecap.length === 1, 'Recap: the end-of-game summary carries it');
+}
 console.log('\nAll game.js checks completed.');
