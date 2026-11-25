@@ -29,7 +29,7 @@ const DAY_VOTE_EARLY_RESOLVE_DELAY_MS = process.env.DAY_VOTE_EARLY_RESOLVE_DELAY
 const NIGHT_EARLY_RESOLVE_DELAY_MS = process.env.NIGHT_EARLY_RESOLVE_DELAY_MS !== undefined ? Number(process.env.NIGHT_EARLY_RESOLVE_DELAY_MS) : 3000;
 const DAY_VOTE_DURATION_MS = Number(process.env.DAY_VOTE_DURATION_MS) || 105000; // was 45s - extended by an extra minute of actual voting time
 const DAY_REVEAL_DURATION_MS = Number(process.env.DAY_REVEAL_DURATION_MS) || 12000;
-const FARMER_REVENGE_DURATION_MS = Number(process.env.FARMER_REVENGE_DURATION_MS) || 30000;
+const FARMER_REVENGE_DURATION_MS = Number(process.env.FARMER_REVENGE_DURATION_MS) || 40000;
 const MIN_DISCUSS_SECONDS = 30, MAX_DISCUSS_SECONDS = 300;
 const MIN_VOTE_SECONDS = 30, MAX_VOTE_SECONDS = 300;
 // Voice/stage feature - off unless a host explicitly turns it on for their room.

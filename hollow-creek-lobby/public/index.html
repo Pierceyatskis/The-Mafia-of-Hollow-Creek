@@ -1516,6 +1516,7 @@ body.force-reduced-motion .notebook-view.notebook-page-turn{animation:none;}
 #vote-reveal-outcome::after{background:linear-gradient(90deg, #8B1414, transparent);}
 #vote-reveal-role-revealed::before, #vote-reveal-role-revealed::after{content:''; height:1px; width:2.2cqw; flex:0 0 auto; background:var(--gold-dim);}
 #vote-reveal-flavor{font-family:var(--font-body); font-style:italic; font-size:1.25cqw; color:#5a4a36; max-width:96%; line-height:1.3;}
+#vote-reveal-flavor.vr-revenge{font-style:normal; font-weight:700; font-size:1.7cqw; color:#8a1c14; letter-spacing:.2px; line-height:1.25; text-shadow:0 0 1px rgba(138,28,20,0.4);}
 /* Wood band - one card per vote target (plus an "abstained" card when
    relevant), each a parchment cutout sized to how many names it holds.
    max-height, not height: a fixed height reserved the full band even
@@ -2062,6 +2063,57 @@ body.phone.fam-tab #design-canvas.bg-night #mafia-chat-section{display:flex !imp
 .settings-content{width:min(1180px, 96vw); max-width:1180px; max-height:92vh; display:flex; flex-direction:column;}
 /* two columns on a wide screen so everything fits without scrolling; on a phone it is one column that still scrolls, with no visible scrollbar */
 /* post-game night-by-night explanation */
+/* the revenge picker reuses the night action look: same background, parchment panel, portrait grid and plates */
+#revenge-card, #revenge-card{position:relative; width:1000px; max-width:100%; min-height:600px; margin:0 auto; box-sizing:border-box; border:48px solid transparent; border-image:url('assets/ui/night-panel.webp') 96 fill / 48px stretch; padding:0 6px 6px; text-align:center; color:#2a1708; filter:drop-shadow(0 14px 30px rgba(0,0,0,0.7));}
+#revenge-card .na-pre{margin:2px 0 0; font-family:var(--font-body); font-size:16px; color:#3a2412;}
+#revenge-card .na-pre p{margin:2px 0;}
+#revenge-card .na-pre .ally{font-family:var(--font-body); font-size:17px; color:#6b1d12; font-weight:700;}
+#revenge-card .na-cols{display:flex; align-items:stretch; justify-content:center; gap:0; margin:14px 0 6px; position:relative;}
+#revenge-card .na-col{flex:1 1 0; max-width:430px; padding:0 22px; display:flex; flex-direction:column; align-items:stretch; gap:12px;}
+#revenge-card .na-cols-2 .na-col + .na-col{border-left:1px solid rgba(58,36,18,0.55);}
+#revenge-card .na-head, #revenge-card .na-select, #revenge-card .na-confirm, #revenge-card .na-count, #revenge-card .na-back{box-sizing:border-box; border-style:solid; border-color:transparent; border-width:15px 24px; display:flex; align-items:center; justify-content:center; height:56px; width:100%; font-family:var(--font-ornate); font-weight:700; font-variant:small-caps; letter-spacing:.6px; font-size:22px; line-height:1; white-space:nowrap; color:#f3e3b8; text-shadow:0 2px 3px rgba(0,0,0,0.85); background:none; padding:0; margin:0;}
+#revenge-card .na-head{border-image:url('assets/ui/plate-red-header.webp') 66 100 fill / 15px 24px stretch; height:60px; font-size:24px;}
+#revenge-card .na-hint{margin:0; font-family:var(--font-body); font-size:17px; color:#2a1708; text-align:center; height:48px; overflow:hidden;}
+#revenge-card .na-select, #revenge-card .na-count, #revenge-card .na-back, #revenge-card .na-confirm.off, #revenge-card .na-confirm.done{border-image:url('assets/ui/plate-dark.webp') 62 100 fill / 15px 24px stretch;}
+#revenge-card .na-confirm.on{border-image:url('assets/ui/plate-red.webp') 60 100 fill / 15px 24px stretch;}
+#revenge-card .na-select{cursor:pointer; justify-content:flex-start; gap:12px; font-family:var(--font-body); font-variant:normal; font-weight:400; font-size:18px; color:#e8dfc7; position:relative; padding:0 28px 0 4px; transition:filter .15s ease, transform .12s ease;}
+#revenge-card .na-select img{width:28px; height:28px; border-radius:50%; object-fit:cover; border:1px solid #d9a441; flex-shrink:0;}
+#revenge-card .na-select .na-ph{color:#a89878;}
+#revenge-card .na-select::after{content:''; position:absolute; right:12px; top:50%; margin-top:-3px; border-left:7px solid transparent; border-right:7px solid transparent; border-top:9px solid #d9a441;}
+#revenge-card .na-select.locked{cursor:default; filter:saturate(0.6) brightness(0.85);}
+#revenge-card .na-select.locked::after{display:none;}
+#revenge-card .na-confirm{cursor:pointer; transition:filter .15s ease, transform .12s ease;}
+#revenge-card .na-confirm.off{cursor:not-allowed; color:#7d7058; text-shadow:none; filter:grayscale(0.6) brightness(0.85);}
+#revenge-card .na-confirm.done{color:#e3b855;}
+#revenge-card .na-select:not(.locked):hover, #revenge-card .na-confirm.on:hover, #revenge-card .na-confirm.done:hover, #revenge-card .na-back:hover{filter:brightness(1.22); transform:translateY(-2px);}
+#revenge-card .na-confirm.on:active, #revenge-card .na-select:active{transform:translateY(0) scale(0.98);}
+#revenge-card .na-skip{align-self:center; margin:-4px 0 0; padding:2px 6px; background:none; border:none; cursor:pointer; font-family:var(--font-body); font-style:italic; font-size:15px; color:#4a2e16; text-decoration:underline;}
+#revenge-card .na-skip:hover{color:#8a1c14;}
+#revenge-card .na-count{width:520px; max-width:90%; margin:8px auto 4px; font-size:21px;}
+#revenge-card .na-foot{margin:6px 0 0; font-family:var(--font-body); font-style:italic; font-size:16px; color:#3a2412; display:flex; align-items:center; justify-content:center; gap:14px;}
+#revenge-card .na-foot::before, #revenge-card .na-foot::after{content:''; flex:0 0 110px; height:1px; background:linear-gradient(90deg, transparent, #3a2412);}
+#revenge-card .na-foot::after{background:linear-gradient(270deg, transparent, #3a2412);}
+#revenge-card .na-sub{margin:0 0 6px; font-family:var(--font-body); font-size:18px; color:#3a2412;}
+#revenge-card .na-grid{display:flex; flex-wrap:wrap; justify-content:center; gap:16px 22px; padding:10px 18px 4px;}
+#revenge-card .na-person{display:flex; flex-direction:column; align-items:center; gap:6px; padding:0; background:none; border:none; cursor:pointer; transition:transform .12s ease, filter .15s ease;}
+#revenge-card .na-person img{width:100px; height:100px; object-fit:cover; object-position:center 15%; border-radius:8px; border:3px solid #5a3b1a; box-shadow:0 3px 8px rgba(0,0,0,0.45); background:#1b130c;}
+#revenge-card .na-person span{font-family:var(--font-ornate); font-weight:700; font-size:15px; color:#2a1708; max-width:112px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+#revenge-card .na-person:hover{transform:translateY(-4px); filter:brightness(1.1);}
+#revenge-card .na-person:hover img{border-color:#d9a441;}
+#revenge-card .na-person.sel img{border-color:#d9a441; box-shadow:0 0 0 2px #8a1c14, 0 0 14px 4px rgba(217,164,65,0.8);}
+#revenge-card .na-backrow{display:flex; justify-content:center; margin-top:14px;}
+#revenge-card .na-back{width:220px; cursor:pointer;}
+#revenge-wait-modal{background:linear-gradient(rgba(8,7,6,0.84), rgba(8,7,6,0.92)), var(--bg-night); background-size:cover; background-position:center;}
+#revenge-card{width:min(880px, 94vw); min-height:0; max-height:94vh; overflow-y:auto; scrollbar-width:none; padding-bottom:14px;}
+#revenge-card::-webkit-scrollbar{display:none;}
+#revenge-card .nsc-title{font-size:40px;}
+#revenge-card .na-sub{margin:6px auto 4px; max-width:620px; font-family:var(--font-body); font-size:17px; line-height:1.45; color:#2a1708; text-align:center;}
+#revenge-card .na-person img{width:84px; height:84px;}
+#revenge-card .na-person.selected img{border-color:#d9a441; box-shadow:0 0 0 2px #8a1c14, 0 0 14px 4px rgba(217,164,65,0.8);}
+#revenge-card .na-cols{margin:10px 0 2px;} #revenge-card .na-col{max-width:340px;}
+#revenge-card .msg.err{margin:6px 0 0; color:#7a1d12; font-weight:700;}
+#revenge-card #revenge-wait-clock{margin:8px 0 0; font-family:var(--font-ornate); font-size:30px; font-weight:700; color:#6b1d12;}
+@media (max-width:640px){ #revenge-card{border-width:30px; border-image-width:30px;} #revenge-card .nsc-title{font-size:28px;} #revenge-card .na-person img{width:64px; height:64px;} #revenge-card .na-sub{font-size:15px;} }
 .recap-content{width:min(720px, 94vw); max-width:720px; max-height:88vh; display:flex; flex-direction:column; text-align:left;}
 .recap-how{font-family:var(--font-type); font-size:12.5px; line-height:1.5; color:var(--parchment-dim); border:1px solid var(--line); border-radius:6px; padding:8px 12px; margin-bottom:10px; background:rgba(0,0,0,0.2);}
 .recap-how b{color:var(--parchment);} .recap-how summary{cursor:pointer;} .recap-how[open] summary{margin-bottom:6px;}
@@ -3348,15 +3400,16 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
 </div>
 
 <div id="revenge-wait-modal" class="role-card-overlay" style="display:none;">
-  <div class="role-card-modal-content player-action-content" style="text-align:center; max-width:min(580px,92vw);">
-    <h2 class="intro-modal-title" id="revenge-wait-title" style="margin-bottom:10px; font-size:30px;"></h2>
-    <p class="intro-modal-text" id="revenge-wait-text" style="margin-bottom:14px; font-size:16px; line-height:1.6; color:var(--parchment);"></p>
+  <div id="revenge-card">
+    <h2 class="nsc-title" id="revenge-wait-title"></h2>
+    <div class="nsc-rule"></div>
+    <p class="na-sub" id="revenge-wait-text"></p>
     <div id="revenge-wait-picker" style="display:none;">
-      <div class="chipgrid" id="revenge-grid"></div>
-      <button class="btn danger" id="revenge-confirm-btn" style="margin-top:14px;">Take them down</button>
+      <div class="na-grid" id="revenge-grid"></div>
+      <div class="na-cols"><div class="na-col"><button type="button" class="na-confirm on" id="revenge-confirm-btn">Take them down</button></div></div>
       <p class="msg err" id="revenge-error" style="display:none;">Choose someone first.</p>
     </div>
-    <p class="intro-modal-text" id="revenge-wait-clock" style="margin:14px 0 0; font-size:28px; font-weight:700; color:var(--gold-bright);"></p>
+    <p id="revenge-wait-clock"></p>
   </div>
 </div>
 
@@ -7026,6 +7079,8 @@ function showDeathScreen(kind, onContinue){
   var titleEl = document.getElementById('death-title');
   var subEl = document.getElementById('death-subtitle');
   var bgEl = document.getElementById('death-bg-img');
+  var bigSub = (kind==='dayRevenge' || kind==='revenge');   // these two carry a sentence the player needs to read
+  subEl.style.fontSize = bigSub ? '19px' : ''; subEl.style.maxWidth = bigSub ? '760px' : ''; subEl.style.letterSpacing = bigSub ? '1.2px' : '';
   if(kind==='vigilanteGuilt'){
     // Distinct from an ordinary mafia-caused night death - blaming "the
     // mafia" here would be factually wrong, so this gets its own art and
@@ -7040,6 +7095,19 @@ function showDeathScreen(kind, onContinue){
     bgEl.src = IMG.deathMafia;
     titleEl.textContent = 'Business Was Settled';
     subEl.textContent = 'The mafia eliminated you.';
+    subEl.style.display = 'block';
+  } else if(kind==='dayRevenge'){
+    // A voted-out Farmer/Hitman still has a move to make: say so right on the death screen.
+    bgEl.src = IMG.deathVoted;
+    titleEl.textContent = 'You Have Been Voted Off';
+    subEl.textContent = 'But you are not gone yet. You get one last move: choose a player to take down with you.';
+    subEl.style.display = 'block';
+  } else if(kind==='revenge'){
+    // Taken down by a voted-out Farmer/Hitman: nothing about votes here, just who did it.
+    SoundFX.setAmbience(null);
+    bgEl.src = IMG.deathVoted;
+    titleEl.textContent = 'Taken Down With Them';
+    subEl.textContent = (showDeathScreen._by || 'The player the town voted out') + ' took you down with them on the way out.';
     subEl.style.display = 'block';
   } else {
     bgEl.src = IMG.deathVoted;
@@ -7059,7 +7127,7 @@ function showDeathScreen(kind, onContinue){
   bgImgEl.style.animation = '';
   document.getElementById('death-screen').style.display = 'block';
   clearTimeout(showDeathScreen._payoffTimer);
-  if(kind==='night' || kind==='vigilanteGuilt'){
+  if(kind==='night' || kind==='vigilanteGuilt' || kind==='revenge'){
     showDeathScreen._payoffTimer = setTimeout(function(){
       SoundFX.playElimination();
       vibrate([40,60,40,60,80]);
@@ -8281,7 +8349,9 @@ function showRevengeWaitModal(view){
   if(mine && !submitted && revengePickerNight !== view.night){
     revengePickerNight = view.night;
     var grid = document.getElementById('revenge-grid');
-    grid.innerHTML = chipGridHTML(otherLivingOptions([myPlayerId]), 'pick-revenge');
+    grid.innerHTML = otherLivingOptions([myPlayerId]).map(function(p){
+      return '<button type="button" class="na-person pick-revenge" data-id="'+p.id+'"><img src="'+portraitImgFor(p)+'" alt=""><span title="'+escapeHtmlMp(p.name)+'">'+escapeHtmlMp(p.name)+'</span></button>';
+    }).join('');
     var chosen = null;
     wireSingleSelect(grid, 'pick-revenge', function(id){ chosen = id; document.getElementById('revenge-error').style.display = 'none'; });
     document.getElementById('revenge-error').style.display = 'none';
@@ -8301,6 +8371,14 @@ function showRevengeWaitModal(view){
   }
   clearInterval(revengeClockT); tick(); revengeClockT = setInterval(tick, 500);
 }
+var revengeRevealNight = -1, revengeRevealSeen = -1, revengeStage = null, revengeAdvanceTimer = null;
+function advanceRevengeStage(){
+  clearTimeout(revengeAdvanceTimer);
+  if(revengeStage !== 'reveal' || !latestView || latestView.phase !== 'farmer-revenge') return;
+  revengeStage = 'picker';
+  document.getElementById('vote-reveal-modal').style.display = 'none';
+  showRevengeWaitModal(latestView);
+}
 var pendingRevengeCard = null, revengeCardTimer = null;
 function cancelRevengeCard(){ clearTimeout(revengeCardTimer); pendingRevengeCard = null; }
 function showPendingRevengeCard(){
@@ -8319,6 +8397,7 @@ function showPendingRevengeCard(){
   var roleNameEl = document.getElementById('vote-reveal-role-name');
   roleNameEl.textContent = hasRole ? (ROLE_LABEL[target.role] || target.role) : '';
   roleNameEl.className = 'vote-reveal-portrait-name '+alignClass(target);
+  document.getElementById('vote-reveal-flavor').classList.remove('vr-revenge');
   document.getElementById('vote-reveal-outcome').textContent = 'Taken Out';
   document.getElementById('vote-reveal-flavor').textContent = lead.name+', voted out by the town, took '+target.name+' down with them on the way out.';
   var groupsEl = document.getElementById('vote-reveal-groups');
@@ -8351,10 +8430,14 @@ function renderVoteRevealModal(view){
   // Same re-entry guard as the legacy reveal - a second gameState for the
   // same lynch (round score arriving separately, a chat message ticking
   // in) must not re-open/re-animate an already-shown modal.
-  var key = view.night+':'+lead.id;
+  // After a Farmer/Hitman's last move the results were already shown while they chose: go straight to who they took (or close if nobody).
+  var revengeDone = view.phase==='day-reveal' && revengeRevealSeen === view.night && lead && lead.id;
+  var key = view.night+':'+lead.id+(view.phase==='farmer-revenge' ? ':revenge' : '');
   if(renderVoteRevealModal._key === key) return;
   renderVoteRevealModal._key = key;
+  if(revengeDone && !view.farmerRevengeName){ document.getElementById('vote-reveal-modal').style.display = 'none'; return; }
 
+  document.getElementById('vote-reveal-flavor').classList.remove('vr-revenge');
   document.getElementById('vote-reveal-title').textContent = 'Town Vote \u2014 Day '+view.night;
   document.getElementById('vote-reveal-player-img').src = portraitImgFor(lead);
   document.getElementById('vote-reveal-player-name').textContent = lead.name;
@@ -8436,15 +8519,26 @@ function renderVoteRevealModal(view){
     var tier = voteRevealParchmentFor(el.offsetWidth / el.offsetHeight);
     el.style.borderImage = 'url('+DAYTIME_IMG[tier.key]+') '+tier.slice+' fill / '+tier.bw+'cqw / 0 stretch';
   });
+  // The Farmer/Hitman is choosing right now: say so on the results card.
+  if(view.phase==='farmer-revenge' && lead && lead.id){
+    var rn = ROLE_SHORT[lead.role] || lead.role;
+    document.getElementById('vote-reveal-flavor').textContent = view.farmerRevengePending === myPlayerId
+      ? 'You are choosing a player to take down with you. Close this to choose.'
+      : lead.name + ', the ' + rn + ', is now choosing a player to take down with them\u2026';
+    document.getElementById('vote-reveal-flavor').classList.add('vr-revenge');
+  }
   // A voted-out Farmer/Hitman took someone with them: that victim gets their own card next.
   cancelRevengeCard();
   var revengeVictim = (view.farmerRevengeName && lead && lead.id) ? view.players.find(function(p){ return p.name===view.farmerRevengeName && !p.alive; }) : null;
   if(revengeVictim){
     pendingRevengeCard = {view: view, lead: lead, target: revengeVictim};
-    revengeCardTimer = setTimeout(showPendingRevengeCard, 6500);
+    // Already shown the results while they chose, or this is the victim themself: no vote breakdown, straight to who took whom.
+    if(revengeDone || revengeVictim.id === myPlayerId) showPendingRevengeCard();
+    else revengeCardTimer = setTimeout(showPendingRevengeCard, 6500);
   }
 }
 document.getElementById('vote-reveal-close-btn').addEventListener('click', function(){
+  if(revengeStage === 'reveal'){ advanceRevengeStage(); return; }
   if(pendingRevengeCard){ showPendingRevengeCard(); return; }
   document.getElementById('vote-reveal-modal').style.display = 'none';
 });
@@ -9593,8 +9687,8 @@ function renderDayPanel(){
   // hiding it here on every render would also slam it shut the instant any
   // OTHER gameState update lands while still in day-reveal (a chat message,
   // another player's action) - not just when the phase actually changes.
-  if(view.phase!=='day-reveal'){ document.getElementById('vote-reveal-modal').style.display='none'; cancelRevengeCard(); }
-  if(view.phase!=='farmer-revenge') hideRevengeWait();
+  if(view.phase!=='day-reveal' && view.phase!=='farmer-revenge'){ document.getElementById('vote-reveal-modal').style.display='none'; cancelRevengeCard(); }
+  if(view.phase!=='farmer-revenge'){ hideRevengeWait(); revengeRevealNight = -1; revengeStage = null; clearTimeout(revengeAdvanceTimer); }
   if(view.phase!=='day-vote') stopVoteTimer();
 
   if(view.phase==='day-discuss'){
@@ -9631,8 +9725,16 @@ function renderDayPanel(){
   } else if(view.phase==='farmer-revenge'){
     // Everyone sees who is choosing (and the chooser gets the picker) in a proper modal -
     // the old tiny hidden section was easy to miss, and nobody else was told anything.
-    showRevengeWaitModal(view);
+    // First the vote results (who voted for them) with a clear "choosing now" message, then the picker / waiting card.
     stagePanel.style.display='none';
+    if(revengeRevealNight !== view.night){
+      revengeRevealNight = view.night; revengeRevealSeen = view.night; revengeStage = 'reveal';
+      renderVoteRevealModal(view);
+      clearTimeout(revengeAdvanceTimer); revengeAdvanceTimer = setTimeout(advanceRevengeStage, 9000);
+      if(document.getElementById('vote-reveal-modal').style.display !== 'flex') advanceRevengeStage();   // nothing to show (no lynch card): go straight to the picker
+    } else if(revengeStage === 'picker'){
+      showRevengeWaitModal(view);
+    }
   } else if(view.phase==='day-reveal'){
     // 5g: the stage never shares screen space with the vote-out reveal -
     // fade the outgoing stage panel out, THEN remove it from layout,
@@ -9668,7 +9770,7 @@ function renderFromServerView(view){
   // update, re-triggering "you died" over and over instead of ever settling.
   previousView = view;
   // The vote-results popup belongs to day-reveal only: if it was left open, it must not follow the player into the night.
-  if(view.phase!=='day-reveal'){ var vrm = document.getElementById('vote-reveal-modal'); if(vrm) vrm.style.display = 'none'; }
+  if(view.phase!=='day-reveal' && view.phase!=='farmer-revenge'){ var vrm = document.getElementById('vote-reveal-modal'); if(vrm) vrm.style.display = 'none'; }
   // Likewise the "you are silenced today" screen: once the night comes round, or the silence no longer applies, an unanswered one is stale.
   if(view.phase==='night' || !(me && me.silencedToday)){ var sil = document.getElementById('silence-screen'); if(sil && sil.style.display!=='none') sil.style.display = 'none'; }
 
@@ -9831,10 +9933,21 @@ function renderFromServerView(view){
     if(handlePostNightBranches()) return;
   }
 
+  // The voted-out Farmer/Hitman: their death screen says they still have a last move to make.
+  if(prev && prev.phase==='day-vote' && view.phase==='farmer-revenge' && prevMe && prevMe.alive && me && !me.alive){
+    showDeathScreen('dayRevenge', finish);
+    return;
+  }
   var justEnteredReveal = prev && (prev.phase==='day-vote'||prev.phase==='farmer-revenge') && view.phase==='day-reveal';
   if(justEnteredReveal){
     if(prevMe && prevMe.alive && me && !me.alive){
-      showDeathScreen('day', finish);
+      // Taken down by the Farmer/Hitman's last move rather than by the vote: its own screen, naming who did it.
+      hideRevengeWait(); document.getElementById('vote-reveal-modal').style.display = 'none';   // these sit above the death screen otherwise
+      var revLead = view.farmerRevengeName === me.name ? findLynchedFromHistory(view) : null;
+      if(revLead){
+        showDeathScreen._by = revLead.name + ' (' + (ROLE_SHORT[revLead.role] || revLead.role) + ')';
+        showDeathScreen('revenge', finish);
+      } else showDeathScreen('day', finish);
       return;
     }
     SoundFX.playGavel();
