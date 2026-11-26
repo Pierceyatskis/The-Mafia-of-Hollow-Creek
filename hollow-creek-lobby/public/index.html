@@ -3102,6 +3102,10 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
         <span class="set-text"><b>Ambience volume</b><small>Rain, crickets and the night clock tick.</small></span>
         <span class="set-slider"><input type="range" id="settings-ambience-slider" class="volume-slider" min="0" max="100" value="80" aria-label="Ambience volume"><span id="settings-ambience-value" class="set-val">80%</span></span>
       </div>
+      <div class="set-row set-row-slider">
+        <span class="set-text"><b>Music volume</b><small>Short sets with quiet stretches between; dips while someone talks. Samples: FluidR3 GM (CC BY 3.0).</small></span>
+        <span class="set-slider"><input type="range" id="settings-music-slider" class="volume-slider" min="0" max="100" value="50" aria-label="Music volume"><span id="settings-music-value" class="set-val">50%</span></span>
+      </div>
       <label class="set-row" for="settings-ambient-check"><span class="set-text"><b>Ambient sounds</b><small>Rain and crickets at night.</small></span><input type="checkbox" id="settings-ambient-check" class="rule-switch-input"><span class="rule-switch" aria-hidden="true"></span></label>
       <label class="set-row" for="settings-tick-check"><span class="set-text"><b>Night clock tick</b><small>The ticking that speeds up as the night runs out.</small></span><input type="checkbox" id="settings-tick-check" class="rule-switch-input"><span class="rule-switch" aria-hidden="true"></span></label>
       <label class="set-row" for="settings-alerts-check"><span class="set-text"><b>Alert sounds</b><small>New chat blips, the time-running-out beeps, and the chime when it is your turn on the stage.</small></span><input type="checkbox" id="settings-alerts-check" class="rule-switch-input"><span class="rule-switch" aria-hidden="true"></span></label>
@@ -3784,6 +3788,7 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
 </div>
 </div>
 
+<script src="music.js"></script>
 <script>
 // Fixed 16:9 design canvas (item 14) - scales #design-canvas (a fixed
 // 1920x1080 box holding the entire interface) as one unit to the largest
@@ -4994,6 +4999,7 @@ var SoundFX = (function(){
     setMuted: function(m){
       muted = !!m;
       localStorage.setItem(SOUND_MUTE_KEY, muted ? '1' : '0');
+      if(window.GameMusic) GameMusic.sync();
       if(muted){
         if(ambienceEl) ambienceEl.pause();
         if(rainEl) rainEl.pause();
@@ -5158,6 +5164,8 @@ var SoundFX = (function(){
       });
     },
     setAmbience: function(phase){
+      // Every panel switch comes through here, so it also picks the music.
+      if(window.GameMusic) GameMusic.setPhase(phase);
       lastAmbiencePhase = phase;
       if(!ambientOn) phase = null;
       var key = null;
@@ -5263,6 +5271,67 @@ var SoundFX = (function(){
       if(cricketEl && !cricketEl._fadeTimer) cricketEl.volume = CRICKET_BASE_VOL * ambienceVolume;
       if(tickEl) tickEl.volume = Math.min(1, TICK_BASE_VOL * ambienceVolume * (1 + tickUrgency * 0.8));
     }
+  };
+})();
+
+// ---- Background music (music.js) ----
+//   menus + lobby          -> main theme
+//   day (discussion)       -> day theme
+//   day vote / farmer pick -> vote theme (multiplayer phases)
+//   vote reveal            -> silence, so the reveal and its effects land
+//   night                  -> night theme
+//   victory screen + end   -> the winner's one-shot cue
+// Obeys the main Sound on/off toggle, has its own volume (default 50%,
+// deliberately quieter than effects), and ducks under voice chat.
+var SOUND_MUSIC_VOLUME_KEY = 'hc-sound-music-volume-v1';
+var GameMusic = (function(){
+  var saved = parseFloat(localStorage.getItem(SOUND_MUSIC_VOLUME_KEY));
+  var volume = isNaN(saved) ? 0.5 : Math.max(0, Math.min(1, saved));
+  var MENU_PANELS = {home: 1, howto: 1, profile: 1, mpentry: 1, setup: 1, lobby: 1};
+  var phase = null, subPhase = null, outro = null;
+  var hasMusic = !!window.HollowMusic;
+  if(hasMusic) HollowMusic.setVolume(volume);
+  function pick(){
+    if(SoundFX.isMuted() || volume <= 0) return null;
+    if(MENU_PANELS[phase]) return 'menu';
+    if(outro) return outro;
+    if(phase === 'night') return 'night';
+    if(phase === 'day'){
+      if(subPhase === 'day-vote' || subPhase === 'farmer-revenge') return 'vote';
+      if(subPhase === 'day-reveal') return null;
+      return 'day';
+    }
+    return null;
+  }
+  function sync(){
+    if(!hasMusic) return;
+    var theme = pick();
+    if(theme) HollowMusic.play(theme); else HollowMusic.stop();
+  }
+  return {
+    sync: sync,
+    setPhase: function(p){
+      phase = p;
+      if(MENU_PANELS[p]){ outro = null; subPhase = null; }
+      sync();
+    },
+    // multiplayer game phase: 'day-discuss' | 'day-vote' | 'farmer-revenge' | 'day-reveal' | 'night'
+    setSubPhase: function(sp){ if(sp !== subPhase){ subPhase = sp; sync(); } },
+    // victory screen: 'town' | 'mafia' | 'bounty'. The cues open with ~1.3 s
+    // of silence of their own, so they enter just after the gavel/bong.
+    playOutcome: function(outcome){
+      outro = 'win-' + (outcome === 'mafia' || outcome === 'bounty' ? outcome : 'town');
+      sync();
+    },
+    getVolume: function(){ return volume; },
+    setVolume: function(v){
+      volume = Math.max(0, Math.min(1, v));
+      localStorage.setItem(SOUND_MUSIC_VOLUME_KEY, String(volume));
+      if(hasMusic) HollowMusic.setVolume(volume);
+      sync();
+    },
+    // called by the voice-activity monitor: true while the stage speaker is audibly talking
+    setVoiceActive: function(active){ if(hasMusic) HollowMusic.duck(active); }
   };
 })();
 // Accessibility & Settings Task 4 - independent of sound mute/volume, so a
@@ -7295,6 +7364,7 @@ function showVictoryScreen(outcome, onContinue){
   document.getElementById('victory-title').textContent = c.title;
   document.getElementById('victory-flavor').textContent = c.flavor;
   if(outcome==='mafia'){ SoundFX.playElimination(); } else { SoundFX.playGavel(); }
+  GameMusic.playOutcome(outcome);
   var ids = ['victory-eyebrow','victory-title','victory-flavor','victory-continue-btn'];
   ids.forEach(function(id){ document.getElementById(id).style.animation = 'none'; });
   var bgImgEl = document.querySelector('#victory-screen .victory-bg');
@@ -7968,6 +8038,8 @@ function syncSoundSettingsUI(){
   var sfx = Math.round(SoundFX.getVolume() * 100), amb = Math.round(SoundFX.getAmbienceVolume() * 100);
   $('settings-sfx-slider').value = sfx; $('settings-sfx-value').textContent = sfx + '%';
   $('settings-ambience-slider').value = amb; $('settings-ambience-value').textContent = amb + '%';
+  var mus = Math.round(GameMusic.getVolume() * 100);
+  $('settings-music-slider').value = mus; $('settings-music-value').textContent = mus + '%';
   $('settings-ambient-check').checked = CURRENT_SETTINGS.ambientSounds !== false;
   $('settings-tick-check').checked = CURRENT_SETTINGS.clockTick !== false;
   $('settings-alerts-check').checked = CURRENT_SETTINGS.alertSounds !== false;
@@ -7977,7 +8049,7 @@ function syncSoundSettingsUI(){
   $('settings-roletips-check').checked = CURRENT_SETTINGS.roleTips !== false;
   $('settings-bigrules-check').checked = !!CURRENT_SETTINGS.bigRules;
   // with the master switch off, the other sound rows read as inactive
-  ['settings-sfx-slider','settings-ambience-slider','settings-ambient-check','settings-tick-check','settings-alerts-check','settings-voice-check'].forEach(function(id){
+  ['settings-sfx-slider','settings-ambience-slider','settings-music-slider','settings-ambient-check','settings-tick-check','settings-alerts-check','settings-voice-check'].forEach(function(id){
     var el = $(id); el.disabled = muted; var row = el.closest('.set-row'); if(row) row.classList.toggle('is-off', muted);
   });
   var top = $('sound-toggle-btn'); if(top){ top.textContent = 'Sound: ' + (muted ? 'Off' : 'On'); top.classList.toggle('is-muted', muted); }
@@ -8022,6 +8094,11 @@ document.getElementById('settings-ambience-slider').addEventListener('input', fu
   var pct = parseInt(e.target.value, 10);
   document.getElementById('settings-ambience-value').textContent = pct + '%';
   SoundFX.setAmbienceVolume(pct / 100);
+});
+document.getElementById('settings-music-slider').addEventListener('input', function(e){
+  var pct = parseInt(e.target.value, 10);
+  document.getElementById('settings-music-value').textContent = pct + '%';
+  GameMusic.setVolume(pct / 100);
 });
 document.getElementById('settings-sound-check').addEventListener('change', function(e){
   SoundFX.setMuted(!e.target.checked);
@@ -9695,6 +9772,7 @@ function renderDayPanel(){
   if(view.phase!=='day-reveal' && view.phase!=='farmer-revenge'){ document.getElementById('vote-reveal-modal').style.display='none'; cancelRevengeCard(); }
   if(view.phase!=='farmer-revenge'){ hideRevengeWait(); revengeRevealNight = -1; revengeStage = null; clearTimeout(revengeAdvanceTimer); }
   if(view.phase!=='day-vote') stopVoteTimer();
+  GameMusic.setSubPhase(view.phase); // discussion / vote / reveal each get their own music
 
   if(view.phase==='day-discuss'){
     if(!me || !me.alive){ deadNotice.style.display='block'; }
@@ -10747,6 +10825,7 @@ function stopVoiceLevelMonitor(){
   voiceLevelSourceStream = null;
   var avatarWrap = document.querySelector('#stage-speaker .stage-speaker-avatar-wrap');
   if(avatarWrap) avatarWrap.classList.remove('stage-speaking-glow');
+  GameMusic.setVoiceActive(false);
 }
 function startVoiceLevelMonitor(stream){
   if(!stream || voiceLevelSourceStream === stream) return; // already watching this exact stream
@@ -10767,6 +10846,7 @@ function startVoiceLevelMonitor(stream){
       var rms = Math.sqrt(sumSquares/data.length);
       var avatarWrap = document.querySelector('#stage-speaker .stage-speaker-avatar-wrap');
       if(avatarWrap) avatarWrap.classList.toggle('stage-speaking-glow', rms > 0.02);
+      GameMusic.setVoiceActive(rms > 0.02); // music dips while they talk
     }, 120);
   }catch(err){
     console.error('voice: could not start voice-activity monitor', err);

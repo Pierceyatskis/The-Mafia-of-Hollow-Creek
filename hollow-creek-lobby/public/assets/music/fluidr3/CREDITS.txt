@@ -1,0 +1,10 @@
+Instrument samples: Fluid (R3) General MIDI SoundFont by Frank Wen,
+pre-rendered to MP3 by Benjamin Gleitzman (https://github.com/gleitz/midi-js-soundfonts).
+Licensed under Creative Commons Attribution 3.0 (https://creativecommons.org/licenses/by/3.0/).
+
+Only the notes the Hollow Creek themes use were downloaded (2026-11-25):
+acoustic_grand_piano C2-C6, violin G3-D6, cello C2-A4, acoustic_bass E1-E3,
+tremolo_strings A2-E4, celesta C4-C7, timpani A1-D3.
+
+Suggested in-game credit line:
+  Instrument samples: FluidR3 GM SoundFont (CC BY 3.0)
