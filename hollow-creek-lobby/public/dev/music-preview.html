@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Hollow Creek - music preview</title>
+<style>
+  body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
+       font:15px/1.5 Georgia,serif;background:#1d1a17;color:#efe4cf;transition:background 3s;}
+  body.day{background:#5b6e4a;} body.night{background:#141a2b;} body.vote{background:#3d2418;}
+  body.menu{background:#2a2219;} body.win-town{background:#43563f;} body.win-mafia{background:#3a1414;} body.win-bounty{background:#4a3d1c;}
+  .card{background:rgba(0,0,0,.35);border:2px solid #c9a96b;border-radius:10px;padding:28px 34px;max-width:520px;}
+  h1{margin:0 0 6px;font-size:22px;color:#f3d28c;} p{margin:0 0 18px;opacity:.85;}
+  h2{margin:14px 0 6px;font-size:14px;letter-spacing:1px;text-transform:uppercase;color:#c9a96b;font-weight:normal;}
+  .row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
+  button{font:inherit;padding:8px 14px;border-radius:6px;border:2px solid #c9a96b;background:#3a2f22;color:#efe4cf;cursor:pointer;}
+  button.on{background:#c9a96b;color:#1d1a17;}
+  label{display:flex;align-items:center;gap:10px;margin:14px 0;}
+  select{font:inherit;background:#3a2f22;color:#efe4cf;border:2px solid #c9a96b;border-radius:6px;padding:6px;}
+  #status{font-style:italic;opacity:.75;}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>The Mafia of Hollow Creek</h1>
+  <p>Every piece in the game. Switching crossfades the way a phase change would.
+     The looping pieces play 2-3 minute sets (the full tune turns up about once), then rest 1-2 minutes.
+     The victory cues play once.</p>
+  <h2>Looping</h2>
+  <div class="row">
+    <button data-theme="menu">Main theme (menus, lobby)</button>
+    <button data-theme="day">Day</button>
+    <button data-theme="vote">Vote</button>
+    <button data-theme="night">Night</button>
+  </div>
+  <h2>Victory cues</h2>
+  <div class="row">
+    <button data-theme="win-town">Town wins</button>
+    <button data-theme="win-mafia">Mafia wins</button>
+    <button data-theme="win-bounty">Bounty wins</button>
+    <button id="stop">Stop</button>
+  </div>
+  <label>Volume <input id="vol" type="range" min="0" max="100" value="60"></label>
+  <div class="row">
+    <select id="wav-pick">
+      <option value="menu">menu</option><option value="day">day</option><option value="vote">vote</option><option value="night">night</option>
+      <option value="win-town">win-town</option><option value="win-mafia">win-mafia</option><option value="win-bounty">win-bounty</option>
+    </select>
+    <button id="wav">Download WAV</button>
+  </div>
+  <div id="status">Stopped</div>
+  <div id="detail" style="margin-top:6px;font-size:13px;opacity:.7;min-height:2.6em;"></div>
+</div>
+<script src="../music.js"></script>
+<script>
+  var $ = function(id){ return document.getElementById(id); };
+  var buttons = document.querySelectorAll('[data-theme]');
+  function show(name){
+    document.body.className = name || '';
+    buttons.forEach(function(b){ b.classList.toggle('on', b.dataset.theme === name); });
+    $('status').textContent = name ? 'Playing: ' + name : 'Stopped';
+  }
+  buttons.forEach(function(b){ b.onclick = function(){ HollowMusic.play(b.dataset.theme); show(b.dataset.theme); }; });
+  // live readout of what the arranger picked
+  setInterval(function(){
+    var s = HollowMusic.status(), el = $('detail');
+    if(!s){ el.textContent = ''; return; }
+    if(s.loading){ el.textContent = 'Loading samples...'; return; }
+    if(s.finished){ el.textContent = 'Cue finished.'; return; }
+    if(s.resting != null){ el.textContent = 'Resting - music returns in ' + s.resting + 's'; return; }
+    el.innerHTML = 'Pass ' + s.pass + ' of ' + s.of + ': <b>' + s.now + '</b> (' + s.secondsLeftInPass + 's left)<br>Next: ' + s.next;
+  }, 500);
+  $('stop').onclick = function(){ HollowMusic.stop(); show(null); };
+  $('vol').oninput = function(){ HollowMusic.setVolume(this.value/100); };
+  $('wav').onclick = function(){
+    var name = $('wav-pick').value;
+    $('status').textContent = 'Rendering ' + name + '...';
+    HollowMusic.render(name).then(function(buf){
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(HollowMusic.toWav(buf));
+      a.download = 'hollow-creek-' + name + '.wav';
+      a.click();
+      show(HollowMusic.current());
+    });
+  };
+</script>
+</body>
+</html>
