@@ -353,7 +353,7 @@ body.force-reduced-motion .daylayout-roster-tile.qv-target{animation:none; box-s
    title/aria-label) instead of visible text - between the shrink and
    losing the label's ~20px, the envelope's real bottom now lands at
    ~170px, clear of the frame with a few px to spare. */
-#design-canvas.bg-day #role-envelope{display:flex; position:absolute; left:1772.15px; top:43px; width:120px; z-index:4; pointer-events:auto;}
+#design-canvas.bg-day #role-envelope, #design-canvas.bg-night #role-envelope{display:flex; position:absolute; left:1772.15px; top:43px; width:120px; z-index:4; pointer-events:auto;}
 #daylayout-chat-frame{display:none;}
 #design-canvas.bg-day #daylayout-chat-frame{display:block; position:absolute; left:1299.17px; top:175px; width:603px; height:auto; z-index:2;}
 #daylayout-chat-title{display:none;}
@@ -410,6 +410,13 @@ body.force-reduced-motion .daylayout-roster-tile.qv-target{animation:none; box-s
    ballotWaxSeal) instead of a plain drawn circle, so this reads as the
    same "you have something new" symbol the envelope already uses. */
 #daylayout-news-notification-badge{position:absolute; top:-12px; right:2%; width:30px; height:30px; z-index:4; pointer-events:none;}
+#daylayout-notebook-notification-badge{position:absolute; top:-6px; right:0.5%; width:30px; height:30px; z-index:4; pointer-events:none;}
+#daylayout-notebook-notification-badge img{position:absolute; inset:0; width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.6));}
+#daylayout-notebook-notification-badge span{position:relative; display:flex; width:100%; height:100%; align-items:center; justify-content:center; font-family:var(--font-type); font-size:13px; font-weight:700; color:#fff8ec; text-shadow:0 1px 2px rgba(0,0,0,0.75);}
+/* a slow, soft heartbeat so a waiting seal catches the eye without nagging */
+#daylayout-news-notification-badge, #daylayout-casefile-notification-badge, #daylayout-notebook-notification-badge{animation:sealBreathe 2.6s ease-in-out infinite;}
+@keyframes sealBreathe{0%,100%{transform:scale(1);} 50%{transform:scale(1.09);}}
+body.force-reduced-motion #daylayout-news-notification-badge, body.force-reduced-motion #daylayout-casefile-notification-badge, body.force-reduced-motion #daylayout-notebook-notification-badge{animation:none;}
 #daylayout-casefile-notification-badge{position:absolute; top:-6px; right:6%; width:30px; height:30px; z-index:4; pointer-events:none;}
 #daylayout-casefile-notification-seal{position:absolute; inset:0; width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.6));}
 #daylayout-casefile-notification-badge span{position:relative; display:flex; width:100%; height:100%; align-items:center; justify-content:center; font-family:var(--font-type); font-size:13px; font-weight:700; color:#fff8ec; text-shadow:0 1px 2px rgba(0,0,0,0.8);}
@@ -996,6 +1003,7 @@ body.force-reduced-motion .ballot-box-seal.playing{animation:none !important; op
 #night-actions-card .na-confirm.done{color:#e3b855;}
 #night-actions-card .na-select:not(.locked):hover, #night-actions-card .na-confirm.on:hover, #night-actions-card .na-confirm.done:hover, #night-actions-card .na-back:hover{filter:brightness(1.22); transform:translateY(-2px);}
 #night-actions-card .na-confirm.on:active, #night-actions-card .na-select:active{transform:translateY(0) scale(0.98);}
+
 #night-actions-card .na-skip{align-self:center; margin:-4px 0 0; padding:2px 6px; background:none; border:none; cursor:pointer; font-family:var(--font-body); font-style:italic; font-size:15px; color:#4a2e16; text-decoration:underline;}
 #night-actions-card .na-skip:hover{color:#8a1c14;}
 #night-actions-card .na-count{width:520px; max-width:90%; margin:8px auto 4px; font-size:21px;}
@@ -1012,11 +1020,12 @@ body.force-reduced-motion .ballot-box-seal.playing{animation:none !important; op
 #night-actions-card .na-person.sel img{border-color:#d9a441; box-shadow:0 0 0 2px #8a1c14, 0 0 14px 4px rgba(217,164,65,0.8);}
 #night-actions-card .na-backrow{display:flex; justify-content:center; margin-top:14px;}
 #night-actions-card .na-back{width:220px; cursor:pointer;}
-#night-sleep-card .nsc-btns{display:grid; grid-template-columns:repeat(3, 1fr); gap:10px;}
-#night-sleep-card .nsc-btn{display:block; padding:0; border:none; background:none; cursor:pointer; border-radius:7px; transition:filter .15s ease, transform .12s ease, box-shadow .15s ease;}
-#night-sleep-card .nsc-btn img{display:block; width:100%; height:auto; border-radius:7px;}
-#night-sleep-card .nsc-btn:hover{filter:brightness(1.18) saturate(1.1); transform:translateY(-3px); box-shadow:0 8px 16px rgba(0,0,0,0.5);}
-#night-sleep-card .nsc-btn:active{transform:translateY(0) scale(0.98);}
+#night-sleep-card .nsc-btns, #night-actions-card .nsc-btns{display:grid; grid-template-columns:repeat(3, 1fr); gap:10px;}
+#night-sleep-card .nsc-btn, #night-actions-card .nsc-btn{display:block; padding:0; border:none; background:none; cursor:pointer; border-radius:7px; transition:filter .15s ease, transform .12s ease, box-shadow .15s ease;}
+#night-sleep-card .nsc-btn img, #night-actions-card .nsc-btn img{display:block; width:100%; height:auto; border-radius:7px;}
+#night-sleep-card .nsc-btn:hover, #night-actions-card .nsc-btn:hover{filter:brightness(1.18) saturate(1.1); transform:translateY(-3px); box-shadow:0 8px 16px rgba(0,0,0,0.5);}
+#night-sleep-card .nsc-btn:active, #night-actions-card .nsc-btn:active{transform:translateY(0) scale(0.98);}
+#night-actions-card .nsc-btns{margin:6px 0 2px;}
 .app-frame::before{content:''; position:absolute; inset:6px; border:1px solid var(--gold-dim); border-radius:4px; opacity:0.7;}
 .corner{position:absolute; width:44px; height:44px;}
 .corner-tl{top:-2px; left:-2px;}
@@ -1482,7 +1491,7 @@ body.force-reduced-motion .notebook-view.notebook-page-turn{animation:none;}
    separately-measured box. */
 #vote-reveal-card{position:relative; width:min(1500px, 94%); container-type:inline-size;}
 #vote-reveal-bg-img{width:100%; height:auto; display:block;}
-#vote-reveal-close-btn{position:absolute; top:1.8%; right:2.4%; width:5%; aspect-ratio:649/619; z-index:6;}
+#vote-reveal-close-btn{position:absolute; top:3.85%; right:6.8%; width:5%; aspect-ratio:649/619; z-index:6;}   /* centred on the cabinet's painted top-right corner, not hanging off the edge */
 #vote-reveal-title{position:absolute; left:30%; top:1.8%; width:40%; height:11%; margin:0; display:flex; align-items:center; justify-content:center; text-align:center; font-family:var(--font-type); font-size:2cqw; letter-spacing:0.15cqw; text-transform:uppercase; color:var(--gold-bright); text-shadow:0 1px 2px rgba(0,0,0,0.75); z-index:3; pointer-events:none;}
 /* Parchment band - portrait / outcome+stamp / role portrait, three across. */
 #vote-reveal-top{position:absolute; left:15%; top:15.8%; width:70%; height:28.5%; z-index:2; display:flex; align-items:center; justify-content:space-between; box-sizing:border-box; padding:0 0.5%;}
@@ -2485,19 +2494,24 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
   .feature img, .feature .noimg{margin:0 auto;}
 }
 
-/* One notification badge: same 20px red enamel disc with a brass rim, numeral centered by flex (line-height 1, no baseline fudge), same top-right anchor on every host. */
-#daylayout-news-notification-badge, #daylayout-casefile-notification-badge, .role-envelope-badge, .notebook-tab-count, .chat-tab-badge{
-  box-sizing:border-box; display:flex; align-items:center; justify-content:center; width:20px; height:20px; min-width:20px; padding:0; margin:0; border-radius:50%;
-  background:radial-gradient(circle at 35% 30%, #c0392b 0%, #8b1414 55%, #5a0b0b 100%); border:1.5px solid #d9b25a;
-  box-shadow:0 1px 3px rgba(0,0,0,0.7), inset 0 1px 1px rgba(255,255,255,0.25);
-  font-family:var(--font-type); font-size:11px; font-weight:700; line-height:1; letter-spacing:0; text-align:center; color:#fff8ec; text-shadow:0 1px 1px rgba(0,0,0,0.7);
+/* One notification badge everywhere in game: the game's own wax seal with the count stamped on it.
+   The desk props carry a real <img> of the seal; the smaller tab badges paint the same art as a
+   background (--hc-seal is filled in at boot from the same image the envelope uses). */
+#daylayout-news-notification-badge, #daylayout-casefile-notification-badge, #daylayout-notebook-notification-badge, .role-envelope-badge, .notebook-tab-count, .chat-tab-badge{
+  box-sizing:border-box; display:flex; align-items:center; justify-content:center; width:30px; height:30px; min-width:30px; padding:0; margin:0;
+  background:none; border:none; border-radius:0; box-shadow:none;
+  font-family:var(--font-type); font-size:13px; font-weight:700; line-height:1; letter-spacing:0; text-align:center; color:#fff8ec; text-shadow:0 1px 2px rgba(0,0,0,0.85);
   font-variant-numeric:tabular-nums; pointer-events:none;
 }
-#daylayout-news-notification-badge[style*="display: none"], #daylayout-casefile-notification-badge[style*="display: none"]{display:none !important;}
-#daylayout-news-notification-badge{position:absolute; top:-10px; right:-2px; left:auto; z-index:4;}
-#daylayout-casefile-notification-badge{position:absolute; top:-4px; right:7%; left:auto; z-index:4;}
-#daylayout-news-notification-seal, #daylayout-casefile-notification-seal{display:none;}
-#daylayout-news-notification-badge span, #daylayout-casefile-notification-badge span{display:block; width:auto; height:auto; line-height:1; font-size:11px; text-shadow:none;}
+.role-envelope-badge, .notebook-tab-count, .chat-tab-badge{
+  background-image:var(--hc-seal); background-size:contain; background-repeat:no-repeat; background-position:center;
+  filter:drop-shadow(0 2px 3px rgba(0,0,0,0.6));
+}
+#daylayout-news-notification-badge[style*="display: none"], #daylayout-casefile-notification-badge[style*="display: none"], #daylayout-notebook-notification-badge[style*="display: none"]{display:none !important;}
+#daylayout-news-notification-badge{position:absolute; top:-11px; right:-2px; left:auto; z-index:4;}
+#daylayout-casefile-notification-badge{position:absolute; top:-5px; right:7%; left:auto; z-index:4;}
+#daylayout-notebook-notification-badge{position:absolute; top:-6px; right:0.5%; left:auto; z-index:4;}
+#daylayout-news-notification-badge span, #daylayout-casefile-notification-badge span, #daylayout-notebook-notification-badge span{position:relative; display:flex; width:100%; height:100%; align-items:center; justify-content:center; line-height:1; font-size:13px;}
 .role-envelope-badge{display:none; position:absolute; left:auto; right:9px; top:54px;}
 .role-envelope-badge.show{display:flex;}
 .notebook-tab-count{position:absolute; top:-9px; right:-6px;}
@@ -2888,6 +2902,10 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
 </div>
 </div>
 <div id="daylayout-desk-notebook-wrap" class="daylayout-btn-fx" role="button" tabindex="0" aria-label="Open your private notebook">
+<div id="daylayout-notebook-notification-badge" style="display:none;" title="New entries in your notebook">
+  <img id="daylayout-notebook-notification-seal" alt="">
+  <span>1</span>
+</div>
 <img id="daylayout-desk-notebook" alt="">
 <div id="daylayout-desk-notebook-title">Notebook</div>
 </div>
@@ -4199,6 +4217,7 @@ var notebookPinned = []; // up to 3 playerIds, ordered, private
 var notebookEvents = []; // auto-logged {night, phase, text} - only ever pushed from data this viewer legitimately has access to
 var notebookOpen = false;
 var notebookHasUnseen = false; // drives the one-shot pulse on the trigger button
+var notebookUnseenCount = 0;   // how many entries have arrived since it was last opened - shown on the desk's wax seal
 var latestNightProgress = null; // {submitted, total} - counts only, refreshed live during the night phase
 var latestDayVoteProgress = []; // array of playerIds who have submitted their day vote so far - identities, not choices, refreshed live during day-vote
 var latestSpotlightCounts = {}; // targetId -> count - identities never included, refreshed live through both day sub-phases
@@ -5989,8 +6008,8 @@ function switchPanel(p){
   // panel switch.
   if(p !== 'day') document.getElementById('vote-section').style.display = '';
   var showBadge = (p==='night' || p==='day' || p==='end');
-  document.getElementById('role-badge').style.display = showBadge ? 'flex' : 'none';
-  document.getElementById('case-log-badge').style.display = showBadge ? 'flex' : 'none';
+  document.getElementById('role-badge').style.display = (showBadge && p!=='night') ? 'flex' : 'none';
+  document.getElementById('case-log-badge').style.display = (showBadge && p!=='night') ? 'flex' : 'none';
   if(showBadge) renderRoleBadge();
   if(typeof syncRoleBadgePlacement === 'function') syncRoleBadgePlacement(p);
   updateGhostChatBadge();
@@ -6249,7 +6268,12 @@ function renderNightActionsPanel(h, cfg){
       (cfg.pre ? '<div class="na-pre">'+cfg.pre+'</div>' : '')+
       '<div class="na-cols na-cols-'+N+'">'+cols+'</div>'+
       '<div class="na-count">'+doneCount+' of '+N+' action'+(N>1?'s':'')+' confirmed</div>'+
-      '<p class="na-foot">Your actions remain private.</p></div>';
+      '<p class="na-foot">Your actions remain private.</p>'+
+      '<div class="nsc-btns nsc-btns-compact">'+
+        '<button type="button" class="nsc-btn" data-act="history" aria-label="Review vote history"><img src="assets/ui/night-btn-history.webp" alt=""></button>'+
+        '<button type="button" class="nsc-btn" data-act="notebook" aria-label="Open your notebook"><img src="assets/ui/night-btn-notebook.webp" alt=""></button>'+
+        '<button type="button" class="nsc-btn" data-act="casefile" aria-label="Open case file"><img src="assets/ui/night-btn-casefile.webp" alt=""></button>'+
+      '</div></div>';
   }
   function finishIfComplete(){
     if(nightUI.submitting) return;
@@ -6259,7 +6283,12 @@ function renderNightActionsPanel(h, cfg){
     }
   }
   area.onclick = function(e){
-    var t = e.target.closest('[data-act], .na-person'); if(!t || nightUI.submitting) return;
+    var t = e.target.closest('[data-act], .na-person'); if(!t) return;
+    var act = t.getAttribute('data-act');
+    // the three "while you wait" buttons stay live even once the actions are submitted
+    if(act === 'history' || act === 'casefile'){ SoundFX.playCaseFileOpen(); caseLogActiveTab = 'rounds'; openCaseLogModal(); return; }
+    if(act === 'notebook'){ SoundFX.playCaseFileOpen(); openNotebookModal(); return; }
+    if(nightUI.submitting) return;
     if(t.classList.contains('na-person')){
       var a0 = actByKey(nightUI.picking); SoundFX.click();
       nightUI.sel[a0.key] = t.dataset.id;
@@ -9629,6 +9658,9 @@ function renderDayPanel(){
   var me = meFromView(view);
   document.getElementById('night-num-b').textContent = view.night;
   document.getElementById('daylayout-news-notification-badge').style.display = (newsSeenNight !== view.night) ? 'flex' : 'none';
+  var nbBadge = document.getElementById('daylayout-notebook-notification-badge');
+  nbBadge.style.display = notebookUnseenCount > 0 ? 'flex' : 'none';
+  nbBadge.querySelector('span').textContent = String(Math.min(9, notebookUnseenCount));
   // a dot on the Case File each time someone new makes a role claim (counted per player + role), cleared when it is opened
   var claimKeys = {}; (view.chatLog || []).forEach(function(m){ if(m.category === 'role_claim' && m.claimedRole && m.playerId !== myPlayerId) claimKeys[m.playerId + ':' + m.claimedRole] = 1; });
   var claimCount = Object.keys(claimKeys).length;
@@ -10160,12 +10192,13 @@ function switchPanel(p){
   // envelope (right column) doing this same job, so the old floating
   // badge would be a visible duplicate there; still used for night/end
   // where there's no 3-column layout to anchor it in.
-  document.getElementById('role-badge').style.display = (showBadge && p!=='day') ? 'flex' : 'none';
+  // Day and night both use the sealed envelope (top right of the canvas); the old floating role card is only left for the end screen.
+  document.getElementById('role-badge').style.display = (showBadge && p!=='day' && p!=='night') ? 'flex' : 'none';
   // LAYOUT_AND_ASSETS Task 6 - the day panel's new bottom nav row covers
   // Case Files/Notebook (plus History/Settings), so the floating badges
   // would duplicate it there; still used for night/end.
-  document.getElementById('case-log-badge').style.display = (showBadge && p!=='day') ? 'flex' : 'none';
-  document.getElementById('notebook-badge').style.display = (showBadge && p!=='day') ? 'flex' : 'none';
+  document.getElementById('case-log-badge').style.display = (showBadge && p!=='day' && p!=='night') ? 'flex' : 'none';
+  document.getElementById('notebook-badge').style.display = (showBadge && p!=='day' && p!=='night') ? 'flex' : 'none';
   if(showBadge) renderRoleBadge();
   if(typeof syncRoleBadgePlacement === 'function') syncRoleBadgePlacement(p==='day' ? null : p);
   updateGhostChatBadge();
@@ -11662,6 +11695,7 @@ function pushNotebookEvent(text, view){
   notebookEvents.push({night: view.night, phase: view.phase, text: text});
   if(!notebookOpen){
     notebookHasUnseen = true;
+    notebookUnseenCount++;
     triggerPulseOnce(document.getElementById('notebook-badge'));
   }
 }
@@ -12206,7 +12240,7 @@ function notebookTrapFocus(e){
 
 function openNotebookModal(){
   notebookOpen = true;
-  notebookHasUnseen = false;
+  notebookHasUnseen = false; notebookUnseenCount = 0;
   notebookFilter = 'all';
   notebookVoteInspectId = null;
   notebookVoteRound = null;
@@ -12232,7 +12266,7 @@ function openNotebookModal(){
 // notebook, just skipping the step of finding their card by hand.
 function openNotebookModalToPlayer(playerId){
   notebookOpen = true;
-  notebookHasUnseen = false;
+  notebookHasUnseen = false; notebookUnseenCount = 0;
   notebookReturnFocusEl = document.activeElement;
   document.getElementById('notebook-modal').style.display = 'flex';
   document.getElementById('notebook-book').addEventListener('keydown', notebookTrapFocus);
@@ -12774,7 +12808,7 @@ var DAYTIME_IMG = {
     'watch-hand-hour': 'watchHourHand', 'watch-hand-minute': 'watchMinuteHand',
     'watch-glow': 'watchGlow', 'role-envelope-sprite': 'envClosed',
     'cabinet-bulletin-bg': 'cabinetBulletin', 'cabinet-stage-bg': 'cabinetStage', 'cabinet-voting-bg': 'cabinetVoting',
-    'vote-confirmed-seal': 'ballotWaxSeal', 'daylayout-news-notification-seal': 'notificationSeal', 'daylayout-casefile-notification-seal': 'notificationSeal', 'daylayout-cabinet-full': 'cabinetFull', 'daylayout-roster-frame': 'chatPanelFrame',
+    'vote-confirmed-seal': 'ballotWaxSeal', 'daylayout-news-notification-seal': 'notificationSeal', 'daylayout-notebook-notification-seal': 'notificationSeal', 'daylayout-casefile-notification-seal': 'notificationSeal', 'daylayout-cabinet-full': 'cabinetFull', 'daylayout-roster-frame': 'chatPanelFrame',
     'daylayout-timer-bar': 'timerBar', 'daylayout-game-title': 'gameTitle', 'daylayout-chat-frame': 'chatPanelFrame',
     'daylayout-desk-newspaper': 'deskNewspaper', 'daylayout-desk-casefile': 'deskCaseFile',
     'daylayout-desk-notebook': 'deskNotebook', 'daylayout-desk-gear': 'deskGear',
@@ -12788,6 +12822,8 @@ var DAYTIME_IMG = {
     var el = document.getElementById(id);
     if(el) el.src = DAYTIME_IMG[STATIC_IMG_IDS[id]];
   });
+  // the same wax seal the desk props use, for the small tab badges that have no <img> of their own
+  document.documentElement.style.setProperty('--hc-seal', 'url('+DAYTIME_IMG.notificationSeal+')');
   document.documentElement.style.setProperty('--daytime-button-red-wide', 'url('+DAYTIME_IMG.buttonRedWide+')');
   document.documentElement.style.setProperty('--daytime-button-red-wide-trim', 'url('+DAYTIME_IMG.buttonRedWideTrim+')');
   document.documentElement.style.setProperty('--daytime-empty-folder', 'url('+DAYTIME_IMG.navFolder+')');
