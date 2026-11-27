@@ -449,8 +449,8 @@ body.force-reduced-motion #daylayout-news-notification-badge, body.force-reduced
 #daylayout-desk-gear-wrap{display:none;}
 #design-canvas.bg-day #daylayout-desk-gear-wrap{display:block; position:absolute; left:1635px; top:967px; width:110px; height:100px; z-index:3; cursor:pointer; filter:drop-shadow(-6px 10px 10px rgba(0,0,0,0.5)) drop-shadow(0 3px 4px rgba(0,0,0,0.65)) drop-shadow(0 0 16px rgba(227,177,85,0.15));}
 #design-canvas.bg-day #daylayout-desk-gear-wrap:hover{filter:drop-shadow(-6px 10px 10px rgba(0,0,0,0.5)) drop-shadow(0 3px 4px rgba(0,0,0,0.65)) drop-shadow(0 0 20px rgba(227,177,85,0.85)) brightness(1.08); transform:translateY(-4px);}
-/* the same gear at night, moved to the free top-left corner since there is no desk up there */
-#design-canvas.bg-night #daylayout-desk-gear-wrap{display:block; position:absolute; left:74px; top:46px; width:110px; height:100px; z-index:3; cursor:pointer; filter:drop-shadow(-6px 10px 10px rgba(0,0,0,0.5)) drop-shadow(0 3px 4px rgba(0,0,0,0.65)) drop-shadow(0 0 16px rgba(227,177,85,0.15));}
+/* the same gear at night, in the bottom-right corner clear of the night card */
+#design-canvas.bg-night #daylayout-desk-gear-wrap{display:block; position:absolute; left:1700px; top:900px; width:110px; height:100px; z-index:3; cursor:pointer; filter:drop-shadow(-6px 10px 10px rgba(0,0,0,0.5)) drop-shadow(0 3px 4px rgba(0,0,0,0.65)) drop-shadow(0 0 16px rgba(227,177,85,0.15));}
 #design-canvas.bg-night #daylayout-desk-gear-wrap:hover{filter:drop-shadow(-6px 10px 10px rgba(0,0,0,0.5)) drop-shadow(0 3px 4px rgba(0,0,0,0.65)) drop-shadow(0 0 20px rgba(227,177,85,0.85)) brightness(1.08); transform:translateY(-4px);}
 #daylayout-desk-gear{display:block; width:100%; height:100%;}
 #daylayout-desk-gear-title{position:absolute; left:-30%; top:38%; width:160%; height:30%; display:flex; align-items:center; justify-content:center; text-align:center; line-height:1.1; font-family:var(--font-display); font-size:12px; font-weight:400; letter-spacing:0.5px; text-transform:uppercase; color:#f5f5f0; text-shadow:0 1px 2px rgba(0,0,0,0.7); pointer-events:none;}
@@ -3483,7 +3483,7 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
         <button class="btn" id="create-game-btn">Play</button>
         <div class="poster-actions-row">
           
-          <button class="btn" id="tutorial-btn">Quick Start</button>
+          <button class="btn" id="tutorial-btn">Tutorial</button>
           <button class="btn" id="howto-btn">How to Play</button>
           <button class="btn is-soon" id="achievements-btn" aria-disabled="true" title="Not available yet" hidden style="display:none">Achievements</button>
           <button class="btn is-soon" id="leaderboard-btn" aria-disabled="true" title="Not available yet" hidden style="display:none">Leaderboard</button>
@@ -7880,7 +7880,8 @@ document.getElementById('intro-modal-howto-btn').addEventListener('click', funct
   else proceedToCreateGame();
 });
 document.getElementById('tutorial-btn').addEventListener('click', function(){
-  if(window.Tutorial) window.Tutorial.start(null, {quick:true});
+  // First time through, play the full practice tutorial; once it has been finished, this is the short refresher.
+  if(window.Tutorial) window.Tutorial.start(null, {quick: window.Tutorial.wasCompleted()});
 });
 (function(){ var b = document.getElementById('tutorial-btn'); try{ if(b && !localStorage.getItem('hc-tutorial-done')) b.classList.add('is-new'); }catch(e){} })();
 document.getElementById('intro-modal-skip-btn').addEventListener('click', function(){

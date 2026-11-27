@@ -11,9 +11,8 @@
  *     the odd fragment of the tune.
  *   - Every pass is arranged differently (which layers play, which melody
  *     variant), so it never repeats as an obvious loop.
- *   - It rests. A set plays for ~2-3 minutes, ends on a soft final chord,
- *     then leaves 1-2 minutes of silence (just the game's ambience) before
- *     the next set.
+ *   - Sets run continuously: one plays for ~2-3 minutes, ends on a soft final
+ *     chord, and the next begins as that chord fades.
  *
  * Every piece is built on one 5-note motif (D F E D A), sits in D minor and
  * plays into a soft "foggy" room reverb.
@@ -506,7 +505,9 @@
 
   var THEMES = {day: DAY, night: NIGHT, menu: MENU, vote: VOTE,
                 'win-town': WIN_TOWN, 'win-mafia': WIN_MAFIA, 'win-bounty': WIN_BOUNTY};
-  var REST_MIN = 60, REST_MAX = 120;   // seconds of silence between sets
+  // Sets run back to back: the closing chord rings out (ENDING_RING) and the next set begins, so a
+  // theme keeps playing for as long as its phase lasts instead of dropping into a minute of silence.
+  var REST_MIN = 0, REST_MAX = 2;      // seconds of silence between sets, on top of the ending's ring-out
   var ENDING_RING = 4;                 // seconds the final chord is allowed to ring
 
   // ---------- per-theme signal chain ----------
