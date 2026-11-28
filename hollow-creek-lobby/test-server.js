@@ -976,6 +976,37 @@ async function testLanguageAndFlooding() {
   [host, guest, spammer].forEach(p => { try { p.ws.close(); } catch (e) {} });
 }
 
+async function testMail() {
+  const host = await createRoom('MailHost');
+  const players = [host];
+  for (let i = 2; i <= 6; i++) players.push(await joinRoom(host.roomCode, 'Mail' + i));
+  const gs = players.map(p => once(p.ws, m => m.type === 'gameState' || m.type === 'error'));
+  send(host.ws, { type: 'start', playerCount: 6, mafiaCount: 0, roles: { Godfather: true, DoubleAgent: false, Detective: false, Doctor: false, Miller: false, BountyHunter: false, CrazyGranny: false, Coward: false, Farmer: false, NavySeal: false } });
+  await Promise.all(gs);
+  const a = players[1], b = players[2];
+  const ackOf = (p) => once(p.ws, m => m.type === 'mailAck', 1500);
+  // you cannot write to yourself, or to someone who is not there
+  let r = ackOf(a); send(a.ws, { type: 'sendMail', targetId: a.playerId, text: 'hello me' });
+  assert((await r).ok === false, 'Mail: you cannot post a letter to yourself');
+  r = ackOf(a); send(a.ws, { type: 'sendMail', targetId: 'nobody', text: 'hello' });
+  assert((await r).ok === false, 'Mail: a letter to someone who is not in the game is refused');
+  // a real letter is accepted and told when it will land
+  r = ackOf(a); send(a.ws, { type: 'sendMail', targetId: b.playerId, text: 'Meet me by the mill at first light.' });
+  const ok = await r;
+  assert(ok.ok === true && ok.deliverNight === 2, 'Mail: a letter posted on night 1 is due on the morning of day 2');
+  // one per recipient per round, but other people are still open
+  r = ackOf(a); send(a.ws, { type: 'sendMail', targetId: b.playerId, text: 'One more thing.' });
+  const dup = await r;
+  assert(dup.ok === false && /already posted/i.test(dup.message), 'Mail: only one letter to the same person per round');
+  r = ackOf(a); send(a.ws, { type: 'sendMail', targetId: players[3].playerId, text: 'A word, quietly.' });
+  assert((await r).ok === true, 'Mail: a letter to a different person in the same round is fine');
+  // the language filter applies to letters too
+  r = ackOf(a); send(a.ws, { type: 'sendMail', targetId: players[4].playerId, text: 'you are a fucking idiot' });
+  const blocked = await Promise.race([r, new Promise(res => setTimeout(() => res(null), 1200))]);
+  assert(blocked === null || blocked.ok === false, 'Mail: a letter with banned language is not posted');
+  players.forEach(p => { try { p.ws.close(); } catch (e) {} });
+}
+
 async function testReportsAndMutes() {
   const host = await createRoom('RepHost');
   const a = await joinRoom(host.roomCode, 'RepA'), b = await joinRoom(host.roomCode, 'RepB'), d = await joinRoom(host.roomCode, 'RepD');
@@ -1111,6 +1142,7 @@ async function main() {
   await testPingPong();
   await testLanguageAndFlooding();
   await testReportsAndMutes();
+  await testMail();
   await testReportMuteInGame();
   await testStartCountdown();
   await testFamilyPicks();

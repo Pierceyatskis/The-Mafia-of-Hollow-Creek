@@ -40,7 +40,7 @@ starting the server at all.
 ## Moderation and safety
 
 - **Language filter** (`profanity.js`): swearing, slurs, sexual language, hate speech and telling someone to hurt themselves are blocked
-  everywhere players can type (Town Talk, whispers, mafia/cult/ghost chat, lobby chat, polls) and in player names. It sees through the usual
+  everywhere players can type (Town Talk, whispers, letters, mafia/cult/ghost chat, lobby chat, polls) and in player names. It sees through the usual
   disguises (`@ss`, `sh1t`, `f*ck`, `f u c k`, `fuuuck`, accents, look-alike letters) without blocking innocent words like "class",
   "assassin" or "Scunthorpe". A blocked message is not delivered and its sender gets a short notice; a name with language that is not
   allowed is replaced with "Player ###" and tagged UNAPPROVED. Add or remove words in the lists at the top of `profanity.js`

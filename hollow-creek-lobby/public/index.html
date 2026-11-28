@@ -354,6 +354,37 @@ body.force-reduced-motion .daylayout-roster-tile.qv-target{animation:none; box-s
    losing the label's ~20px, the envelope's real bottom now lands at
    ~170px, clear of the frame with a few px to spare. */
 #design-canvas.bg-day #role-envelope, #design-canvas.bg-night #role-envelope{display:flex; position:absolute; left:1772.15px; top:43px; width:120px; z-index:4; pointer-events:auto;}
+/* The post. A button rather than a desk prop, so it is reachable on both the day and night screens. */
+#mailbox-btn{display:none;}
+#design-canvas.bg-day #mailbox-btn, #design-canvas.bg-night #mailbox-btn{display:flex; position:absolute; left:1786px; top:186px; width:92px; z-index:4; flex-direction:column; align-items:center; gap:2px; background:none; border:none; padding:0; cursor:pointer; transition:transform .12s ease, filter .15s ease;}
+#mailbox-btn img{width:76px; height:76px; object-fit:contain; filter:drop-shadow(0 3px 6px rgba(0,0,0,0.7));}
+#mailbox-btn .mb-label{font-family:var(--font-type); font-size:11px; letter-spacing:1.5px; text-transform:uppercase; color:var(--parchment-dim);}
+#mailbox-btn:hover{transform:translateY(-3px); filter:brightness(1.12);}
+#mailbox-btn:hover .mb-label{color:var(--gold-bright);}
+#mailbox-badge{position:absolute; top:-6px; right:4px; left:auto; z-index:5;}
+/* the letters window */
+.mail-content{width:min(760px, 94vw); max-width:760px; max-height:90vh; display:flex; flex-direction:column; text-align:left;}
+.mail-tabs{display:flex; gap:8px; margin:0 0 10px;}
+.mail-tab{font-family:var(--font-type); font-size:12px; letter-spacing:1.2px; text-transform:uppercase; padding:7px 16px; border:1px solid var(--gold-dim); border-radius:6px; background:rgba(20,14,10,0.6); color:var(--parchment-dim); cursor:pointer;}
+.mail-tab.active{background:rgba(227,177,85,0.16); color:var(--gold-bright);}
+#mail-body{overflow-y:auto; min-height:0; scrollbar-width:none;} #mail-body::-webkit-scrollbar{display:none;}
+.mail-letter{position:relative; margin:0 0 12px; padding:12px 14px; border:1px solid var(--gold-dim); border-left:4px solid var(--gold); border-radius:8px; background:linear-gradient(180deg, rgba(240,226,194,0.95), rgba(226,208,170,0.95)); color:#2a1708;}
+.mail-letter.mail-pending{background:linear-gradient(180deg, rgba(60,48,34,0.8), rgba(34,26,18,0.85)); color:var(--parchment); border-left-color:var(--parchment-dim);}
+.mail-letter.mail-examined{border-left-color:#8a1c14;}
+.mail-head{display:flex; flex-wrap:wrap; gap:4px 10px; align-items:baseline; margin-bottom:6px; font-family:var(--font-type); font-size:11.5px; letter-spacing:1px; text-transform:uppercase;}
+.mail-head b{font-family:var(--font-ornate); font-size:16px; letter-spacing:0; text-transform:none;}
+.mail-when{opacity:.7;}
+.mail-text{font-family:var(--font-body); font-size:16px; line-height:1.45; white-space:pre-wrap; overflow-wrap:anywhere;}
+.mail-empty{font-family:var(--font-body); font-style:italic; color:var(--parchment-dim); padding:10px 2px;}
+.mail-to-grid{display:flex; flex-wrap:wrap; gap:8px; margin:0 0 12px;}
+.mail-to{display:flex; align-items:center; gap:7px; padding:6px 12px 6px 6px; border:1px solid var(--line); border-radius:999px; background:rgba(20,14,10,0.55); color:var(--parchment); cursor:pointer; font-family:var(--font-body); font-size:14px;}
+.mail-to img{width:26px; height:26px; border-radius:50%; object-fit:cover;}
+.mail-to.sel{border-color:var(--gold-bright); background:rgba(227,177,85,0.16);}
+.mail-to.done{opacity:.45; cursor:not-allowed;}
+#mail-text{width:100%; box-sizing:border-box; min-height:120px; resize:vertical; background:var(--panel-2); border:1px solid var(--gold-dim); border-radius:6px; padding:10px 12px; font-family:var(--font-body); font-size:15px; color:var(--parchment);}
+.mail-send-row{display:flex; align-items:center; gap:12px; margin-top:10px;}
+.mail-note{font-family:var(--font-type); font-size:11.5px; color:var(--parchment-dim);}
+@media (max-width:640px){ .mail-content{width:94vw;} #mailbox-btn img{width:58px; height:58px;} }
 #daylayout-chat-frame{display:none;}
 #design-canvas.bg-day #daylayout-chat-frame{display:block; position:absolute; left:1299.17px; top:175px; width:603px; height:auto; z-index:2;}
 #daylayout-chat-title{display:none;}
@@ -412,15 +443,16 @@ body.force-reduced-motion .daylayout-roster-tile.qv-target{animation:none; box-s
 #daylayout-news-notification-badge{position:absolute; top:-12px; right:2%; width:30px; height:30px; z-index:4; pointer-events:none;}
 #daylayout-notebook-notification-badge{position:absolute; top:-6px; right:0.5%; width:30px; height:30px; z-index:4; pointer-events:none;}
 #daylayout-notebook-notification-badge img{position:absolute; inset:0; width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.6));}
+#mailbox-badge img{position:absolute; inset:0; width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.6));}
 #daylayout-notebook-notification-badge span{position:relative; display:flex; width:100%; height:100%; align-items:center; justify-content:center; font-family:var(--font-type); font-size:13px; font-weight:700; color:#fff8ec; text-shadow:0 1px 2px rgba(0,0,0,0.75);}
 /* A waiting seal knocks twice, then rests - plus a warm glow behind it so it reads as "new" at a glance. */
-#daylayout-news-notification-badge, #daylayout-casefile-notification-badge, #daylayout-notebook-notification-badge{animation:sealKnock 2.2s ease-in-out infinite;}
+#mailbox-badge, #daylayout-news-notification-badge, #daylayout-casefile-notification-badge, #daylayout-notebook-notification-badge{animation:sealKnock 2.2s ease-in-out infinite;}
 @keyframes sealKnock{
   0%{transform:scale(1);} 8%{transform:scale(1.28);} 16%{transform:scale(0.97);}
   24%{transform:scale(1.18);} 32%{transform:scale(1);}
   100%{transform:scale(1);}
 }
-#daylayout-news-notification-badge::after, #daylayout-casefile-notification-badge::after, #daylayout-notebook-notification-badge::after{
+#mailbox-badge::after, #daylayout-news-notification-badge::after, #daylayout-casefile-notification-badge::after, #daylayout-notebook-notification-badge::after{
   content:''; position:absolute; inset:-45%; border-radius:50%; pointer-events:none; z-index:-1;
   background:radial-gradient(circle, rgba(226,96,70,0.55) 0%, rgba(180,40,30,0.28) 45%, rgba(0,0,0,0) 72%);
   animation:sealGlow 2.2s ease-in-out infinite;
@@ -2518,7 +2550,7 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
 /* One notification badge everywhere in game: the game's own wax seal with the count stamped on it.
    The desk props carry a real <img> of the seal; the smaller tab badges paint the same art as a
    background (--hc-seal is filled in at boot from the same image the envelope uses). */
-#daylayout-news-notification-badge, #daylayout-casefile-notification-badge, #daylayout-notebook-notification-badge, .role-envelope-badge, .notebook-tab-count, .chat-tab-badge{
+#mailbox-badge, #daylayout-news-notification-badge, #daylayout-casefile-notification-badge, #daylayout-notebook-notification-badge, .role-envelope-badge, .notebook-tab-count, .chat-tab-badge{
   box-sizing:border-box; display:flex; align-items:center; justify-content:center; width:30px; height:30px; min-width:30px; padding:0; margin:0;
   background:none; border:none; border-radius:0; box-shadow:none;
   font-family:var(--font-type); font-size:13px; font-weight:700; line-height:1; letter-spacing:0; text-align:center; color:#fff8ec; text-shadow:0 1px 2px rgba(0,0,0,0.85);
@@ -2532,7 +2564,7 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
 #daylayout-news-notification-badge{position:absolute; top:-11px; right:-2px; left:auto; z-index:4;}
 #daylayout-casefile-notification-badge{position:absolute; top:-5px; right:7%; left:auto; z-index:4;}
 #daylayout-notebook-notification-badge{position:absolute; top:-6px; right:0.5%; left:auto; z-index:4;}
-#daylayout-news-notification-badge span, #daylayout-casefile-notification-badge span, #daylayout-notebook-notification-badge span{position:relative; display:flex; width:100%; height:100%; align-items:center; justify-content:center; line-height:1; font-size:13px;}
+#mailbox-badge span, #daylayout-news-notification-badge span, #daylayout-casefile-notification-badge span, #daylayout-notebook-notification-badge span{position:relative; display:flex; width:100%; height:100%; align-items:center; justify-content:center; line-height:1; font-size:13px;}
 .role-envelope-badge{display:none; position:absolute; left:auto; right:9px; top:54px;}
 .role-envelope-badge.show{display:flex;}
 .notebook-tab-count{position:absolute; top:-9px; right:-6px;}
@@ -3113,6 +3145,24 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
         </div>
       </div>
     </div>
+  </div>
+</div>
+<button type="button" id="mailbox-btn" title="The post - write and read letters">
+  <img src="assets/ui/hc-mailbox.webp" alt="">
+  <span class="mb-label">Post</span>
+  <span id="mailbox-badge" style="display:none;"><img id="mailbox-badge-seal" alt=""><span>1</span></span>
+</button>
+<div id="mail-modal" class="role-card-overlay" style="display:none;">
+  <div class="role-card-modal-content mail-content">
+    <button class="role-card-close" id="mail-close-btn" aria-label="Close">&times;</button>
+    <h2 class="intro-modal-title" style="font-size:22px; margin-bottom:4px;">The Post</h2>
+    <p class="intro-modal-text" style="margin-bottom:10px;">Letters are private and slow. One to each person per round; a letter posted today is read tomorrow morning.</p>
+    <div class="mail-tabs">
+      <button type="button" class="mail-tab active" data-mail-tab="in">Received</button>
+      <button type="button" class="mail-tab" data-mail-tab="out">Sent</button>
+      <button type="button" class="mail-tab" data-mail-tab="write">Write</button>
+    </div>
+    <div id="mail-body"></div>
   </div>
 </div>
 <div id="bulletin-note-modal" class="role-card-overlay" style="display:none;">
@@ -4649,6 +4699,14 @@ function handleServerMessage(msg){
     if(ws) ws.close();
     renderMpEntryScreen();
     switchPanel('mpentry');
+  } else if(msg.type==='mailAck'){
+    var note = document.getElementById('mail-note');
+    if(msg.ok){ mailDraftTo = null; if(note) note.textContent = msg.message; renderMailBody(); if(note) note.textContent = msg.message; }
+    else if(note) note.textContent = msg.message || "That letter wasn't posted.";
+    else showSealNotice(msg.message || "That letter wasn't posted.");
+  } else if(msg.type==='mailArrived'){
+    showNoticeToast('A letter from ' + msg.fromName + ' is waiting in the post.');
+    renderMailBadge();
   } else if(msg.type==='chatBlocked'){
     showNoticeToast(msg.message || "That message wasn't sent.");
   } else if(msg.type==='reportAck' || msg.type==='reportNotice' || msg.type==='reportAction' || msg.type==='reportMuted'){
@@ -9565,6 +9623,83 @@ function openRecapModal(){
   document.getElementById('recap-modal').style.display = 'flex';
   body.scrollTop = 0;
 }
+// ==================== The post ====================
+// Letters are slow and private: written now, read on a later morning. The server owns delivery and
+// who may see what (see mailForView) - this only draws what arrived in the view.
+var mailTab = 'in', mailDraftTo = null, mailReadIds = {};
+function mailList(){ return (latestView && latestView.mail) || []; }
+function mailUnreadCount(){
+  return mailList().filter(function(m){ return m.box === 'in' && m.delivered && !mailReadIds[m.id]; }).length;
+}
+function mailNameOf(id){
+  var p = latestView && latestView.players.find(function(q){ return q.id === id; });
+  return p ? p.name : 'Someone';
+}
+function mailLetterHTML(m){
+  var cls = 'mail-letter' + (m.delivered ? '' : ' mail-pending') + (m.box === 'examined' ? ' mail-examined' : '');
+  var head;
+  if(m.box === 'in') head = '<b>' + escapeHtmlMp(mailNameOf(m.fromId)) + '</b><span>wrote to you</span>';
+  else if(m.box === 'out') head = '<span>to</span><b>' + escapeHtmlMp(mailNameOf(m.toId)) + '</b>';
+  else head = '<b>' + escapeHtmlMp(mailNameOf(m.fromId)) + '</b><span>wrote to ' + escapeHtmlMp(mailNameOf(m.toId)) + '</span><span class="mail-when">found in their effects</span>';
+  var when = m.delivered ? 'posted day ' + m.sentNight : 'in the post, arrives on the morning of day ' + m.deliverNight;
+  return '<div class="' + cls + '"><div class="mail-head">' + head + '<span class="mail-when">' + when + '</span></div>' +
+         '<div class="mail-text">' + escapeHtmlMp(m.text) + '</div></div>';
+}
+function renderMailBody(){
+  var body = document.getElementById('mail-body'); if(!body) return;
+  var all = mailList();
+  if(mailTab === 'write'){
+    var me = meFromView(latestView);
+    if(!me || !me.alive){ body.innerHTML = '<p class="mail-empty">You can no longer post letters.</p>'; return; }
+    var alreadySent = (latestView && latestView.mailSentThisRound) || [];
+    var options = latestView.players.filter(function(p){ return p.alive && p.id !== myPlayerId; });
+    body.innerHTML = '<div class="mail-to-grid">' + options.map(function(p){
+        var done = alreadySent.indexOf(p.id) !== -1;
+        return '<button type="button" class="mail-to' + (done ? ' done' : '') + (mailDraftTo === p.id ? ' sel' : '') + '" data-to="' + p.id + '"' + (done ? ' disabled title="Already written to this round"' : '') + '>' +
+               '<img src="' + portraitImgFor(p) + '" alt="">' + escapeHtmlMp(p.name) + '</button>';
+      }).join('') + '</div>' +
+      '<textarea id="mail-text" maxlength="400" placeholder="Write your letter&hellip;"></textarea>' +
+      '<div class="mail-send-row"><button type="button" class="btn" id="mail-send-btn">Post it</button>' +
+      '<span class="mail-note" id="mail-note">One letter to each person per round. It arrives tomorrow morning.</span></div>';
+    body.querySelectorAll('.mail-to').forEach(function(b){
+      b.addEventListener('click', function(){ mailDraftTo = b.getAttribute('data-to'); renderMailBody(); });
+    });
+    document.getElementById('mail-send-btn').addEventListener('click', function(){
+      var note = document.getElementById('mail-note');
+      var text = document.getElementById('mail-text').value.trim();
+      if(!mailDraftTo){ note.textContent = 'Choose who it is for first.'; return; }
+      if(!text){ note.textContent = 'Write something first.'; return; }
+      sendWS({type:'sendMail', targetId: mailDraftTo, text: text});
+      note.textContent = 'Posting…';
+    });
+    return;
+  }
+  var letters = all.filter(function(m){ return mailTab === 'in' ? (m.box === 'in' || m.box === 'examined') : m.box === 'out'; });
+  letters.sort(function(a, b){ return (b.sentNight - a.sentNight) || (a.id < b.id ? 1 : -1); });
+  body.innerHTML = letters.length ? letters.map(mailLetterHTML).join('')
+    : '<p class="mail-empty">' + (mailTab === 'in' ? 'Nothing has arrived for you yet.' : 'You have not posted anything yet.') + '</p>';
+  if(mailTab === 'in'){ letters.forEach(function(m){ mailReadIds[m.id] = 1; }); renderMailBadge(); }
+}
+function renderMailBadge(){
+  var btn = document.getElementById('mailbox-btn'), badge = document.getElementById('mailbox-badge');
+  if(!btn || !badge) return;
+  var n = mailUnreadCount();
+  badge.style.display = n > 0 ? 'flex' : 'none';
+  badge.querySelector('span').textContent = String(Math.min(9, n));
+}
+function openMailModal(){
+  document.getElementById('mail-modal').style.display = 'flex';
+  renderMailBody();
+}
+document.getElementById('mailbox-btn').addEventListener('click', function(){ SoundFX.paper(); openMailModal(); });
+document.getElementById('mail-close-btn').addEventListener('click', function(){ document.getElementById('mail-modal').style.display = 'none'; });
+document.querySelectorAll('.mail-tab').forEach(function(t){
+  t.addEventListener('click', function(){
+    mailTab = t.getAttribute('data-mail-tab');
+    document.querySelectorAll('.mail-tab').forEach(function(o){ o.classList.toggle('active', o === t); });
+    renderMailBody();
+  });
+});
 document.getElementById('eg-recap-btn').addEventListener('click', openRecapModal);
 ['daylayout-note1','daylayout-note2','daylayout-note3'].forEach(function(id){
   var n = document.getElementById(id); if(!n) return;
@@ -10024,6 +10159,8 @@ function renderFromServerView(view){
   }
 
   updateNotebookAutoLog(view, prev);
+  renderMailBadge();
+  if(document.getElementById('mail-modal').style.display === 'flex') renderMailBody();
   renderRoleBadge();
   renderPhaseTimer();
   updateGhostChatBadge();
@@ -12971,7 +13108,7 @@ var DAYTIME_IMG = {
     'watch-hand-hour': 'watchHourHand', 'watch-hand-minute': 'watchMinuteHand',
     'watch-glow': 'watchGlow', 'role-envelope-sprite': 'envClosed',
     'cabinet-bulletin-bg': 'cabinetBulletin', 'cabinet-stage-bg': 'cabinetStage', 'cabinet-voting-bg': 'cabinetVoting',
-    'vote-confirmed-seal': 'ballotWaxSeal', 'daylayout-news-notification-seal': 'notificationSeal', 'daylayout-notebook-notification-seal': 'notificationSeal', 'daylayout-casefile-notification-seal': 'notificationSeal', 'daylayout-cabinet-full': 'cabinetFull', 'daylayout-roster-frame': 'chatPanelFrame',
+    'vote-confirmed-seal': 'ballotWaxSeal', 'mailbox-badge-seal': 'notificationSeal', 'daylayout-news-notification-seal': 'notificationSeal', 'daylayout-notebook-notification-seal': 'notificationSeal', 'daylayout-casefile-notification-seal': 'notificationSeal', 'daylayout-cabinet-full': 'cabinetFull', 'daylayout-roster-frame': 'chatPanelFrame',
     'daylayout-timer-bar': 'timerBar', 'daylayout-game-title': 'gameTitle', 'daylayout-chat-frame': 'chatPanelFrame',
     'daylayout-desk-newspaper': 'deskNewspaper', 'daylayout-desk-casefile': 'deskCaseFile',
     'daylayout-desk-notebook': 'deskNotebook', 'daylayout-desk-gear': 'deskGear',

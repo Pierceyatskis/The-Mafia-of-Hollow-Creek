@@ -1112,4 +1112,33 @@ assert(resCultF.cultConvertedPlayer === null, 'Phase2 Task5: resolveNight confir
   const dead2 = G.heatForView(st, me);
   assert(dead2.score === alive.score && dead2.percent === alive.percent, 'Heat: later accusations never move a dead player\'s meter');
 }
+{
+  // ---- the post ----
+  const st = G.createGame([{id:'a',name:'A'},{id:'b',name:'B'},{id:'c',name:'C'},{id:'d',name:'D'},{id:'e',name:'E'},{id:'f',name:'F'}], {playerCount: 8, mafiaCount: 1});
+  st.night = 2; st.phase = 'day-discuss';
+  const l1 = G.postLetter(st, 'a', 'b', 'Meet me at the mill.');
+  assert(l1.deliverNight === 3 && !l1.delivered, 'Mail: a letter written in the day arrives the next morning');
+  assert(G.mailAlreadySentThisRound(st, 'a', 'b') === true && G.mailAlreadySentThisRound(st, 'a', 'c') === false, 'Mail: one letter per recipient per round, others still open');
+  // it is not readable by the recipient until it lands
+  assert(G.mailForView(st, 'b').length === 0, 'Mail: the recipient sees nothing until it is delivered');
+  assert(G.mailForView(st, 'a').length === 1 && G.mailForView(st, 'a')[0].box === 'out', 'Mail: the sender can see their own letter waiting in the post');
+  // night letters wait for the morning after the one that follows
+  st.phase = 'night'; st.night = 3;
+  const l2 = G.postLetter(st, 'a', 'c', 'Trust nobody.');
+  assert(l2.deliverNight === 4, 'Mail: a letter written at night skips the morning that follows it');
+  // morning of day 3: only the first lands
+  G.deliverMail(st);
+  assert(l1.delivered === true && l2.delivered === false, 'Mail: only letters that are due are delivered');
+  assert(G.mailForView(st, 'b').length === 1 && G.mailForView(st, 'b')[0].box === 'in', 'Mail: the recipient reads it once it lands');
+  // a letter already in the post still arrives after the sender is eliminated
+  st.night = 4;
+  G.byId(st, 'a').alive = false;
+  G.deliverMail(st);
+  assert(l2.delivered === true && G.mailForView(st, 'c').some(m => m.id === l2.id), 'Mail: a posted letter still arrives after its sender is eliminated');
+  // nobody else can read it
+  assert(G.mailForView(st, 'd').length === 0, 'Mail: a third party sees none of it');
+  // the Mortician, having examined the sender, reads that person's post
+  const morticianView = G.mailForView(st, 'd', ['a']);
+  assert(morticianView.length === 2 && morticianView.every(m => m.box === 'examined'), 'Mail: the Mortician reads the post of whoever they examined, both sides of it');
+}
 console.log('\nAll game.js checks completed.');

@@ -138,6 +138,13 @@ function createGame(seats, config){
   assignGameIcons(players);
   return {
     night: 1, phase: 'night', players, bountyTarget: null, bountyPoints: 0, history: [],
+    // ---- The post: slow, private letters. One per recipient per round, no overall limit.
+    // A letter written during a day lands the next morning; one written at night waits for the
+    // morning after that. Posting is the only thing that matters - a letter already in the post
+    // still arrives after its sender is eliminated, and still arrives at an eliminated recipient's
+    // house (where only the Mortician will ever find it).
+    mail: [],            // {id, fromId, toId, text, sentNight, sentPhase, deliverNight, delivered, readAt}
+    mailSeq: 0,
     recapQueue: [],   // recap lines produced by helpers that don't know whether it is night or day (bounty marks); drained by whoever is resolving
     nightRecap: [],   // one plain-language explanation per night (and the day vote after it), shown only once the game is over
     chatLog: [], mafiaChatLog: [], cultChatLog: [], voteLog: [], voteHistory: [], winner: null, gameOver: false,
@@ -690,7 +697,7 @@ function resolveNight(state){
     if(deadEntry){
       // Private to the Mortician alone (see morticianLog below) - same
       // reasoning as the Detective/Consigliere above, never logged publicly.
-      state.morticianLog.push({name: deadEntry.name, role: deadEntry.role});
+      state.morticianLog.push({id: deadEntry.id, name: deadEntry.name, role: deadEntry.role});   // id lets the Mortician also read that person's post
       rec('mortician', recapName(mortician) + ' examined ' + deadEntry.name + ', who was eliminated the night before, and learned they were the ' + recapRole(deadEntry.role) + '.');
       morticianResult = {morticianId: mortician.id, targetId: deadEntry.id, targetName: deadEntry.name, role: deadEntry.role};
     }
@@ -932,6 +939,44 @@ function resolveFarmerRevenge(state, farmerId, targetId){
   state.farmerRevengePending = null;
   const gameOver = checkWin(state);
   return { gameOver, revengeKillOccurred, revengeTargetId: revengeKillOccurred ? target.id : null };
+}
+
+// Day N is the morning straight after night N, so a letter posted at night has to skip it: both a
+// day letter and a night letter are read on the morning of the following round.
+function mailDeliveryNight(state){ return state.night + 1; }
+function mailAlreadySentThisRound(state, fromId, toId){
+  return (state.mail || []).some(m => m.fromId === fromId && m.toId === toId && m.sentNight === state.night);
+}
+function postLetter(state, fromId, toId, text){
+  const entry = {
+    id: 'ml' + (++state.mailSeq), fromId, toId, text,
+    sentNight: state.night, sentPhase: state.phase,
+    deliverNight: mailDeliveryNight(state), delivered: false, readAt: null
+  };
+  state.mail.push(entry);
+  return entry;
+}
+// Called when a day opens: everything due that morning lands, whatever happened to the people involved.
+function deliverMail(state){
+  const landed = [];
+  (state.mail || []).forEach(m => {
+    if(!m.delivered && m.deliverNight <= state.night){ m.delivered = true; landed.push(m); }
+  });
+  return landed;
+}
+// What one viewer may see: their own letters in and out. The Mortician additionally reads the post
+// of whoever they examined - both sides of it - which is the only way a letter is ever seen by a third party.
+function mailForView(state, viewerId, morticianSeenIds){
+  const seen = morticianSeenIds || [];
+  return (state.mail || [])
+    .filter(m => m.fromId === viewerId || (m.toId === viewerId && m.delivered) ||
+                 (m.delivered && (seen.indexOf(m.fromId) !== -1 || seen.indexOf(m.toId) !== -1)))
+    .map(m => ({
+      id: m.id, fromId: m.fromId, toId: m.toId, text: m.text,
+      sentNight: m.sentNight, deliverNight: m.deliverNight, delivered: m.delivered,
+      // how this viewer came by it, so the client can file it in the right place
+      box: m.toId === viewerId ? 'in' : (m.fromId === viewerId ? 'out' : 'examined')
+    }));
 }
 
 function startNextNight(state){
@@ -1548,6 +1593,9 @@ function getPlayerView(state, playerId){
     // for tonight's investigation. Nobody else needs this: everyone already
     // learns WHO died via the night-kill reveal, just never their role.
     morticianCandidates: (me && me.role==='Mortician') ? state.lastNightDeaths.map(d => ({id: d.id, name: d.name})) : undefined,
+    // The post: this viewer's own letters, plus - for the Mortician - the post of anyone they examined.
+    mail: me ? mailForView(state, playerId, (me.role === 'Mortician' ? (state.morticianLog || []).map(e => e.id).filter(Boolean) : [])) : undefined,
+    mailSentThisRound: me ? (state.mail || []).filter(m => m.fromId === playerId && m.sentNight === state.night).map(m => m.toId) : undefined,
     // Mafia chat is scoped strictly by align==='mafia' - never sent to a
     // town-aligned player, living or dead. Hitman is the one explicit
     // exception: mafia-aligned but deliberately excluded from this channel
@@ -1599,6 +1647,7 @@ module.exports = {
   CHARACTERS, ROLE_LABEL, SPECIAL_ROLES, MIN_PLAYERS, MAX_PLAYERS, MAX_MAFIA_COUNT, DEFAULT_ROLES_CONFIG,
   HEAT_LEVELS, computeHeat, heatForView, buildGameSummary,
   shuffle, alignOf, createGame, byId, living, mafiaAlive, cultAlive, mafiaVoters, checkWin, checkBountyHit, checkGrannyFlip,
+  postLetter, deliverMail, mailForView, mailAlreadySentThisRound, mailDeliveryNight,
   detectiveRead, investigateAndRead, resolveNight, resolveDayVote, resolveFarmerRevenge, startNextNight,
   getPlayerView, log, specialRoleCount, validateSeatCapacity,
   recordDayVoteSubmission, recordMayorReveal, recordLivingCountSnapshot, recordAccusation, firstAccuserOf,

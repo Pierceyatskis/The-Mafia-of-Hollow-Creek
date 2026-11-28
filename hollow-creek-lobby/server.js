@@ -713,6 +713,14 @@ function finishRoundScoring(room, dayResult, revengeResult) {
 function beginDayDiscussPhase(room) {
   const discussMs = room.discussMs || DAY_DISCUSS_DURATION_MS;
   room.state.phase = 'day-discuss';
+  // The morning post. Anything due today lands now, whether or not the people involved are still alive.
+  G.deliverMail(room.state).forEach(m => {
+    const rp = room.players.find(q => q.id === m.toId);
+    const from = G.byId(room.state, m.fromId);
+    if (rp && rp.socket.readyState === WebSocket.OPEN) {
+      rp.socket.send(JSON.stringify({ type: 'mailArrived', id: m.id, fromId: m.fromId, fromName: from ? from.name : 'Someone', text: m.text, sentNight: m.sentNight }));
+    }
+  });
   room.state.spotlights = {};
   room.phaseEndsAt = Date.now() + discussMs;
   clearPhaseTimer(room);
@@ -1713,6 +1721,28 @@ wss.on('connection', (socket) => {
       }
       G.recordSpotlight(room.state, player.id, targetId);
       broadcastSpotlightCounts(room);
+    }
+
+    // ---- the post: one letter per recipient per round, delivered a round later ----
+    else if (msg.type === 'sendMail') {
+      const { room, player } = getRoomAndPlayer(socket);
+      if (!room || !room.started) return;
+      const sp = G.byId(room.state, player.id);
+      const deny = (message) => socket.send(JSON.stringify({ type: 'mailAck', ok: false, message }));
+      if (!sp || !sp.alive) { deny("You can't write once you're out of the game."); return; }
+      const targetId = String(msg.targetId || '');
+      const target = G.byId(room.state, targetId);
+      if (!target || target.id === player.id) { deny("That player can't be written to."); return; }
+      if (!target.alive) { deny("They're gone - there's no one left to read it."); return; }
+      if (G.mailAlreadySentThisRound(room.state, player.id, target.id)) { deny('You have already posted a letter to ' + target.name + ' this round.'); return; }
+      const text = String(msg.text || '').trim().slice(0, 400);
+      if (!text) return;
+      if (!rateOk(socket, 'text')) return;
+      if (!cleanOrBlock(socket, text)) return;
+      const entry = G.postLetter(room.state, player.id, target.id, text);
+      socket.send(JSON.stringify({ type: 'mailAck', ok: true, toId: target.id, toName: target.name, deliverNight: entry.deliverNight,
+        message: 'Posted to ' + target.name + '. It arrives on the morning of day ' + entry.deliverNight + '.' }));
+      sendGameState(room);
     }
 
     else if (msg.type === 'whisper') {
