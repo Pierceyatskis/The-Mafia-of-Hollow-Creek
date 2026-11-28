@@ -932,7 +932,7 @@ assert(resCultF.cultConvertedPlayer === null, 'Phase2 Task5: resolveNight confir
   assert(hv.votesLast === 3 && hv.nearMiss && hv.score === 0.7 && hv.level === 4, 'Heat: 3 votes yesterday (3 x 2 x half) plus the close-call bonus = 3.5 raw, 0.7 of 5 others');
   stV.night = 4;
   assert(G.computeHeat(stV, stV.players[0].id).score < hv.score, 'Heat: old votes fade as days pass');
-  // each viewer only gets their own; the dead get the hottest living player
+  // each viewer only gets their own; once out, it is their own final reading, frozen
   stV.night = 2;
   const viewLive = G.getPlayerView(stV, stV.players[0].id);
   assert(viewLive.heat && viewLive.heat.self === true && viewLive.heat.score === 0.7, 'Heat: a living player\'s view carries their own heat');
@@ -940,7 +940,7 @@ assert(resCultF.cultConvertedPlayer === null, 'Phase2 Task5: resolveNight confir
   assert(other.heat && other.heat.self === true && other.heat.score === 0, 'Heat: another player\'s view does not carry that player\'s heat');
   stV.players[1].alive = false;
   const viewDead = G.getPlayerView(stV, stV.players[1].id);
-  assert(viewDead.heat && viewDead.heat.self === false && viewDead.heat.hottest && viewDead.heat.hottest.name === stV.players[0].name, 'Heat: a dead player sees who the hottest living player is');
+  assert(viewDead.heat && viewDead.heat.frozen === true && viewDead.heat.self === true && viewDead.heat.score === 0, 'Heat: a dead player keeps their own final reading rather than tracking the living');
   // the same two accusers matter far more when few players are left
   const big = mk(12);
   big.night = 2;
@@ -1096,5 +1096,20 @@ assert(resCultF.cultConvertedPlayer === null, 'Phase2 Task5: resolveNight confir
   if(r.farmerRevengePending) G.resolveFarmerRevenge(st, farmer.id, G.living(st).find(p => p.id !== farmer.id).id);
   assert(st.nightRecap[0].extras.some(x => x.kind === 'revenge' && /took .* down with them/.test(x.text)), 'Recap: the Farmer\'s last move is explained');
   assert(G.buildGameSummary(st, []).recapEnd && typeof G.buildGameSummary(st, []).recapEnd.text === 'string', 'Recap: the summary says why the game ended');
+}
+{
+  // Heat stops moving the moment you are out of the game
+  const st = G.createGame([{id:'a',name:'A'},{id:'b',name:'B'},{id:'c',name:'C'},{id:'d',name:'D'},{id:'e',name:'E'},{id:'f',name:'F'}], {playerCount: 8, mafiaCount: 1});
+  const me = st.players.find(p => p.id === 'a');
+  const others = st.players.filter(p => p.id !== 'a' && p.alive);
+  others.slice(0, 2).forEach(o => G.recordAccusation(st, o.id, me.id));
+  const alive = G.heatForView(st, me);
+  assert(alive.self === true && !alive.frozen, 'Heat: a living player sees their own live heat');
+  me.alive = false;
+  const dead1 = G.heatForView(st, me);
+  assert(dead1.frozen === true && dead1.score === alive.score && dead1.level === alive.level, 'Heat: once eliminated the meter keeps the value it had');
+  others.forEach(o => G.recordAccusation(st, o.id, me.id));   // the town keeps accusing after they are gone
+  const dead2 = G.heatForView(st, me);
+  assert(dead2.score === alive.score && dead2.percent === alive.percent, 'Heat: later accusations never move a dead player\'s meter');
 }
 console.log('\nAll game.js checks completed.');

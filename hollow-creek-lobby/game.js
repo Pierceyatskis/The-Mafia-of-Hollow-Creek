@@ -1401,14 +1401,16 @@ function computeHeat(state, playerId){
 // What one viewer is shown: their own heat while alive; once dead, the hottest living player's.
 function heatForView(state, viewerSeat){
   if(!viewerSeat) return null;
-  if(viewerSeat.alive) return Object.assign({ self: true }, computeHeat(state, viewerSeat.id));
-  let hot = null;
-  state.players.forEach(p => {
-    if(!p.alive) return;
-    const h = computeHeat(state, p.id);
-    if(!hot || h.score > hot.score) hot = { score: h.score, percent: h.percent, level: h.level, name: p.name };
-  });
-  return { self: false, hottest: hot };
+  if(viewerSeat.alive){
+    const live = Object.assign({ self: true }, computeHeat(state, viewerSeat.id));
+    // Remembered so it can be shown unchanged once they are out - heat is about the suspicion on a
+    // living player, and theirs stops moving the moment they leave the game.
+    viewerSeat.heatAtDeath = live;
+    return live;
+  }
+  // Out of the game: their own heat as it stood, and it stays there. Nothing the living do afterwards moves it.
+  if(!viewerSeat.heatAtDeath) viewerSeat.heatAtDeath = Object.assign({ self: true }, computeHeat(state, viewerSeat.id));
+  return Object.assign({}, viewerSeat.heatAtDeath, { frozen: true });
 }
 
 // ---------- End-of-game summary: who won, who everyone was, points, awards ----------

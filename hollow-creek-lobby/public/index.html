@@ -413,10 +413,21 @@ body.force-reduced-motion .daylayout-roster-tile.qv-target{animation:none; box-s
 #daylayout-notebook-notification-badge{position:absolute; top:-6px; right:0.5%; width:30px; height:30px; z-index:4; pointer-events:none;}
 #daylayout-notebook-notification-badge img{position:absolute; inset:0; width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.6));}
 #daylayout-notebook-notification-badge span{position:relative; display:flex; width:100%; height:100%; align-items:center; justify-content:center; font-family:var(--font-type); font-size:13px; font-weight:700; color:#fff8ec; text-shadow:0 1px 2px rgba(0,0,0,0.75);}
-/* a slow, soft heartbeat so a waiting seal catches the eye without nagging */
-#daylayout-news-notification-badge, #daylayout-casefile-notification-badge, #daylayout-notebook-notification-badge{animation:sealBreathe 2.6s ease-in-out infinite;}
-@keyframes sealBreathe{0%,100%{transform:scale(1);} 50%{transform:scale(1.09);}}
-body.force-reduced-motion #daylayout-news-notification-badge, body.force-reduced-motion #daylayout-casefile-notification-badge, body.force-reduced-motion #daylayout-notebook-notification-badge{animation:none;}
+/* A waiting seal knocks twice, then rests - plus a warm glow behind it so it reads as "new" at a glance. */
+#daylayout-news-notification-badge, #daylayout-casefile-notification-badge, #daylayout-notebook-notification-badge{animation:sealKnock 2.2s ease-in-out infinite;}
+@keyframes sealKnock{
+  0%{transform:scale(1);} 8%{transform:scale(1.28);} 16%{transform:scale(0.97);}
+  24%{transform:scale(1.18);} 32%{transform:scale(1);}
+  100%{transform:scale(1);}
+}
+#daylayout-news-notification-badge::after, #daylayout-casefile-notification-badge::after, #daylayout-notebook-notification-badge::after{
+  content:''; position:absolute; inset:-45%; border-radius:50%; pointer-events:none; z-index:-1;
+  background:radial-gradient(circle, rgba(226,96,70,0.55) 0%, rgba(180,40,30,0.28) 45%, rgba(0,0,0,0) 72%);
+  animation:sealGlow 2.2s ease-in-out infinite;
+}
+@keyframes sealGlow{0%,100%{opacity:0.25; transform:scale(0.9);} 20%{opacity:0.9; transform:scale(1.15);}}
+body.force-reduced-motion #daylayout-news-notification-badge, body.force-reduced-motion #daylayout-casefile-notification-badge, body.force-reduced-motion #daylayout-notebook-notification-badge,
+body.force-reduced-motion #daylayout-news-notification-badge::after, body.force-reduced-motion #daylayout-casefile-notification-badge::after, body.force-reduced-motion #daylayout-notebook-notification-badge::after{animation:none;}
 #daylayout-casefile-notification-badge{position:absolute; top:-6px; right:6%; width:30px; height:30px; z-index:4; pointer-events:none;}
 #daylayout-casefile-notification-seal{position:absolute; inset:0; width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.6));}
 #daylayout-casefile-notification-badge span{position:relative; display:flex; width:100%; height:100%; align-items:center; justify-content:center; font-family:var(--font-type); font-size:13px; font-weight:700; color:#fff8ec; text-shadow:0 1px 2px rgba(0,0,0,0.8);}
@@ -1179,7 +1190,7 @@ body.force-reduced-motion .ballot-box-seal.playing{animation:none !important; op
 .case-log-badge-text{font-family:var(--font-type); font-size:10.5px; letter-spacing:0.5px; text-transform:uppercase; color:var(--gold-bright); line-height:1.3;}
 #ghost-chat-badge{position:fixed; bottom:24px; right:24px; z-index:90; display:flex; flex-direction:column; align-items:center; gap:4px; width:88px; background:linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%); border:1px solid var(--gold-dim); border-radius:10px; padding:11px 8px; box-shadow:0 6px 20px rgba(0,0,0,0.5); cursor:pointer; transition:transform .15s ease, box-shadow .15s ease; text-align:center;}
 #ghost-chat-badge:hover{transform:translateY(-4px); box-shadow:0 12px 28px rgba(0,0,0,0.6);}
-.ghost-chat-badge-icon{font-size:22px; line-height:1;}
+.ghost-chat-badge-icon{display:block; width:44px; height:44px; object-fit:contain; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.6));}
 .ghost-chat-badge-text{font-family:var(--font-type); font-size:10.5px; letter-spacing:0.5px; text-transform:uppercase; color:var(--gold-bright); line-height:1.3;}
 .case-log-modal-content{max-width:min(520px, 92vw); max-height:80vh; display:flex; flex-direction:column;}
 .case-log-list{overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:6px; padding-right:4px;}
@@ -3190,7 +3201,7 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
 <div id="seal-backdrop"></div>
 <div id="seal-notice" class="seal-card" role="status" aria-live="polite"><img class="sn-seal" alt=""><div class="sn-text" id="seal-notice-text"></div><button type="button" class="btn sn-ok" id="seal-notice-ok">OK</button></div>
 <div id="ghost-chat-badge" style="display:none;" title="Talk to the others who didn't make it">
-  <span class="ghost-chat-badge-icon">&#128123;</span>
+  <img class="ghost-chat-badge-icon" src="assets/ui/hc-ghost-chat.webp" alt="">
   <span class="ghost-chat-badge-text">Ghost Chat</span>
 </div>
 <div id="ghost-chat-modal" class="role-card-overlay" style="display:none;">
@@ -9587,7 +9598,7 @@ function renderHeat(heat){
   if(self){ level = heat.level; score = heat.score; }
   else if(heat.hottest){ level = heat.hottest.level; score = heat.hottest.score; who = heat.hottest.name; }
   else { level = 0; score = 0; }
-  document.getElementById('heat-label').textContent = self ? 'Your heat' : (who ? 'Hottest: ' + who : 'The spirits see no heat');
+  document.getElementById('heat-label').textContent = heat.frozen ? 'Your heat (final)' : self ? 'Your heat' : (who ? 'Hottest: ' + who : 'The spirits see no heat');
   var lvEl = document.getElementById('heat-level');
   var pct = self ? (heat.percent != null ? heat.percent : Math.round(score * 100)) : (heat.hottest && heat.hottest.percent != null ? heat.hottest.percent : Math.round(score * 100));
   lvEl.textContent = HEAT_NAMES[level] + ' \u00b7 ' + pct + '%';
