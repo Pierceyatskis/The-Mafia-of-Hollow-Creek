@@ -1346,12 +1346,13 @@ body.force-reduced-motion .notebook-view.notebook-page-turn{animation:none;}
    banner in paint order and silently eats their clicks despite being
    invisible there. */
 .notebook-directory-grid{position:absolute; inset:0; pointer-events:none;}
-.notebook-card{position:absolute; display:flex; align-items:flex-start; gap:8px; width:19%; height:12.9%; padding:0; background:none; border:none; cursor:pointer; text-align:left; font-family:inherit; transition:opacity .2s ease, filter .2s ease; pointer-events:auto;}
-.notebook-card:hover{filter:brightness(1.08);}
+.notebook-card{position:absolute; display:flex; align-items:flex-start; gap:8px; width:19%; height:12.9%; padding:0; background:none; border:none; cursor:pointer; text-align:left; font-family:inherit; transition:opacity .2s ease; pointer-events:auto;}
+.notebook-card:hover .notebook-card-portrait{filter:brightness(1.1);}
+.notebook-card.notebook-eliminated:hover .notebook-card-portrait{filter:grayscale(0.9) brightness(0.62);}
 .notebook-card:focus-visible{outline:2px solid var(--gold-bright); outline-offset:2px;}
 .notebook-card.notebook-dimmed{opacity:0.32;}
 .notebook-card-portrait-wrap{position:relative; flex:0 0 42.6%; width:42.6%; height:100%; min-width:0;}
-.notebook-card-portrait{width:100%; height:100%; object-fit:cover; display:block;}
+.notebook-card-portrait{width:100%; height:100%; object-fit:cover; display:block; transition:filter .2s ease;}
 .notebook-card.notebook-eliminated .notebook-card-portrait{filter:grayscale(0.9) brightness(0.55);}
 .notebook-card-ribbon{position:absolute; left:-8%; top:46%; width:116%; height:16%; background:rgba(20,14,10,0.82); transform:rotate(-18deg); display:none;}
 .notebook-card.notebook-eliminated .notebook-card-ribbon{display:block;}
@@ -2126,6 +2127,12 @@ body.phone.fam-tab #design-canvas.bg-night #mafia-chat-section{display:flex !imp
 #revenge-card .msg.err{margin:6px 0 0; color:#7a1d12; font-weight:700;}
 #revenge-card #revenge-wait-clock{margin:8px 0 0; font-family:var(--font-ornate); font-size:30px; font-weight:700; color:#6b1d12;}
 @media (max-width:640px){ #revenge-card{border-width:30px; border-image-width:30px;} #revenge-card .nsc-title{font-size:28px;} #revenge-card .na-person img{width:64px; height:64px;} #revenge-card .na-sub{font-size:15px;} }
+.bulletin-note-content{width:min(560px, 92vw); max-width:560px; text-align:left;}
+#bulletin-note-body{font-family:var(--font-body); font-size:17px; line-height:1.5; color:var(--parchment);}
+#bulletin-note-body p{margin:0 0 8px;}
+#bulletin-note-body .bn-count{font-family:var(--font-ornate); font-size:24px; color:var(--gold-bright); line-height:1.2;}
+#bulletin-note-body .night-note{margin:8px 0 0; font-style:italic; color:#e0b48a;}
+.daylayout-note{cursor:pointer;}
 .recap-content{width:min(720px, 94vw); max-width:720px; max-height:88vh; display:flex; flex-direction:column; text-align:left;}
 .recap-how{font-family:var(--font-type); font-size:12.5px; line-height:1.5; color:var(--parchment-dim); border:1px solid var(--line); border-radius:6px; padding:8px 12px; margin-bottom:10px; background:rgba(0,0,0,0.2);}
 .recap-how b{color:var(--parchment);} .recap-how summary{cursor:pointer;} .recap-how[open] summary{margin-bottom:6px;}
@@ -2165,7 +2172,7 @@ body.phone.fam-tab #design-canvas.bg-night #mafia-chat-section{display:flex !imp
 #settings-body .set-row-master{padding:8px 12px;}
 #settings-body .set-h{margin:12px 0 4px;}
 #settings-body .set-col .set-h:first-child{margin-top:2px;}
-body.big-rules .rules-sub, body.big-rules .rule-label small, body.big-rules .howtocard .one, body.big-rules #role-tip .rt-bio, body.big-rules #role-tip ul, body.big-rules #daylayout-note2-body, body.big-rules #bulletin-phase-instructions{font-size:1.28em;}
+body.big-rules .rules-sub, body.big-rules .rule-label small, body.big-rules .howtocard .one, body.big-rules #role-tip .rt-bio, body.big-rules #role-tip ul, body.big-rules #daylayout-note2-body, body.big-rules #daylayout-note1-body, body.big-rules #daylayout-note3-subtitle, body.big-rules #bulletin-phase-instructions{font-size:1.28em;}
 body.big-rules #role-tip{width:min(420px, calc(100vw - 24px));}
 .set-h{margin:16px 0 6px; padding-bottom:5px; border-bottom:1px solid var(--line); font-family:var(--font-type); font-size:12.5px; letter-spacing:1.6px; text-transform:uppercase; color:var(--gold);}
 .set-h:first-child{margin-top:2px;}
@@ -2710,19 +2717,19 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
 </div>
 <img id="daylayout-cabinet-full" alt="">
 <h2 id="daylayout-cabinet-title">Town Bulletin</h2>
-<div id="daylayout-note1" class="daylayout-note">
+<div id="daylayout-note1" class="daylayout-note" role="button" tabindex="0" aria-label="Recent News - open at a readable size">
   <div id="daylayout-icon-feather" class="daylayout-note-icon"></div>
   <h3 class="daylayout-note-title">Recent News</h3>
   <div class="daylayout-note-rule"></div>
   <p id="daylayout-note1-body" class="daylayout-note-body"></p>
 </div>
-<div id="daylayout-note2" class="daylayout-note">
+<div id="daylayout-note2" class="daylayout-note" role="button" tabindex="0" aria-label="Phase Instructions - open at a readable size">
   <div id="daylayout-icon-hand" class="daylayout-note-icon"></div>
   <h3 class="daylayout-note-title">Phase Instructions</h3>
   <div class="daylayout-note-rule"></div>
   <p id="daylayout-note2-body" class="daylayout-note-body"></p>
 </div>
-<div id="daylayout-note3" class="daylayout-note">
+<div id="daylayout-note3" class="daylayout-note" role="button" tabindex="0" aria-label="Who is left - open at a readable size">
   <div id="daylayout-icon-people-row" class="daylayout-note-icon"></div>
   <p id="daylayout-note3-count" class="daylayout-note-count"></p>
   <p id="daylayout-note3-subtitle" class="daylayout-note-body daylayout-note3-subtitle"></p>
@@ -3095,6 +3102,13 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
         </div>
       </div>
     </div>
+  </div>
+</div>
+<div id="bulletin-note-modal" class="role-card-overlay" style="display:none;">
+  <div class="role-card-modal-content bulletin-note-content">
+    <button class="role-card-close" id="bulletin-note-close-btn" aria-label="Close">&times;</button>
+    <h2 class="intro-modal-title" id="bulletin-note-title" style="font-size:22px; margin-bottom:10px;"></h2>
+    <div id="bulletin-note-body"></div>
   </div>
 </div>
 <div id="recap-modal" class="role-card-overlay" style="display:none;">
@@ -4959,8 +4973,9 @@ var SoundFX = (function(){
   }
   // A wooden clock "tock": a dry click over a short, soft, low-ish knock.
   function tock(c, start, f, peak){
-    noiseBurst(c, start, 0.025, 'bandpass', 1900, 0, 5, peak, 0.002);
-    tone(c, f, start, 0.07, 'sine', peak * 0.55, f * 0.8);
+    noiseBurst(c, start, 0.012, 'highpass', 4200, 0, 1.2, peak * 1.15, 0.001);   // the click of the escapement
+    noiseBurst(c, start, 0.02, 'bandpass', 2600, 0, 6, peak * 0.7, 0.001);
+    tone(c, f, start, 0.025, 'triangle', peak * 0.22, f * 0.85);                 // just a hint of wooden case
   }
   function safe(fn){
     if(muted) return;
@@ -5013,12 +5028,9 @@ var SoundFX = (function(){
   // it never landed on a steady beat. These are scheduled against the audio clock instead, so each
   // tick falls exactly on time, and the tempo steps between fixed speeds rather than sliding.
   var tickClock = null, tickNextAt = 0, tickBeat = 0;
-  function tickPeriod(){
-    if(tickUrgency >= 0.88) return 0.5;
-    if(tickUrgency >= 0.66) return 0.6;
-    if(tickUrgency >= 0.4) return 0.75;
-    return 1.0;
-  }
+  // One tick per second, always - the clock on screen counts in seconds, so the sound matches it.
+  // Urgency only lifts the volume a little; it never changes the tempo.
+  function tickPeriod(){ return 1.0; }
   function stopTickClock(){
     if(tickClock){ clearInterval(tickClock); tickClock = null; }
     tickNextAt = 0;
@@ -5032,8 +5044,8 @@ var SoundFX = (function(){
       if(tickNextAt < c.currentTime) tickNextAt = c.currentTime + 0.02;
       // tick, tock - the second of each pair sits a little lower, like a real pendulum
       var low = (tickBeat % 2) === 1;
-      var vol = Math.min(0.5, TICK_BASE_VOL * ambienceVolume * (1 + tickUrgency * 0.6));
-      tock(c, tickNextAt, low ? 208 : 260, vol);
+      var vol = Math.min(0.5, TICK_BASE_VOL * ambienceVolume * (1 + tickUrgency * 0.45));
+      tock(c, tickNextAt, low ? 1500 : 1850, vol);
       tickBeat++;
       tickNextAt += tickPeriod();
     }
@@ -5378,7 +5390,9 @@ var GameMusic = (function(){
       sync();
     },
     // called by the voice-activity monitor: true while the stage speaker is audibly talking
-    setVoiceActive: function(active){ if(hasMusic) HollowMusic.duck(active); }
+    setVoiceActive: function(active){ if(hasMusic) HollowMusic.duck(active); },
+    // The roles-in-play animation is the handover from lobby to game: let the menu theme fall away under it.
+    fadeOutForStart: function(seconds){ phase = null; subPhase = null; outro = null; if(hasMusic) HollowMusic.stop(seconds || 6); }
   };
 })();
 // Accessibility & Settings Task 4 - independent of sound mute/volume, so a
@@ -9149,8 +9163,8 @@ function renderFarmerRevengePicker(){
 // night number (stable for the whole round, varies round to round) rather
 // than randomized on every re-render.
 var BULLETIN_PHASE_TEXT = {
-  'day-discuss': "Discuss freely: share suspicions, ask for alibis, spot contradictions. Voting opens when the discussion timer ends.",
-  'day-vote': "The floor is closing. Cast your vote for who you believe is working against the town.",
+  'day-discuss': "Talk it over. Share suspicions, ask for alibis. Voting opens when the timer ends.",
+  'day-vote': "The floor is closing. Vote for who you believe is against the town.",
   'day-reveal': "The town holds its breath as the verdict comes in.",
   'farmer-revenge': "One last stand. Choose who goes down with you."
 };
@@ -9163,6 +9177,24 @@ var BULLETIN_PHASE_TEXT = {
 // doesn't fit). Shrinks the font a half-px at a time until the content
 // actually fits, rather than guessing a single smaller size that might
 // still overflow a longer overnight-report line another night.
+// The notes are fixed boxes on the painted cabinet, so long text gets shrunk to fit.
+// Tapping one opens the same words at a comfortable size.
+var NOTE_TITLES = {'daylayout-note1':'Recent News', 'daylayout-note2':'Phase Instructions', 'daylayout-note3':'Who Is Left'};
+function openBulletinNote(noteId){
+  var note = document.getElementById(noteId); if(!note) return;
+  var body = note.querySelector('.daylayout-note-body, .daylayout-note-count');
+  var html = '';
+  if(noteId === 'daylayout-note3'){
+    html = '<p class="bn-count">'+document.getElementById('daylayout-note3-count').innerHTML+'</p>'+
+           '<p>'+escapeHtmlMp(document.getElementById('daylayout-note3-subtitle').textContent)+'</p>';
+  } else {
+    html = '<div>'+(body ? body.innerHTML : '')+'</div>';
+  }
+  document.getElementById('bulletin-note-title').textContent = NOTE_TITLES[noteId] || 'Town Bulletin';
+  document.getElementById('bulletin-note-body').innerHTML = html;
+  document.getElementById('bulletin-note-modal').style.display = 'flex';
+  SoundFX.paper();
+}
 function fitNoteBodyText(el){
   if(!el) return;
   el.style.fontSize = '';
@@ -9523,6 +9555,12 @@ function openRecapModal(){
   body.scrollTop = 0;
 }
 document.getElementById('eg-recap-btn').addEventListener('click', openRecapModal);
+['daylayout-note1','daylayout-note2','daylayout-note3'].forEach(function(id){
+  var n = document.getElementById(id); if(!n) return;
+  n.addEventListener('click', function(){ openBulletinNote(id); });
+  n.addEventListener('keydown', function(e){ if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); openBulletinNote(id); } });
+});
+document.getElementById('bulletin-note-close-btn').addEventListener('click', function(){ document.getElementById('bulletin-note-modal').style.display = 'none'; });
 document.getElementById('recap-close-btn').addEventListener('click', function(){ document.getElementById('recap-modal').style.display = 'none'; });
 document.getElementById('eg-save').addEventListener('click', function(){ document.getElementById('share-summary-btn').click(); });
 document.getElementById('eg-leave').addEventListener('click', function(){ hideEndgame(); goToHome(); });
@@ -9627,6 +9665,8 @@ function updateQuickVoteBtn(){
 var startCountdownTimer = null, startCountdownDeal = [];
 var START_ROLE_ORDER = ['Godfather','Mafia','Framer','Consigliere','Hitman','DoubleAgent','CultLeader'];
 function showStartCountdown(endsAt, roles, startedAt){
+  // the lobby music bows out across the deal, so the game opens in quiet
+  try{ GameMusic.fadeOutForStart(Math.max(2, Math.min(8, ((endsAt - Date.now()) / 1000) * 0.85))); }catch(e){}
   var box = document.getElementById('start-countdown'), deck = document.getElementById('start-countdown-deck'), bar = document.getElementById('start-countdown-bar');
   if(!box) return;
   clearInterval(startCountdownTimer); startCountdownDeal.forEach(clearTimeout); startCountdownDeal = [];
@@ -12344,9 +12384,14 @@ function notebookTrapFocus(e){
   else if(!e.shiftKey && document.activeElement===last){ e.preventDefault(); first.focus(); }
 }
 
+function clearNotebookBadge(){
+  var b = document.getElementById('daylayout-notebook-notification-badge');
+  if(b) b.style.display = 'none';
+}
 function openNotebookModal(){
   notebookOpen = true;
   notebookHasUnseen = false; notebookUnseenCount = 0;
+  clearNotebookBadge();
   notebookFilter = 'all';
   notebookVoteInspectId = null;
   notebookVoteRound = null;
@@ -12373,6 +12418,7 @@ function openNotebookModal(){
 function openNotebookModalToPlayer(playerId){
   notebookOpen = true;
   notebookHasUnseen = false; notebookUnseenCount = 0;
+  clearNotebookBadge();
   notebookReturnFocusEl = document.activeElement;
   document.getElementById('notebook-modal').style.display = 'flex';
   document.getElementById('notebook-book').addEventListener('keydown', notebookTrapFocus);

@@ -648,10 +648,11 @@
       currentName = name;
       load(name).then(function(){ if(currentName === name) startTheme(name); });
     },
-    stop: function(){
+    stop: function(secs){
       currentName = null;
       if(!ctx) return;
-      players.forEach(function(p){ if(!p.stopped) fadeOut(p, 1.5); });
+      var t = typeof secs === 'number' ? secs : 1.5;
+      players.forEach(function(p){ if(!p.stopped) fadeOut(p, t); });
     },
     setVolume: function(v){
       volume = Math.max(0, Math.min(1, v));
