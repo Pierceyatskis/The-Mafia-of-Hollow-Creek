@@ -368,13 +368,18 @@ body.force-reduced-motion .daylayout-roster-tile.qv-target{animation:none; box-s
 .mail-tab{font-family:var(--font-type); font-size:12px; letter-spacing:1.2px; text-transform:uppercase; padding:7px 16px; border:1px solid var(--gold-dim); border-radius:6px; background:rgba(20,14,10,0.6); color:var(--parchment-dim); cursor:pointer;}
 .mail-tab.active{background:rgba(227,177,85,0.16); color:var(--gold-bright);}
 #mail-body{overflow-y:auto; min-height:0; scrollbar-width:none;} #mail-body::-webkit-scrollbar{display:none;}
-.mail-letter{position:relative; margin:0 0 12px; padding:12px 14px; border:1px solid var(--gold-dim); border-left:4px solid var(--gold); border-radius:8px; background:linear-gradient(180deg, rgba(240,226,194,0.95), rgba(226,208,170,0.95)); color:#2a1708;}
-.mail-letter.mail-pending{background:linear-gradient(180deg, rgba(60,48,34,0.8), rgba(34,26,18,0.85)); color:var(--parchment); border-left-color:var(--parchment-dim);}
-.mail-letter.mail-examined{border-left-color:#8a1c14;}
+.mail-letter{position:relative; margin:0 0 16px; padding:14px 18px 16px; border:none; border-radius:2px; color:#2a1708;
+  background:linear-gradient(rgba(246,233,203,0.90), rgba(232,214,176,0.92)), url('assets/ui/parchment.webp'); background-size:auto, 420px 420px;
+  box-shadow:0 8px 18px rgba(0,0,0,0.55), inset 0 0 40px rgba(120,90,50,0.18);
+  transform:rotate(-0.4deg);}
+.mail-letter:nth-child(even){transform:rotate(0.5deg);}
+.mail-letter .mail-seal{position:absolute; right:10px; bottom:8px; width:34px; height:34px; object-fit:contain; opacity:.92; filter:drop-shadow(0 2px 3px rgba(0,0,0,0.5));}
+.mail-letter.mail-pending{background:linear-gradient(rgba(58,46,32,0.86), rgba(34,26,18,0.9)), url('assets/ui/parchment.webp'); background-size:auto, 420px 420px; color:var(--parchment); box-shadow:0 6px 14px rgba(0,0,0,0.5);}
+.mail-letter.mail-examined{box-shadow:0 8px 18px rgba(0,0,0,0.55), inset 0 0 0 2px rgba(138,28,20,0.55);}
 .mail-head{display:flex; flex-wrap:wrap; gap:4px 10px; align-items:baseline; margin-bottom:6px; font-family:var(--font-type); font-size:11.5px; letter-spacing:1px; text-transform:uppercase;}
 .mail-head b{font-family:var(--font-ornate); font-size:16px; letter-spacing:0; text-transform:none;}
 .mail-when{opacity:.7;}
-.mail-text{font-family:var(--font-body); font-size:16px; line-height:1.45; white-space:pre-wrap; overflow-wrap:anywhere;}
+.mail-text{font-family:var(--font-body); font-size:16px; line-height:1.5; white-space:pre-wrap; overflow-wrap:anywhere; padding-right:40px;}
 .mail-empty{font-family:var(--font-body); font-style:italic; color:var(--parchment-dim); padding:10px 2px;}
 .mail-to-grid{display:flex; flex-wrap:wrap; gap:8px; margin:0 0 12px;}
 .mail-to{display:flex; align-items:center; gap:7px; padding:6px 12px 6px 6px; border:1px solid var(--line); border-radius:999px; background:rgba(20,14,10,0.55); color:var(--parchment); cursor:pointer; font-family:var(--font-body); font-size:14px;}
@@ -1605,7 +1610,13 @@ body.force-reduced-motion .notebook-view.notebook-page-turn{animation:none;}
 .vote-reveal-voter{display:flex; align-items:center; gap:0.6cqw; width:100%; min-width:0;}
 .vote-reveal-voter-icon{width:max(11px,calc(2.1cqw*var(--vs,1))); height:max(11px,calc(2.1cqw*var(--vs,1))); border-radius:3px; object-fit:cover; flex-shrink:0; box-shadow:0 0 0 1px rgba(59,45,34,0.4);}
 .vote-reveal-voter-name{font-family:var(--font-type); font-size:max(8px,calc(1.3cqw*var(--vs,1))); color:#3a2a18; line-height:1.12; overflow-wrap:anywhere; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; min-width:0;}
-.role-card-modal-content{position:relative; max-width:min(480px, 92vw); width:100%; background-color:var(--panel); background-image:linear-gradient(rgba(26,20,16,0.88), rgba(26,20,16,0.88)), var(--tex-parchment); background-size:auto, 340px 340px; border:1.5px solid var(--gold-dim); border-radius:10px; padding:22px; box-shadow:0 24px 70px rgba(0,0,0,0.6);}
+/* Every window wears the game's own painted panel: the night card's frame (its centre left out, so the
+   dark interior the text is designed for stays), on a worn parchment ground rather than a flat rectangle. */
+.role-card-modal-content{position:relative; max-width:min(480px, 92vw); width:100%; box-sizing:border-box;
+  background-color:var(--panel); background-image:linear-gradient(rgba(26,20,16,0.9), rgba(24,18,14,0.93)), var(--tex-parchment); background-size:auto, 340px 340px;
+  border:34px solid transparent; border-image:url('assets/ui/night-panel.webp') 96 / 34px stretch;
+  border-radius:0; padding:14px 18px 18px; box-shadow:0 26px 70px rgba(0,0,0,0.7);}
+@media (max-width:640px){ .role-card-modal-content{border-width:22px; border-image-width:22px; padding:10px 12px 14px;} }
 .intro-modal-content{text-align:center; padding:30px 26px;}
 .intro-modal-title{font-family:var(--font-display); font-weight:700; font-size:24px; color:var(--gold-bright); margin:0 0 14px;}
 .intro-modal-text{font-family:var(--font-type); font-size:13px; line-height:1.7; color:var(--parchment-dim); margin:0 0 24px;}
@@ -2116,7 +2127,7 @@ body.phone #design-canvas.bg-night #mafia-chat-section{display:none !important; 
 body.phone.fam-tab #design-canvas.bg-night #mafia-chat-section{display:flex !important;}
 /* earlier days' chat folds into one tappable line in Town Talk */
 /* settings window: grouped rows with switches */
-.settings-content{width:min(1180px, 96vw); max-width:1180px; max-height:92vh; display:flex; flex-direction:column;}
+.settings-content{width:min(1180px, 96vw); max-width:1180px; max-height:97vh; display:flex; flex-direction:column; border-width:20px; border-image-width:20px; padding:10px 14px 14px;}
 /* two columns on a wide screen so everything fits without scrolling; on a phone it is one column that still scrolls, with no visible scrollbar */
 /* post-game night-by-night explanation */
 /* the revenge picker reuses the night action look: same background, parchment panel, portrait grid and plates */
@@ -2211,9 +2222,13 @@ body.phone.fam-tab #design-canvas.bg-night #mafia-chat-section{display:flex !imp
 .set-cols{display:grid; grid-template-columns:1fr 1fr 1fr; gap:0 30px; align-items:start;}
 @media (max-width:1060px){ .set-cols{grid-template-columns:1fr 1fr;} }
 @media (max-width:760px){ .set-cols{grid-template-columns:1fr;} }
-#settings-body .set-row{padding:6px 4px;}
-#settings-body .set-row-master{padding:8px 12px;}
-#settings-body .set-h{margin:12px 0 4px;}
+#settings-body .set-row{padding:3px 4px;}
+#settings-body .set-row-slider{flex-wrap:wrap; row-gap:2px;}
+#settings-body .set-slider .volume-slider{width:108px;}
+#settings-body .set-text small{line-height:1.3;}
+#settings-body .set-text b{font-size:15px;}
+#settings-body .set-row-master{padding:6px 10px; margin-bottom:3px;}
+#settings-body .set-h{margin:9px 0 3px;}
 #settings-body .set-col .set-h:first-child{margin-top:2px;}
 body.big-rules .rules-sub, body.big-rules .rule-label small, body.big-rules .howtocard .one, body.big-rules #role-tip .rt-bio, body.big-rules #role-tip ul, body.big-rules #daylayout-note2-body, body.big-rules #daylayout-note1-body, body.big-rules #daylayout-note3-subtitle, body.big-rules #bulletin-phase-instructions{font-size:1.28em;}
 body.big-rules #role-tip{width:min(420px, calc(100vw - 24px));}
@@ -3156,7 +3171,7 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
   <div class="role-card-modal-content mail-content">
     <button class="role-card-close" id="mail-close-btn" aria-label="Close">&times;</button>
     <h2 class="intro-modal-title" style="font-size:22px; margin-bottom:4px;">The Post</h2>
-    <p class="intro-modal-text" style="margin-bottom:10px;">Letters are private and slow. One to each person per round; a letter posted today is read tomorrow morning.</p>
+    <p class="intro-modal-text" style="margin-bottom:10px;">Letters are private and slow. Three a round, one to each person; a letter posted today is read tomorrow morning.</p>
     <div class="mail-tabs">
       <button type="button" class="mail-tab active" data-mail-tab="in">Received</button>
       <button type="button" class="mail-tab" data-mail-tab="out">Sent</button>
@@ -3206,7 +3221,7 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
         <span class="set-slider"><input type="range" id="settings-music-slider" class="volume-slider" min="0" max="100" value="50" aria-label="Music volume"><span id="settings-music-value" class="set-val">50%</span></span>
       </div>
       <label class="set-row" for="settings-ambient-check"><span class="set-text"><b>Ambient sounds</b><small>Rain and crickets at night.</small></span><input type="checkbox" id="settings-ambient-check" class="rule-switch-input"><span class="rule-switch" aria-hidden="true"></span></label>
-      <label class="set-row" for="settings-tick-check"><span class="set-text"><b>Night clock tick</b><small>The ticking that speeds up as the night runs out.</small></span><input type="checkbox" id="settings-tick-check" class="rule-switch-input"><span class="rule-switch" aria-hidden="true"></span></label>
+      <label class="set-row" for="settings-tick-check"><span class="set-text"><b>Night clock tick</b><small>A steady tick, one a second, while the night runs down.</small></span><input type="checkbox" id="settings-tick-check" class="rule-switch-input"><span class="rule-switch" aria-hidden="true"></span></label>
       <label class="set-row" for="settings-alerts-check"><span class="set-text"><b>Alert sounds</b><small>New chat blips, the time-running-out beeps, and the chime when it is your turn on the stage.</small></span><input type="checkbox" id="settings-alerts-check" class="rule-switch-input"><span class="rule-switch" aria-hidden="true"></span></label>
       <label class="set-row" for="settings-voice-check"><span class="set-text"><b>Hear other players on the stage</b><small>Turn off to stay silent on voice but keep every other sound.</small></span><input type="checkbox" id="settings-voice-check" class="rule-switch-input"><span class="rule-switch" aria-hidden="true"></span></label>
       <label class="set-row" for="settings-haptics-check"><span class="set-text"><b>Vibration</b><small>Independent of sound: muting doesn't turn this off, and turning it off doesn't mute.</small></span><input type="checkbox" id="settings-haptics-check" class="rule-switch-input"><span class="rule-switch" aria-hidden="true"></span></label>
@@ -9642,8 +9657,9 @@ function mailLetterHTML(m){
   else if(m.box === 'out') head = '<span>to</span><b>' + escapeHtmlMp(mailNameOf(m.toId)) + '</b>';
   else head = '<b>' + escapeHtmlMp(mailNameOf(m.fromId)) + '</b><span>wrote to ' + escapeHtmlMp(mailNameOf(m.toId)) + '</span><span class="mail-when">found in their effects</span>';
   var when = m.delivered ? 'posted day ' + m.sentNight : 'in the post, arrives on the morning of day ' + m.deliverNight;
+  var seal = m.delivered ? '<img class="mail-seal" src="' + DAYTIME_IMG.ballotWaxSeal + '" alt="">' : '';
   return '<div class="' + cls + '"><div class="mail-head">' + head + '<span class="mail-when">' + when + '</span></div>' +
-         '<div class="mail-text">' + escapeHtmlMp(m.text) + '</div></div>';
+         '<div class="mail-text">' + escapeHtmlMp(m.text) + '</div>' + seal + '</div>';
 }
 function renderMailBody(){
   var body = document.getElementById('mail-body'); if(!body) return;
@@ -9652,7 +9668,13 @@ function renderMailBody(){
     var me = meFromView(latestView);
     if(!me || !me.alive){ body.innerHTML = '<p class="mail-empty">You can no longer post letters.</p>'; return; }
     var alreadySent = (latestView && latestView.mailSentThisRound) || [];
+    var perRound = (latestView && latestView.mailPerRound) || 3;
+    var left = Math.max(0, perRound - alreadySent.length);
     var options = latestView.players.filter(function(p){ return p.alive && p.id !== myPlayerId; });
+    if(left === 0){
+      body.innerHTML = '<p class="mail-empty">You have posted all ' + perRound + ' of your letters for this round. The post reopens tomorrow.</p>';
+      return;
+    }
     body.innerHTML = '<div class="mail-to-grid">' + options.map(function(p){
         var done = alreadySent.indexOf(p.id) !== -1;
         return '<button type="button" class="mail-to' + (done ? ' done' : '') + (mailDraftTo === p.id ? ' sel' : '') + '" data-to="' + p.id + '"' + (done ? ' disabled title="Already written to this round"' : '') + '>' +
@@ -9660,7 +9682,7 @@ function renderMailBody(){
       }).join('') + '</div>' +
       '<textarea id="mail-text" maxlength="400" placeholder="Write your letter&hellip;"></textarea>' +
       '<div class="mail-send-row"><button type="button" class="btn" id="mail-send-btn">Post it</button>' +
-      '<span class="mail-note" id="mail-note">One letter to each person per round. It arrives tomorrow morning.</span></div>';
+      '<span class="mail-note" id="mail-note">' + left + ' letter' + (left === 1 ? '' : 's') + ' left this round, one to each person. It arrives tomorrow morning.</span></div>';
     body.querySelectorAll('.mail-to').forEach(function(b){
       b.addEventListener('click', function(){ mailDraftTo = b.getAttribute('data-to'); renderMailBody(); });
     });

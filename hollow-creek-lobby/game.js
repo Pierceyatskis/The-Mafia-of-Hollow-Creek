@@ -944,6 +944,10 @@ function resolveFarmerRevenge(state, farmerId, targetId){
 // Day N is the morning straight after night N, so a letter posted at night has to skip it: both a
 // day letter and a night letter are read on the morning of the following round.
 function mailDeliveryNight(state){ return state.night + 1; }
+const MAIL_PER_ROUND = 3;        // at most three letters a round, so the post stays worth reading
+function mailSentCountThisRound(state, fromId){
+  return (state.mail || []).filter(m => m.fromId === fromId && m.sentNight === state.night).length;
+}
 function mailAlreadySentThisRound(state, fromId, toId){
   return (state.mail || []).some(m => m.fromId === fromId && m.toId === toId && m.sentNight === state.night);
 }
@@ -1596,6 +1600,7 @@ function getPlayerView(state, playerId){
     // The post: this viewer's own letters, plus - for the Mortician - the post of anyone they examined.
     mail: me ? mailForView(state, playerId, (me.role === 'Mortician' ? (state.morticianLog || []).map(e => e.id).filter(Boolean) : [])) : undefined,
     mailSentThisRound: me ? (state.mail || []).filter(m => m.fromId === playerId && m.sentNight === state.night).map(m => m.toId) : undefined,
+    mailPerRound: MAIL_PER_ROUND,
     // Mafia chat is scoped strictly by align==='mafia' - never sent to a
     // town-aligned player, living or dead. Hitman is the one explicit
     // exception: mafia-aligned but deliberately excluded from this channel
@@ -1647,7 +1652,7 @@ module.exports = {
   CHARACTERS, ROLE_LABEL, SPECIAL_ROLES, MIN_PLAYERS, MAX_PLAYERS, MAX_MAFIA_COUNT, DEFAULT_ROLES_CONFIG,
   HEAT_LEVELS, computeHeat, heatForView, buildGameSummary,
   shuffle, alignOf, createGame, byId, living, mafiaAlive, cultAlive, mafiaVoters, checkWin, checkBountyHit, checkGrannyFlip,
-  postLetter, deliverMail, mailForView, mailAlreadySentThisRound, mailDeliveryNight,
+  postLetter, deliverMail, mailForView, mailAlreadySentThisRound, mailSentCountThisRound, mailDeliveryNight, MAIL_PER_ROUND,
   detectiveRead, investigateAndRead, resolveNight, resolveDayVote, resolveFarmerRevenge, startNextNight,
   getPlayerView, log, specialRoleCount, validateSeatCapacity,
   recordDayVoteSubmission, recordMayorReveal, recordLivingCountSnapshot, recordAccusation, firstAccuserOf,

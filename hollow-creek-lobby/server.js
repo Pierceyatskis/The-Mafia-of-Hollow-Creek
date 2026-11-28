@@ -1735,6 +1735,7 @@ wss.on('connection', (socket) => {
       if (!target || target.id === player.id) { deny("That player can't be written to."); return; }
       if (!target.alive) { deny("They're gone - there's no one left to read it."); return; }
       if (G.mailAlreadySentThisRound(room.state, player.id, target.id)) { deny('You have already posted a letter to ' + target.name + ' this round.'); return; }
+      if (G.mailSentCountThisRound(room.state, player.id) >= G.MAIL_PER_ROUND) { deny('You have posted all ' + G.MAIL_PER_ROUND + ' of your letters for this round.'); return; }
       const text = String(msg.text || '').trim().slice(0, 400);
       if (!text) return;
       if (!rateOk(socket, 'text')) return;
