@@ -226,7 +226,7 @@ function scoreRound(state, round){
 // =====================================================================
 // Continuous scoring: points for the many small things a player does well
 // EVERY round, not only the one big payout. scoreRound() above pays big, rare
-// amounts (a correct lynch, a lucky save, a late mafia survival); on its own it
+// amounts (a correct vote-out, a lucky save, a late mafia survival); on its own it
 // left most town players on 0 for most rounds and a few players on a lot. These
 // streams sit alongside it (never replacing it) and are merged by the caller:
 //   - taking part: voting, talking
@@ -278,7 +278,7 @@ function scoreRoundExtras(state, round){
     addPoints(scores, id, pts, 'spoke-up', 'Took part in the discussion');
   });
 
-  // reading the table: a vote for a guilty player that did not become the lynch
+  // reading the table: a vote for a guilty player that did not become the vote-out
   finalVotes.forEach(v => {
     const voter = G.byId(state, v.playerId), target = v.targetId ? G.byId(state, v.targetId) : null;
     if(!voter || !isEnemyOf(voter, target)) return;

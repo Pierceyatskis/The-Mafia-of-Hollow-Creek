@@ -154,7 +154,7 @@ function createGame(seats, config){
     mayorRevealedId: null, lastDayVoteMayorTiebreak: false, lastDayVoteTie: null,
     // PREBETA Task 7 - who died in the immediately preceding NIGHT
     // specifically (never a day-vote elimination - those are already public
-    // via the lynch reveal). Set to this round's own nightDeaths at the end
+    // via the vote-out reveal). Set to this round's own nightDeaths at the end
     // of every resolveNight call, so the Mortician's pool of choices for the
     // FOLLOWING night is always exactly "last night's dead," nothing older.
     lastNightDeaths: [],
@@ -519,7 +519,7 @@ function resolveNight(state){
       checkBountyHit(state, counterVictim);
       reportLines.push(counterVictim.name+' was eliminated overnight — word is the family\'s hit went badly wrong.');
       // No role named here - a night death never reveals role publicly
-      // (only a day-vote lynch does, see resolveDayVote below), and naming
+      // (only a day-vote elimination does, see resolveDayVote below), and naming
       // the counter-kill's victim's role would out them as the Navy Seal.
       log(state, 'The mafia moved on '+killTarget.name+', but they fought back and eliminated '+counterVictim.name+' instead.');
       rec('veteran', killTarget.name + ' is the War Veteran. Nobody protected them, so they fought back and eliminated ' + recapName(counterVictim) + ' from the family instead of being eliminated. This counter-attack can only be used once.');
@@ -682,7 +682,7 @@ function resolveNight(state){
 
   // --- Mortician: learns the role of whoever died the PREVIOUS night
   // specifically - never a day-vote elimination (already public via the
-  // lynch reveal), never this same night's own deaths (nothing has happened
+  // vote-out reveal), never this same night's own deaths (nothing has happened
   // yet to learn about until the FOLLOWING night). Reads state.lastNightDeaths
   // as it stood BEFORE this call, i.e. whatever the previous resolveNight
   // call set it to - it gets overwritten with this round's own deaths below,
@@ -878,7 +878,7 @@ function resolveDayVote(state, timedOutFallbackId){
   let farmerRevengePending = null;
   // PREBETA Phase 2 Task 4 - Hitman's revenge ability matches Farmer's shape
   // EXACTLY (reuses this same mechanism/state fields rather than a parallel
-  // one): triggers only on a day-vote lynch, never any other cause of death,
+  // one): triggers only on a day-vote elimination, never any other cause of death,
   // and can target anyone including a mafia-aligned teammate - the lack of
   // restriction here is the actual cost of being cut out of the mafia's
   // coordination. resolveFarmerRevenge below already only excludes self, so

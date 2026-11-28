@@ -1505,7 +1505,7 @@ async function decideFinalVotes(){
       'Living cast (with hidden true roles, for your reasoning only):\n'+castOfString()+'\n\n'+
       'Full conversation today:\n'+fullLog+'\n\nGame log so far:\n'+STATE.history.join('\n')+'\n\n'+
       HOUSE_RULES+'\n\n'+
-      'Decide who each living, non-silenced, non-human character votes to lynch today, based on the actual case built during discussion \u2014 inconsistencies called out, reads defended with reasoning, anything they privately know from their own night actions (logged above), and their team\'s actual strategic interest \u2014 weighted far more heavily than personality alone. A town-aligned character should not vote out someone who has been genuinely helpful without real cause. Cannot vote for a silenced player.\n\n'+
+      'Decide who each living, non-silenced, non-human character votes to vote out today, based on the actual case built during discussion \u2014 inconsistencies called out, reads defended with reasoning, anything they privately know from their own night actions (logged above), and their team\'s actual strategic interest \u2014 weighted far more heavily than personality alone. A town-aligned character should not vote out someone who has been genuinely helpful without real cause. Cannot vote for a silenced player.\n\n'+
       'Respond with exactly this JSON shape: {"votes":[{"id":"...","target":"..."}]}';
     var result = await callClaude(prompt);
     if(!result.votes) throw new Error('bad shape');

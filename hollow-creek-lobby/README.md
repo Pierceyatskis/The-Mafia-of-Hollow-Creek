@@ -52,7 +52,7 @@ starting the server at all.
   players report someone (2 in a small room, about 40% of the others in a big one) they are muted for the rest of the game, on the
   Stage and in public chat, and everyone is told. The host is told about each report and can lift the mute (Moderate > Unmute).
   Six blocked-language messages in one game mute a player the same way (`STRIKES_BEFORE_MUTE`).
-- **Host tools**: the host can mute or kick a player from the room (with a fixed set of reasons), and the verified owner can hang the
+- **Host tools**: the host can mute or kick a player from the room (with a fixed set of reasons), and the verified owner can give the
   Tag of Shame on a name.
 
 ## What this does NOT do yet

@@ -54,7 +54,7 @@ function suspicion(state, brain, b, t) {
   });
   brain.lynches.forEach(l => {
     const voted = l.votersFor.includes(t.id);
-    if (l.align === 'town' && voted) s += 1.1;              // pushed an innocent onto the gallows
+    if (l.align === 'town' && voted) s += 1.1;              // pushed an innocent out of the game
     if (l.align === 'mafia' && voted) s -= 0.9;             // helped catch one
     if (l.align === 'mafia' && !voted) s += 0.25;
   });

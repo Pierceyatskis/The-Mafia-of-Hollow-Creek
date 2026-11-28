@@ -356,7 +356,7 @@ body.force-reduced-motion .daylayout-roster-tile.qv-target{animation:none; box-s
 #design-canvas.bg-day #role-envelope, #design-canvas.bg-night #role-envelope{display:flex; position:absolute; left:1772.15px; top:43px; width:120px; z-index:4; pointer-events:auto;}
 /* The post. A button rather than a desk prop, so it is reachable on both the day and night screens. */
 #mailbox-btn{display:none;}
-#design-canvas.bg-day #mailbox-btn, #design-canvas.bg-night #mailbox-btn{display:flex; position:absolute; left:46px; top:40px; width:150px; z-index:4; flex-direction:column; align-items:center; gap:2px; background:none; border:none; padding:0; cursor:pointer; transition:transform .12s ease, filter .15s ease;}
+#design-canvas.bg-day #mailbox-btn, #design-canvas.bg-night #mailbox-btn{display:flex; position:absolute; left:46px; top:22px; width:150px; z-index:4; flex-direction:column; align-items:center; gap:2px; background:none; border:none; padding:0; cursor:pointer; transition:transform .12s ease, filter .15s ease;}
 #mailbox-btn img{width:132px; height:132px; object-fit:contain; filter:drop-shadow(0 4px 8px rgba(0,0,0,0.7));}
 #mailbox-btn .mb-label{font-family:var(--font-type); font-size:13px; letter-spacing:2px; text-transform:uppercase; color:var(--parchment-dim);}
 #mailbox-btn:hover{transform:translateY(-3px); filter:brightness(1.12);}
@@ -511,7 +511,7 @@ body.force-reduced-motion #daylayout-news-notification-badge::after, body.force-
    of this codebase's modals), but sizing/backdrop/z-index only apply
    under bg-day so it can't render anywhere else by accident. */
 #daylayout-news-modal{display:none;}
-#design-canvas.bg-day #daylayout-news-modal{position:absolute; left:0px; top:0px; width:1299.17px; height:1080px; background:rgba(0,0,0,0.78); z-index:50; align-items:center; justify-content:center; cursor:pointer;}
+#design-canvas.bg-day #daylayout-news-modal{position:absolute; left:0px; top:0px; width:1920px; height:1080px; background:rgba(0,0,0,0.78); z-index:50; align-items:center; justify-content:center; cursor:pointer;}
 #daylayout-news-modal-close{position:absolute; top:24px; right:24px; width:40px; height:40px; border-radius:50%; background:rgba(20,15,10,0.85); border:2px solid var(--gold-dim); color:var(--gold-bright); font-size:22px; line-height:1; cursor:pointer; z-index:51; transition:border-color .15s ease, background .15s ease;}
 #daylayout-news-modal-close:hover{border-color:var(--gold-bright); background:rgba(30,22,15,0.95);}
 /* The dark backdrop above only covers the left ~1299px of the canvas
@@ -552,7 +552,7 @@ body.force-reduced-motion #daylayout-news-notification-badge::after, body.force-
    whole modal. At max-height:993px (92% of 1080) the image's own 1010x
    1523 (resized to 1000x1508, ratio~0.663) source renders at ~658x993 -
    width-bound values below assume that box. */
-#daylayout-news-modal-inner{position:relative; display:inline-block; max-width:1195px; max-height:993px;}
+#daylayout-news-modal-inner{position:relative; display:inline-block; max-width:1195px; max-height:993px; transform:scale(1.06); transform-origin:center center;}
 #daylayout-news-modal-img{display:block; max-width:1195px; max-height:993px; width:auto; height:auto; object-fit:contain; box-shadow:0 14px 44px rgba(0,0,0,0.85); cursor:default;}
 /* Red marker (underline + circle) - cropped from the exact same
    1024x1536 canvas/bbox as the newspaper image itself, so it's already
@@ -585,8 +585,8 @@ body.force-reduced-motion #daylayout-news-notification-badge::after, body.force-
 #daylayout-obit-content{display:block; margin-top:18px;}
 #daylayout-obit-content::after{content:''; display:block; clear:both;}
 #daylayout-obit-portrait{float:left; width:96px; height:auto; margin:2px 10px 4px 0; border:1px solid #3a2f22; filter:sepia(0.3);}
-#daylayout-obit-body{margin:0; font-size:11.5px; line-height:1.38; color:#2a2015; overflow-wrap:anywhere; text-align:left;}
-#daylayout-obit-byline{margin:6px 0 0; clear:both; font-size:10.5px; font-style:italic; text-align:right; color:#4a3b2a;}
+#daylayout-obit-body{margin:0; font-size:13.5px; line-height:1.42; color:#2a2015; overflow-wrap:anywhere; text-align:left;}
+#daylayout-obit-byline{margin:6px 0 0; clear:both; font-size:11.5px; font-style:italic; text-align:right; color:#4a3b2a;}
 /* TEMP day-layout-rebuild step 3 - "Town Bulletin" title over the cabinet's
    header plaque. Position re-measured directly off the raw c45610ee pixels
    (scanned the plaque's brass-bordered dark plate at the cabinet's own
@@ -3442,7 +3442,7 @@ body.big-chat .lobby-chat-log .chatline .line, body.big-chat .lobby-chat-log .ch
           <button class="btn ghost" id="player-action-unmute-btn">Unmute (host)</button>
           <button class="btn danger" id="player-action-kick-btn">Remove from game</button>
         </div>
-        <button class="btn ghost" id="player-action-shame-btn" style="display:none;">Hang the Tag of Shame</button>
+        <button class="btn ghost" id="player-action-shame-btn" style="display:none;">Give the Tag of Shame</button>
       </div>
     </div>
   </div>
@@ -5786,7 +5786,7 @@ async function decideFinalVotes(){
       'Living cast (with hidden true roles, for your reasoning only):\n'+castOfString()+'\n\n'+
       'Full conversation today:\n'+fullLog+'\n\nGame log so far:\n'+STATE.history.join('\n')+'\n\n'+
       HOUSE_RULES+'\n\n'+
-      'Decide who each living, non-silenced, non-human character votes to lynch today, based on the actual case built during discussion \u2014 inconsistencies called out, reads defended with reasoning, anything they privately know from their own night actions (logged above), and their team\'s actual strategic interest \u2014 weighted far more heavily than personality alone. A town-aligned character should not vote out someone who has been genuinely helpful without real cause. Cannot vote for a silenced player.\n\n'+
+      'Decide who each living, non-silenced, non-human character votes to vote out today, based on the actual case built during discussion \u2014 inconsistencies called out, reads defended with reasoning, anything they privately know from their own night actions (logged above), and their team\'s actual strategic interest \u2014 weighted far more heavily than personality alone. A town-aligned character should not vote out someone who has been genuinely helpful without real cause. Cannot vote for a silenced player.\n\n'+
       'Respond with exactly this JSON shape: {"votes":[{"id":"...","target":"..."}]}';
     var result = await callClaude(prompt);
     if(!result.votes) throw new Error('bad shape');
@@ -6019,7 +6019,7 @@ function renderCaseLogRounds(){
     var c = classifyLogEntry(text);
     if(c.private) return; // skip - not public information
     if(!groups[roundNum]){ groups[roundNum] = []; order.push(roundNum); }
-    // A day-vote elimination is a public unmasking (see renderLynchReveal) -
+    // A day-vote elimination is a public unmasking (see the vote-out reveal) -
     // its role stays in the case file. Night deaths and everything else
     // stay anonymous, matching the reveal screens.
     var entryText = c.tag === 'VERDICT' ? text : redactRoleMentions(text);
@@ -8487,7 +8487,7 @@ function renderLynchReveal(view){
   // innerHTML write - no perceptible beats at all. Stage it instead: who ->
   // pause -> their photo -> pause -> the role, the actual payoff, timed
   // with the same stamp-slam treatment the night-kill screen already uses.
-  // Guarded so a second gameState for the SAME lynch (e.g. round score
+  // Guarded so a second gameState for the SAME vote-out (e.g. round score
   // arriving separately) can't restart the sequence mid-flight.
   var key = view.night+':'+lead.id;
   if(renderLynchReveal._key === key) return;
@@ -8540,7 +8540,7 @@ function renderLynchReveal(view){
   }, 1800);
 }
 
-// Asset-driven vote-reveal modal, replacing the plain-text lynch-reveal
+// Asset-driven vote-reveal modal, replacing the plain-text vote-out reveal
 // above (that markup/animation is retired but left in the DOM under
 // #lynch-reveal-legacy, display:none, rather than deleted, in case any
 // leftover reference needs it). Fades in via .role-card-overlay's own
@@ -8548,7 +8548,7 @@ function renderLynchReveal(view){
 var VOTE_REVEAL_FLAVOR = {
   town: "An innocent name, added to the town's growing list of regrets.",
   mafia: "Deception wears many hats in Hollow Creek.",
-  neutral: "Their own game, cut short by the noose.",
+  neutral: "Their own game, cut short by the town's verdict.",
   cult: "One voice silenced from the circle's chorus."
 };
 // Cards share one column width (like the mockup) but grow taller with more
@@ -8676,7 +8676,7 @@ function renderVoteRevealModal(view){
     lead = {id:null, name:'No One', role:null, align:'town', alive:true};
   }
   // Same re-entry guard as the legacy reveal - a second gameState for the
-  // same lynch (round score arriving separately, a chat message ticking
+  // same vote-out (round score arriving separately, a chat message ticking
   // in) must not re-open/re-animate an already-shown modal.
   // After a Farmer/Hitman's last move the results were already shown while they chose: go straight to who they took (or close if nobody).
   var revengeDone = view.phase==='day-reveal' && revengeRevealSeen === view.night && lead && lead.id;
@@ -8705,7 +8705,7 @@ function renderVoteRevealModal(view){
   var tieNames = tie ? tie.ids.map(function(id){ var q = view.players.find(function(p){ return p.id === id; }); return q ? q.name : '?'; }) : [];
   var tieText = tie ? ('Tie: ' + tieNames.join(' and ') + ' each had ' + tie.votes + ' votes. ' + (tie.mayorResolved ? 'The Mayor\u2019s own vote settled it.' : 'No Mayor was in play to break it, so the town drew lots, and the draw fell on ' + lead.name + '.')) : '';
   document.getElementById('vote-reveal-outcome').textContent = noLynch ? 'Nobody Voted Out' : 'Voted Out \u2014 '+voteCount+(voteCount===1?' Vote':' Votes')+(tie ? ' (tie)' : '');
-  document.getElementById('vote-reveal-flavor').textContent = noLynch ? 'No one cast a vote, so the town sends no one to the noose today.' : (tie ? tieText : (VOTE_REVEAL_FLAVOR[lead.align] || VOTE_REVEAL_FLAVOR.town));
+  document.getElementById('vote-reveal-flavor').textContent = noLynch ? 'No one cast a vote, so the town sends no one away today.' : (tie ? tieText : (VOTE_REVEAL_FLAVOR[lead.align] || VOTE_REVEAL_FLAVOR.town));
 
   // Group every recorded ballot by who it names (or "abstained") - sorted
   // by size, not by who actually got eliminated (a Mayor tiebreak can
@@ -10114,7 +10114,7 @@ function renderDayPanel(){
   } else if(view.phase==='day-reveal'){
     // 5g: the stage never shares screen space with the vote-out reveal -
     // fade the outgoing stage panel out, THEN remove it from layout,
-    // rather than an instant cut competing with lynchReveal fading in.
+    // rather than an instant cut competing with the vote-out reveal fading in.
     if(stageWasVisible){
       stagePanel.classList.add('stage-panel-fade-out');
       setTimeout(function(){
@@ -10654,7 +10654,7 @@ function openPlayerActionModal(id){
   document.getElementById('player-action-host-tools').style.display = amHost ? 'flex' : 'none';
   var shameActionBtn = document.getElementById('player-action-shame-btn');
   shameActionBtn.style.display = canShame(p) ? '' : 'none';
-  shameActionBtn.textContent = p.shame ? 'Pardon (lift the Tag of Shame)' : 'Hang the Tag of Shame';
+  shameActionBtn.textContent = p.shame ? 'Pardon (lift the Tag of Shame)' : 'Give the Tag of Shame';
 
   document.getElementById('player-action-vote-error').style.display = 'none';
   renderNotePanel(); // refresh the note textarea for THIS target - otherwise it keeps showing whatever was last typed for a previous player
@@ -11938,7 +11938,7 @@ function casePlayerEvents(p){
       }
     }
   });
-  // Public round narration (night kills, lynches, doctor saves) - a flat
+  // Public round narration (night eliminations, vote-outs, doctor saves) - a flat
   // "Night N / <line>" log meant to be read via the case file (see
   // game.js's log()). Matched by exact phrasing rather than re-deriving a
   // structured cause-of-death, since these lines are the authoritative
@@ -13339,7 +13339,7 @@ function obitPick(arr){ return arr[Math.floor(Math.random() * arr.length)]; }
 function obitQuote(text){ return String(text || '').replace(/[.!?]+$/, '') + '.'; }
 function obitShort(text, max){ var t = String(text || '').replace(/[.!?]+$/, ''); if(t.length > max) t = t.slice(0, max - 1).replace(/\s+\S*$/, '') + '...'; return t + (/\.\.\.$/.test(t) ? '' : '.'); }
 function obitFill(t, map){ return t.replace(/\{(\w+)\}/g, function(m, k){ return map[k] != null ? map[k] : m; }); }
-// Who the morning paper is about: whoever the overnight report names as found dead (a lynch is yesterday's news).
+// Who the morning paper is about: whoever the overnight report names as found dead (a vote-out is yesterday's news).
 function lastNightVictim(view){
   var report = view.cachedOvernightReport || '';
   var named = (view.players || []).filter(function(p){ return !p.alive && report.indexOf(p.name) >= 0; });
@@ -13361,16 +13361,16 @@ function buildObituary(deadPlayer, view){
   var accusingChats = myChats.filter(function(m){ return m.category === 'accusation' && m.targetId; });
   var lastAccusingChat = accusingChats.length ? accusingChats[accusingChats.length - 1] : null;
   // a line already used for the accusation or the role claim is not quoted a second time as "last words"
-  if(lastChat && lastChat !== lastAccusingChat && lastChat !== lastRoleClaim) sentences.push(obitFill(obitPick(OBIT_LASTWORDS), {name: name, text: obitShort(lastChat.text, 110)}));
+  if(lastChat && lastChat !== lastAccusingChat && lastChat !== lastRoleClaim) sentences.push(obitFill(obitPick(OBIT_LASTWORDS), {name: name, text: obitShort(lastChat.text, 150)}));
   if(lastRoleClaim){
     var claimed = lastRoleClaim.claimedRole && ROLE_SHORT[lastRoleClaim.claimedRole];
     if(claimed) sentences.push(obitFill(obitPick(OBIT_ROLECLAIM_ROLE), {name: name, role: claimed}));
-    else sentences.push(obitFill(obitPick(OBIT_ROLECLAIM), {name: name, text: obitShort(lastRoleClaim.text, 110)}));
+    else sentences.push(obitFill(obitPick(OBIT_ROLECLAIM), {name: name, text: obitShort(lastRoleClaim.text, 150)}));
   }
   // Prefer the actual accusing line (quoted) over the bare "accused X" fallback.
   if(lastAccusingChat){
     var quotedTarget = (view.players || []).find(function(p){ return p.id === lastAccusingChat.targetId; });
-    if(quotedTarget) sentences.push(obitFill(obitPick(OBIT_ACCUSED_QUOTE), {name: name, target: quotedTarget.name, text: obitShort(lastAccusingChat.text, 110)}));
+    if(quotedTarget) sentences.push(obitFill(obitPick(OBIT_ACCUSED_QUOTE), {name: name, target: quotedTarget.name, text: obitShort(lastAccusingChat.text, 150)}));
     else lastAccusingChat = null;
   }
   if(!lastAccusingChat && lastAccusation){
@@ -13383,7 +13383,7 @@ function buildObituary(deadPlayer, view){
   }
   if(relation) sentences.push(relation);
   var closing = obitPick(OBIT_CLOSING);
-  if(sentences.join(' ').length + closing.length < 560) sentences.push(closing);
+  if(sentences.join(' ').length + closing.length < 820) sentences.push(closing);
   return sentences.join(' ');
 }
 // Near-miss "narrow escape" story - the Chronicle's other front-page
