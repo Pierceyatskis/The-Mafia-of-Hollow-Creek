@@ -5060,10 +5060,12 @@ var SoundFX = (function(){
     tone(c, f, start, dur || 0.16, 'sine', peak, f * 0.62);
   }
   // A wooden clock "tock": a dry click over a short, soft, low-ish knock.
+  // A clock tick is a very short, sharp transient with a metallic resonance behind it - not a tone and
+  // not a hiss. f sets that resonance, and the tick/tock pair differ by pitching it high then low.
   function tock(c, start, f, peak){
-    noiseBurst(c, start, 0.012, 'highpass', 4200, 0, 1.2, peak * 1.15, 0.001);   // the click of the escapement
-    noiseBurst(c, start, 0.02, 'bandpass', 2600, 0, 6, peak * 0.7, 0.001);
-    tone(c, f, start, 0.025, 'triangle', peak * 0.22, f * 0.85);                 // just a hint of wooden case
+    noiseBurst(c, start, 0.004, 'highpass', 2600, 0, 0.7, peak, 0.0004);          // the escapement letting go
+    noiseBurst(c, start, 0.03, 'bandpass', f, 0, 11, peak * 0.95, 0.0006);        // the metal ringing after it
+    noiseBurst(c, start + 0.001, 0.05, 'lowpass', 520, 0, 0.8, peak * 0.28, 0.001); // the wooden case under it
   }
   function safe(fn){
     if(muted) return;
@@ -5133,7 +5135,7 @@ var SoundFX = (function(){
       // tick, tock - the second of each pair sits a little lower, like a real pendulum
       var low = (tickBeat % 2) === 1;
       var vol = Math.min(0.5, TICK_BASE_VOL * ambienceVolume * (1 + tickUrgency * 0.45));
-      tock(c, tickNextAt, low ? 1500 : 1850, vol);
+      tock(c, tickNextAt, low ? 2050 : 3100, vol);   // tock is the lower of the pair
       tickBeat++;
       tickNextAt += tickPeriod();
     }
